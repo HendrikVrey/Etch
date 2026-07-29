@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Etch.Core is pure functions over text: no UI reference, no I/O, no platform
+    dependency. Everything of value in the product lives here so it can be
+    exhaustively unit-tested without a GUI. Keep it that way — if a PackageReference
+    or a `using System.Windows` appears in this project, something has gone wrong.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Etch.Core</RootNamespace>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+</Project>

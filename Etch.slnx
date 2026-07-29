@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/solution items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path=".editorconfig" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Etch.Core/Etch.Core.csproj" />
+    <Project Path="src/Etch.Persistence/Etch.Persistence.csproj" />
+    <Project Path="src/Etch.App/Etch.App.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Etch.Core.Tests/Etch.Core.Tests.csproj" />
+    <Project Path="tests/Etch.Persistence.Tests/Etch.Persistence.Tests.csproj" />
+    <Project Path="tests/Etch.App.Tests/Etch.App.Tests.csproj" />
+  </Folder>
+</Solution>

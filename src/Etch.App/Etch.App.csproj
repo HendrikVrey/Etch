@@ -1,0 +1,75 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>Etch.App</RootNamespace>
+    <AssemblyName>Etch</AssemblyName>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>false</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <DebugType>embedded</DebugType>
+    <!-- Required by the [LibraryImport] source generator (ConsoleBridge). -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <!--
+      Etch owns its own entry point (see Program.cs) so the startup timeline can
+      take its first measurement BEFORE the Application object and its XAML
+      resource dictionaries are constructed. That split is the entire point of the
+      M0 spike: it separates host/runtime init cost from WPF-UI theme cost.
+
+      Clearing EnableDefaultApplicationDefinition is the whole mechanism. With no
+      ApplicationDefinition, the SDK generates no Main of its own (so ours does not
+      collide), and the default Page glob — which excludes @(ApplicationDefinition),
+      now empty — picks App.xaml up automatically and still emits
+      InitializeComponent. Adding an explicit <Page Include="App.xaml" /> here would
+      make it a duplicate item and fail the build with NETSDK1022.
+    -->
+    <StartupObject>Etch.App.Program</StartupObject>
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      UseWPF removes System.IO from the SDK's implicit usings, because
+      System.Windows.Shapes.Path collides with System.IO.Path. Etch never imports
+      System.Windows.Shapes, so putting System.IO back is safe and saves an import
+      in almost every file.
+    -->
+    <Using Include="System.IO" />
+
+    <!--
+      The command line is Etch's untrusted-input boundary, and it is internal.
+      Testing it matters more than keeping the assembly sealed.
+    -->
+    <InternalsVisibleTo Include="Etch.App.Tests" />
+  </ItemGroup>
+
+  <PropertyGroup Label="Publish">
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!--
+      Single-file compression trades startup time for file size — it decompresses
+      on every launch. Etch sells startup time, so this stays off permanently.
+    -->
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+    <!--
+      WPF is not trim-friendly: XAML resolves types by reflection, so trimming
+      breaks it in ways that only show up at runtime. R2R is where the startup win
+      is. NativeAOT is not available for WPF at all.
+    -->
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WPF-UI" />
+    <PackageReference Include="AvalonEdit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Etch.Core\Etch.Core.csproj" />
+    <ProjectReference Include="..\Etch.Persistence\Etch.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

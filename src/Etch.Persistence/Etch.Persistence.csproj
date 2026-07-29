@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Etch.Persistence owns every byte Etch writes to disk. It has no UI reference
+    and no knowledge of AvalonEdit: callers hand it plain text and get plain text
+    back, which is what makes the crash-recovery paths testable without a window.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Etch.Persistence</RootNamespace>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Etch.Core\Etch.Core.csproj" />
+  </ItemGroup>
+
+</Project>

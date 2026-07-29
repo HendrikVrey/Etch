@@ -1,0 +1,106 @@
+<ui:FluentWindow
+    x:Class="Etch.App.Views.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="Etch"
+    Width="1100"
+    Height="720"
+    MinWidth="480"
+    MinHeight="320"
+    ExtendsContentIntoTitleBar="True"
+    WindowBackdropType="Mica"
+    WindowCornerPreference="Round"
+    WindowStartupLocation="CenterScreen">
+
+    <ui:FluentWindow.CommandBindings>
+        <!-- ApplicationCommands.Open already carries the Ctrl+O gesture. -->
+        <CommandBinding Command="ApplicationCommands.Open" Executed="OnOpenExecuted" />
+    </ui:FluentWindow.CommandBindings>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--
+            M1 puts the tab strip in here. Nothing else ever goes in the title bar:
+            no menu, no ribbon, no toolbar.
+        -->
+        <ui:TitleBar
+            Grid.Row="0"
+            Title="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
+            ShowMaximize="True"
+            ShowMinimize="True" />
+
+        <avalonEdit:TextEditor
+            x:Name="Editor"
+            Grid.Row="1"
+            Padding="14,10,14,10"
+            Background="Transparent"
+            FontFamily="Cascadia Mono, Cascadia Code, Consolas, Courier New"
+            FontSize="14"
+            Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+            HorizontalScrollBarVisibility="Auto"
+            ShowLineNumbers="True"
+            VerticalScrollBarVisibility="Auto"
+            WordWrap="False">
+            <avalonEdit:TextEditor.Options>
+                <avalonEdit:TextEditorOptions
+                    ConvertTabsToSpaces="True"
+                    EnableEmailHyperlinks="False"
+                    EnableHyperlinks="False"
+                    HighlightCurrentLine="True"
+                    IndentationSize="4" />
+            </avalonEdit:TextEditor.Options>
+        </avalonEdit:TextEditor>
+
+        <Border
+            Grid.Row="2"
+            Padding="14,5"
+            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+            BorderThickness="0,1,0,0">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel
+                    Grid.Column="0"
+                    Orientation="Horizontal"
+                    TextBlock.FontSize="12"
+                    TextBlock.Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                    <!--
+                        Detection lands in M2. Until then the chip is present but
+                        static, so the layout it has to live in is proven now.
+                    -->
+                    <TextBlock
+                        x:Name="FormatChip"
+                        FontWeight="SemiBold"
+                        Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                        Text="Plain text" />
+                    <TextBlock Margin="10,0" Text="·" />
+                    <TextBlock x:Name="CaretStatus" Text="Ln 1, Col 1" />
+                    <TextBlock Margin="10,0" Text="·" />
+                    <TextBlock x:Name="CountsStatus" Text="0 chars, 1 line" />
+                    <TextBlock Margin="10,0" Text="·" />
+                    <TextBlock x:Name="LineEndingStatus" Text="CRLF" />
+                    <TextBlock Margin="10,0" Text="·" />
+                    <TextBlock x:Name="EncodingStatus" Text="UTF-8" />
+                </StackPanel>
+
+                <TextBlock
+                    x:Name="TransientMessage"
+                    Grid.Column="1"
+                    HorizontalAlignment="Right"
+                    FontSize="12"
+                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                    TextTrimming="CharacterEllipsis" />
+            </Grid>
+        </Border>
+    </Grid>
+</ui:FluentWindow>

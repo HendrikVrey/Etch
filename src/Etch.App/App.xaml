@@ -1,0 +1,22 @@
+<Application
+    x:Class="Etch.App.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml">
+    <!--
+        No StartupUri: Program.Main owns startup so the timeline can measure the
+        window construction phase explicitly.
+
+        These two dictionaries are the whole XAML cost of the app. Keep the list at
+        exactly this length — every dictionary merged here is paid on every cold
+        start, by every user, forever.
+    -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:ThemesDictionary Theme="Dark" />
+                <ui:ControlsDictionary />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
