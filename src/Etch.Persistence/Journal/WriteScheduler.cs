@@ -42,6 +42,22 @@ public sealed class WriteScheduler
     /// </remarks>
     private readonly HashSet<BufferId> _discarded = new();
 
+    /// <summary>
+    /// Buffers that must not be written to disk at all.
+    /// </summary>
+    /// <remarks>
+    /// Distinct from <see cref="_discarded"/>, and the distinction is load-bearing.
+    /// A discarded buffer has been closed, and recording it again revives it —
+    /// which is correct, because reopening a closed tab should start saving it
+    /// again. A suppressed buffer is one that must never reach the disk while the
+    /// suppression stands, no matter how many edits arrive: a tab the user marked
+    /// ephemeral, a buffer read back truncated (writing it would make the
+    /// truncation permanent), or one whose size puts it past the journaling
+    /// threshold. <see cref="Record"/> drops those silently rather than queueing
+    /// work that would then have to be filtered out later.
+    /// </remarks>
+    private readonly HashSet<BufferId> _suppressed = new();
+
     /// <summary>Creates a scheduler.</summary>
     public WriteScheduler(JournalOptions options)
     {
@@ -66,21 +82,35 @@ public sealed class WriteScheduler
         }
     }
 
+    /// <summary>Records that <paramref name="id"/> now reads <paramref name="text"/>.</summary>
+    /// <remarks>
+    /// The eager overload, for callers that already hold the text — restores, tests,
+    /// and anything that is not on the keystroke path. Editors should prefer the
+    /// <see cref="BufferContent"/> overload and hand over a snapshot instead.
+    /// </remarks>
+    public void Record(BufferId id, string text, DateTimeOffset now) =>
+        Record(id, BufferContent.FromText(text), now);
+
     /// <summary>
-    /// Records that <paramref name="id"/> now reads <paramref name="text"/>.
+    /// Records that <paramref name="id"/> has changed, and how to obtain its text.
     /// </summary>
     /// <param name="id">The buffer that changed.</param>
-    /// <param name="text">Its full current contents.</param>
+    /// <param name="content">Its full current contents, materialised when written.</param>
     /// <param name="now">When the change happened.</param>
     /// <remarks>
-    /// Replaces any earlier unwritten text for the same buffer. The deadline for the
-    /// hard latency ceiling is kept from the *first* unwritten change, not reset by
-    /// this one — resetting it is what would let continuous typing postpone the write
-    /// indefinitely, which is the exact failure the ceiling exists to prevent.
+    /// Replaces any earlier unwritten content for the same buffer. The deadline for
+    /// the hard latency ceiling is kept from the *first* unwritten change, not reset
+    /// by this one — resetting it is what would let continuous typing postpone the
+    /// write indefinitely, which is the exact failure the ceiling exists to prevent.
+    /// <para>
+    /// A suppressed buffer is dropped here and reports nothing, because there is no
+    /// outcome for the caller to act on: suppression is a standing decision the
+    /// caller itself made, not a failure.
+    /// </para>
     /// </remarks>
-    public void Record(BufferId id, string text, DateTimeOffset now)
+    public void Record(BufferId id, BufferContent content, DateTimeOffset now)
     {
-        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(content);
 
         if (id.IsEmpty)
         {
@@ -89,14 +119,67 @@ public sealed class WriteScheduler
 
         lock (_gate)
         {
+            if (_suppressed.Contains(id))
+            {
+                return;
+            }
+
             // Recording makes the buffer live again — a reopened tab, or a new buffer
             // that reused the id. Leaving it in the discard set would silently drop
             // every subsequent write to it.
             _discarded.Remove(id);
 
             _pending[id] = _pending.TryGetValue(id, out var existing)
-                ? existing with { Text = text, LastChangedAt = now }
-                : new Entry(text, FirstChangedAt: now, LastChangedAt: now);
+                ? existing with { Content = content, LastChangedAt = now }
+                : new Entry(content, FirstChangedAt: now, LastChangedAt: now);
+        }
+    }
+
+    /// <summary>
+    /// Turns writing for <paramref name="id"/> off or back on, dropping anything
+    /// already queued when turning it off.
+    /// </summary>
+    /// <param name="id">The buffer.</param>
+    /// <param name="suppressed">True to stop writing it; false to allow it again.</param>
+    /// <returns>True when unwritten content was dropped by this call.</returns>
+    /// <remarks>
+    /// Three callers, all of which must be able to make the decision <em>before</em>
+    /// the first edit arrives rather than filtering afterwards:
+    /// <list type="bullet">
+    /// <item>a tab the user marked ephemeral, which must never touch the disk;</item>
+    /// <item>a buffer that came back from disk truncated, where writing it back would
+    /// make the truncation permanent;</item>
+    /// <item>a document past the journaling size threshold.</item>
+    /// </list>
+    /// Symmetric because the first of those is a toggle: turning ephemeral off again
+    /// has to start saving, or the setting is a trap.
+    /// </remarks>
+    public bool SetSuppressed(BufferId id, bool suppressed)
+    {
+        if (id.IsEmpty)
+        {
+            throw new ArgumentException("An empty BufferId cannot be suppressed.", nameof(id));
+        }
+
+        lock (_gate)
+        {
+            if (!suppressed)
+            {
+                _suppressed.Remove(id);
+                return false;
+            }
+
+            _suppressed.Add(id);
+            return _pending.Remove(id);
+        }
+    }
+
+    /// <summary>Whether writes for <paramref name="id"/> are currently suppressed.</summary>
+    public bool IsSuppressed(BufferId id)
+    {
+        lock (_gate)
+        {
+            return _suppressed.Contains(id);
         }
     }
 
@@ -104,10 +187,40 @@ public sealed class WriteScheduler
     /// <returns>True when there was unwritten text to drop.</returns>
     public bool Discard(BufferId id)
     {
+        if (id.IsEmpty)
+        {
+            throw new ArgumentException("An empty BufferId cannot be discarded.", nameof(id));
+        }
+
         lock (_gate)
         {
             _discarded.Add(id);
             return _pending.Remove(id);
+        }
+    }
+
+    /// <summary>
+    /// Lifts a discard, for a buffer that has been reopened.
+    /// </summary>
+    /// <remarks>
+    /// Reopening a closed tab moves its text out of the trash and back to live storage
+    /// without recording anything — nothing has been typed yet. Until something is, the
+    /// buffer is still in the discard set, and a write taken before the close that
+    /// completes in that window would see it as discarded and delete the file that was
+    /// just restored. The trash copy has already been moved, not copied, so that loss is
+    /// total. Reviving before the restore closes it.
+    /// </remarks>
+    /// <returns>True when the buffer was in the discard set.</returns>
+    public bool Revive(BufferId id)
+    {
+        if (id.IsEmpty)
+        {
+            throw new ArgumentException("An empty BufferId cannot be revived.", nameof(id));
+        }
+
+        lock (_gate)
+        {
+            return _discarded.Remove(id);
         }
     }
 
@@ -183,7 +296,7 @@ public sealed class WriteScheduler
             {
                 if (WaitFor(entry, now) <= TimeSpan.Zero)
                 {
-                    (due ??= []).Add(new PendingWrite(id, entry.Text, entry.FirstChangedAt));
+                    (due ??= []).Add(new PendingWrite(id, entry.Content, entry.FirstChangedAt));
                 }
             }
 
@@ -223,7 +336,7 @@ public sealed class WriteScheduler
 
             foreach (var (id, entry) in _pending)
             {
-                all.Add(new PendingWrite(id, entry.Text, entry.FirstChangedAt));
+                all.Add(new PendingWrite(id, entry.Content, entry.FirstChangedAt));
             }
 
             _pending.Clear();
@@ -251,17 +364,17 @@ public sealed class WriteScheduler
     /// </remarks>
     public void Requeue(PendingWrite write, DateTimeOffset retryAt)
     {
-        ArgumentNullException.ThrowIfNull(write.Text, nameof(write));
+        ArgumentNullException.ThrowIfNull(write.Content, nameof(write));
 
         lock (_gate)
         {
-            if (_discarded.Contains(write.Id) || _pending.ContainsKey(write.Id))
+            if (_discarded.Contains(write.Id) || _suppressed.Contains(write.Id) || _pending.ContainsKey(write.Id))
             {
                 return;
             }
 
             _pending[write.Id] = new Entry(
-                write.Text,
+                write.Content,
                 FirstChangedAt: write.FirstChangedAt,
                 LastChangedAt: retryAt);
         }
@@ -299,14 +412,28 @@ public sealed class WriteScheduler
         return wait <= TimeSpan.Zero ? TimeSpan.Zero : wait;
     }
 
-    private readonly record struct Entry(string Text, DateTimeOffset FirstChangedAt, DateTimeOffset LastChangedAt);
+    private readonly record struct Entry(BufferContent Content, DateTimeOffset FirstChangedAt, DateTimeOffset LastChangedAt);
 }
 
 /// <summary>A buffer's contents, waiting to be written.</summary>
 /// <param name="Id">The buffer.</param>
-/// <param name="Text">Its full contents as of the last edit.</param>
-/// <param name="FirstChangedAt">
-/// When the oldest unwritten edit in this text was made. Carried through the write so
-/// that a retry can be put back on the deadline it was already running against.
+/// <param name="Content">
+/// Its full contents as of the last edit, materialised by the writer rather than by
+/// the editor — see <see cref="BufferContent"/> for why that indirection exists.
 /// </param>
-public readonly record struct PendingWrite(BufferId Id, string Text, DateTimeOffset FirstChangedAt);
+/// <param name="FirstChangedAt">
+/// When the oldest unwritten edit in this content was made. Carried through the write
+/// so that a retry can be put back on the deadline it was already running against.
+/// </param>
+public readonly record struct PendingWrite(BufferId Id, BufferContent Content, DateTimeOffset FirstChangedAt)
+{
+    /// <summary>
+    /// Materialises the text to be written.
+    /// </summary>
+    /// <remarks>
+    /// A method, not a property, because for a deferred snapshot this walks the whole
+    /// document and allocates it. Call it once and keep the result — a call site that
+    /// reads like a field access is exactly how that ends up inside a loop.
+    /// </remarks>
+    public string ReadText() => Content.ReadText();
+}

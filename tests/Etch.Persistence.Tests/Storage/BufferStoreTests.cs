@@ -312,8 +312,10 @@ public class BufferStoreTests
     }
 
     [Fact]
-    public async Task Writing_the_same_buffer_repeatedly_leaves_exactly_one_file()
+    public async Task Writing_the_same_buffer_repeatedly_leaves_the_live_file_and_one_generation()
     {
+        // Twenty writes must not leave twenty files. Exactly two: the current text and
+        // the single retained previous revision that makes a bad write recoverable.
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
@@ -322,10 +324,14 @@ public class BufferStoreTests
             await workspace.Buffers.WriteAsync(id, $"revision {i}");
         }
 
-        Assert.Single(Directory.GetFiles(workspace.Paths.BuffersDirectory));
+        Assert.Equal(2, Directory.GetFiles(workspace.Paths.BuffersDirectory).Length);
+        Assert.True(File.Exists(workspace.Paths.BufferBackupFile(id)));
 
         var stored = await workspace.Buffers.ReadAsync(id);
         Assert.Equal("revision 19", stored!.Value.Text);
+        Assert.False(stored.Value.RecoveredFromBackup);
+
+        Assert.Equal("revision 18", await File.ReadAllTextAsync(workspace.Paths.BufferBackupFile(id)));
     }
 
     [Fact]

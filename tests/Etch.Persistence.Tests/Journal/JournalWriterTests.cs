@@ -76,7 +76,9 @@ public class JournalWriterTests
         var stored = await workspace.Buffers.ReadAsync(id);
 
         Assert.Equal("revision 499", stored!.Value.Text);
-        Assert.Single(Directory.GetFiles(workspace.Paths.BuffersDirectory));
+        // Filtered to live buffers: a retained ".prev" generation appears alongside
+        // the moment a second write lands, which timing under load can produce.
+        Assert.Single(Directory.GetFiles(workspace.Paths.BuffersDirectory, "*" + BufferId.Extension));
     }
 
     [Fact]
@@ -471,7 +473,7 @@ public class JournalWriterTests
 
         journal.Enqueue(id, "a pasted credential");
 
-        Assert.Equal(1, journal.DiscardAll());
+        Assert.Equal(1, await journal.DiscardAllAsync());
 
         workspace.Buffers.WipeAll();
         await Task.Delay(300);

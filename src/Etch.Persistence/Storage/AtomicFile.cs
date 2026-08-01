@@ -40,21 +40,52 @@ public static class AtomicFile
     /// </summary>
     /// <param name="path">The destination. Its directory must already exist.</param>
     /// <param name="contents">The text to write, encoded as UTF-8 with no BOM.</param>
+    /// <param name="backupPath">
+    /// Where to move the current contents before they are replaced, or null to
+    /// discard them. Must be in the same directory as <paramref name="path"/>, so
+    /// that rotating a generation is a rename rather than a copy.
+    /// </param>
     /// <param name="cancellationToken">Cancels the write before the rename.</param>
     /// <remarks>
+    /// <para>
     /// Cancellation is honoured only up to the rename. Once the rename has happened
     /// the new contents are live and there is nothing sensible to undo, so the token
     /// is not checked afterwards.
+    /// </para>
+    /// <para>
+    /// A <paramref name="backupPath"/> narrows the atomicity guarantee slightly and
+    /// it is worth being precise about how. The destination is moved aside and then
+    /// replaced, so there is a window — two metadata operations wide — in which no
+    /// file exists at <paramref name="path"/>. A crash inside that window leaves the
+    /// previous contents intact at the backup path rather than at the destination,
+    /// which callers recover from by reading the backup when the live file is
+    /// missing. What cannot happen, with or without a backup, is a half-written or
+    /// zero-length file at the destination: nothing is ever opened there for writing.
+    /// The net effect is strictly more recoverable than the no-backup path, never
+    /// less.
+    /// </para>
     /// </remarks>
     /// <exception cref="IOException">The file could not be written or renamed.</exception>
     /// <exception cref="UnauthorizedAccessException">Access was denied.</exception>
     public static async Task WriteAllTextAsync(
         string path,
         string contents,
+        string? backupPath = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(contents);
+
+        // Enforced rather than documented. A backup path in another directory would turn
+        // the rotation from a rename into a cross-volume copy of the whole buffer, on
+        // the journal's path, silently.
+        if (backupPath is not null
+            && !string.Equals(Path.GetDirectoryName(backupPath), Path.GetDirectoryName(path), StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException(
+                "The backup path must be in the same directory as the destination.",
+                nameof(backupPath));
+        }
 
         // A unique temporary name, not "<destination>.tmp". Two Etch processes
         // writing the same buffer would otherwise share one scratch file and
@@ -68,12 +99,60 @@ public static class AtomicFile
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            Publish(temporaryPath, path);
+            if (backupPath is not null)
+            {
+                RotateGeneration(path, backupPath);
+            }
+
+            await PublishAsync(temporaryPath, path).ConfigureAwait(false);
         }
         catch
         {
             TryDelete(temporaryPath);
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Moves the current contents of <paramref name="path"/> aside so that the write
+    /// about to replace them is recoverable.
+    /// </summary>
+    /// <remarks>
+    /// Best-effort, and that is a deliberate choice rather than an oversight. The
+    /// backup is a safety net for a logic bug in the layer above — an empty text
+    /// change raised before a tab has hydrated, say — not part of the durability
+    /// contract. Failing the write because the previous generation could not be
+    /// preserved would turn a missing safety net into the very data loss it exists to
+    /// prevent.
+    /// </remarks>
+    private static void RotateGeneration(string path, string backupPath)
+    {
+        try
+        {
+            var current = new FileInfo(path);
+
+            if (!current.Exists)
+            {
+                return;
+            }
+
+            // Never rotate an empty file over the generation. This is the whole reason
+            // the generation exists: the failure being defended against is a bad write
+            // of nothing, and rotating on the write *after* that one would replace the
+            // good revision with the empty one and complete the loss the first write
+            // started. Keeping the last non-empty revision means the good text survives
+            // however many empty writes follow it.
+            if (current.Length == 0)
+            {
+                return;
+            }
+
+            File.Move(path, backupPath, overwrite: true);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or DirectoryNotFoundException)
+        {
+            // The live file stays where it is and is replaced without a backup, which is
+            // exactly the behaviour of the no-backup path.
         }
     }
 
@@ -136,7 +215,7 @@ public static class AtomicFile
     /// chance to get it right.
     /// </para>
     /// </remarks>
-    private static void Publish(string temporaryPath, string path)
+    private static async Task PublishAsync(string temporaryPath, string path)
     {
         for (var attempt = 0; ; attempt++)
         {
@@ -145,13 +224,12 @@ public static class AtomicFile
                 File.Move(temporaryPath, path, overwrite: true);
                 return;
             }
-            catch (IOException) when (attempt < PublishRetryDelaysMs.Length)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException && attempt < PublishRetryDelaysMs.Length)
             {
-                Thread.Sleep(PublishRetryDelaysMs[attempt]);
-            }
-            catch (UnauthorizedAccessException) when (attempt < PublishRetryDelaysMs.Length)
-            {
-                Thread.Sleep(PublishRetryDelaysMs[attempt]);
+                // Awaited rather than slept. This runs on a thread-pool thread from an
+                // async call path, and blocking one for up to 170 ms per write is a
+                // thread the rest of the process could have used.
+                await Task.Delay(PublishRetryDelaysMs[attempt]).ConfigureAwait(false);
             }
         }
     }

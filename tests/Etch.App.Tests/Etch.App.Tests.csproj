@@ -11,6 +11,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- See the note in Etch.App.csproj: de-duplicated by the SDK, harmless either way. -->
     <Using Include="System.IO" />
   </ItemGroup>
 
@@ -22,6 +23,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Etch.App\Etch.App.csproj" />
+    <!--
+      Referenced directly as well as transitively. The workspace tests assert against
+      EtchPaths and BufferId, and a project that names a type should say where it comes
+      from rather than inherit it by accident.
+    -->
+    <ProjectReference Include="..\..\src\Etch.Persistence\Etch.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

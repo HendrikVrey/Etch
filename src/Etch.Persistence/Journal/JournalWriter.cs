@@ -97,18 +97,21 @@ public sealed class JournalWriter : IAsyncDisposable
         _loop = Task.Run(RunAsync);
     }
 
+    /// <summary>Records that a buffer changed, when the caller already holds its text.</summary>
+    public void Enqueue(BufferId id, string text) => Enqueue(id, BufferContent.FromText(text));
+
     /// <summary>
     /// Records that a buffer changed. Returns immediately; the write happens later.
     /// </summary>
     /// <remarks>
     /// Called from the UI thread on every edit, so it does no I/O and takes only an
-    /// uncontended lock. <paramref name="text"/> must be a snapshot the caller will
-    /// not mutate — strings are immutable, which is why the contract is a string
-    /// rather than the live document.
+    /// uncontended lock. <paramref name="content"/> is materialised later, on the
+    /// journal's thread — see <see cref="BufferContent"/> for why the editor must
+    /// hand over a snapshot rather than a string.
     /// </remarks>
-    public void Enqueue(BufferId id, string text)
+    public void Enqueue(BufferId id, BufferContent content)
     {
-        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(content);
 
         if (Volatile.Read(ref _disposed) == 1)
         {
@@ -117,7 +120,7 @@ public sealed class JournalWriter : IAsyncDisposable
             return;
         }
 
-        _scheduler.Record(id, text, _time.GetUtcNow());
+        _scheduler.Record(id, content, _time.GetUtcNow());
         SignalWake();
     }
 
@@ -128,13 +131,44 @@ public sealed class JournalWriter : IAsyncDisposable
     public void Discard(BufferId id) => _scheduler.Discard(id);
 
     /// <summary>
-    /// Drops every unwritten change without writing it.
+    /// Stops or resumes writing a buffer entirely — an ephemeral tab, a buffer read
+    /// back truncated, or one past the journaling size threshold.
+    /// </summary>
+    /// <returns>True when unwritten content was dropped by this call.</returns>
+    public bool SetSuppressed(BufferId id, bool suppressed) => _scheduler.SetSuppressed(id, suppressed);
+
+    /// <summary>Whether writes for <paramref name="id"/> are currently suppressed.</summary>
+    public bool IsSuppressed(BufferId id) => _scheduler.IsSuppressed(id);
+
+    /// <summary>Lifts a discard, for a buffer that has been reopened.</summary>
+    public bool Revive(BufferId id) => _scheduler.Revive(id);
+
+    /// <summary>
+    /// Drops every unwritten change without writing it, and waits for anything already
+    /// in flight to finish first.
     /// </summary>
     /// <remarks>
-    /// Part of "wipe all scratch data": deleting the files while the scheduler still
-    /// held their text would put it straight back on disk at the next debounce.
+    /// Backs "wipe all scratch data", and the wait is the whole point. Clearing the
+    /// queue alone is not enough: a batch already taken by the writer is no longer in
+    /// the queue, so it would complete and recreate the file <em>after</em> the wipe
+    /// deleted it — putting the secret the user asked to destroy straight back on disk.
+    /// Taking the same gate the writer holds is what makes "nothing is in flight" true
+    /// rather than likely.
     /// </remarks>
-    public int DiscardAll() => _scheduler.DiscardAll();
+    /// <returns>The number of buffers whose unwritten text was dropped.</returns>
+    public async Task<int> DiscardAllAsync(CancellationToken cancellationToken = default)
+    {
+        await _writeGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            return _scheduler.DiscardAll();
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
+    }
 
     /// <summary>
     /// Writes everything pending, now, and waits for it.
@@ -333,25 +367,24 @@ public sealed class JournalWriter : IAsyncDisposable
             {
                 var write = writes[index];
 
-                if (_scheduler.IsDiscarded(write.Id))
+                // Discarded: the tab was closed after this batch was taken, and writing
+                // now would recreate the file the close just moved to the trash.
+                // Suppressed: the buffer was marked ephemeral or found truncated in the
+                // same window, and its text must not reach the disk at all.
+                if (_scheduler.IsDiscarded(write.Id) || _scheduler.IsSuppressed(write.Id))
                 {
-                    // The tab was closed after this batch was taken. Writing now would
-                    // recreate the file the close just moved to the trash.
                     continue;
                 }
 
+                // Materialised once, here, on the journal's thread rather than the
+                // editor's. The result is held in a local so that a failure requeues an
+                // already-realised string instead of a snapshot that would be walked a
+                // second time on every subsequent retry.
+                string text;
+
                 try
                 {
-                    await _store.WriteAsync(write.Id, write.Text, cancellationToken).ConfigureAwait(false);
-                    Interlocked.Exchange(ref _consecutiveFailures, 0);
-
-                    // Closed while this write was in flight. The publish won the race,
-                    // so undo it rather than leave an orphan for the next launch to
-                    // adopt as a recovered tab.
-                    if (_scheduler.IsDiscarded(write.Id))
-                    {
-                        _store.DeleteLive(write.Id);
-                    }
+                    text = write.Content.ReadText();
                 }
                 catch (OperationCanceledException)
                 {
@@ -360,12 +393,42 @@ public sealed class JournalWriter : IAsyncDisposable
                 }
                 catch (Exception ex)
                 {
+                    _scheduler.Requeue(write, _time.GetUtcNow());
+                    Report(new JournalFailure(write.Id, ex, Interlocked.Increment(ref _consecutiveFailures)));
+                    continue;
+                }
+
+                try
+                {
+                    await _store.WriteAsync(write.Id, text, cancellationToken).ConfigureAwait(false);
+                    Interlocked.Exchange(ref _consecutiveFailures, 0);
+
+                    // Closed or suppressed while this write was in flight. The publish
+                    // won the race, so undo it rather than leave an orphan for the next
+                    // launch to adopt as a recovered tab — or, for an ephemeral buffer,
+                    // leave the one thing it promised never to write sitting on disk.
+                    if (_scheduler.IsDiscarded(write.Id) || _scheduler.IsSuppressed(write.Id))
+                    {
+                        _store.DeleteLive(write.Id);
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // The already-materialised string goes back for this one; the rest of
+                    // the batch has not been read yet and goes back deferred.
+                    _scheduler.Requeue(write with { Content = BufferContent.FromText(text) }, _time.GetUtcNow());
+                    RequeueFrom(writes, index + 1);
+                    throw;
+                }
+                catch (Exception ex)
+                {
                     // Every exception type, not just IOException. Requeued rather than
                     // dropped: a full disk, a locked file or a profile that briefly
                     // went away all come back, and the alternative is discarding text
                     // the user believes is saved. The backoff in the loop is what keeps
-                    // the retry from becoming a spin.
-                    _scheduler.Requeue(write, _time.GetUtcNow());
+                    // the retry from becoming a spin. The already-materialised string
+                    // goes back, not the snapshot.
+                    _scheduler.Requeue(write with { Content = BufferContent.FromText(text) }, _time.GetUtcNow());
                     Report(new JournalFailure(write.Id, ex, Interlocked.Increment(ref _consecutiveFailures)));
                 }
             }

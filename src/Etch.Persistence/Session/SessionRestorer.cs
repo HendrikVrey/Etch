@@ -83,7 +83,15 @@ public sealed class SessionRestorer
         ArgumentNullException.ThrowIfNull(liveBuffers);
 
         var onDisk = new HashSet<BufferId>(liveBuffers);
+
+        // Two sets, and the distinction between them is the whole correctness of the
+        // active-tab choice below. "Indexed" means the index has already accounted for
+        // this id, so the recovery pass must not adopt it a second time — and a dropped
+        // entry is still accounted for. "Restorable" means a tab actually came back.
+        // Collapsing them into one set makes an id that was dropped look like a tab that
+        // exists, and the session opens pointing at a tab that is not there.
         var indexed = new HashSet<BufferId>(session.Buffers.Count);
+        var restorable = new HashSet<BufferId>(session.Buffers.Count);
         var restored = new List<BufferRecord>(session.Buffers.Count);
         var dropped = 0;
 
@@ -100,6 +108,7 @@ public sealed class SessionRestorer
             if (onDisk.Contains(record.Id))
             {
                 restored.Add(record);
+                restorable.Add(record.Id);
                 continue;
             }
 
@@ -118,12 +127,14 @@ public sealed class SessionRestorer
 
         foreach (var id in liveBuffers)
         {
-            if (indexed.Contains(id))
+            // Add rather than Contains-then-Add: liveBuffers is a parameter of a public
+            // method, so a repeated id must not become two tabs over one file.
+            if (!indexed.Add(id))
             {
                 continue;
             }
 
-            indexed.Add(id);
+            restorable.Add(id);
             recovered++;
 
             restored.Add(new BufferRecord(
@@ -138,7 +149,11 @@ public sealed class SessionRestorer
                 lastModifiedUtc: nowUtc));
         }
 
-        var active = session.ActiveBufferId is { } requested && indexed.Contains(requested)
+        // The tab that was in front may be one of the ones whose text was lost. Falling
+        // back to the first surviving tab is the only honest answer: naming a dropped
+        // buffer would hand the app an active id matching no tab, which is a state the
+        // rest of the restore has no way to represent.
+        var active = session.ActiveBufferId is { } requested && restorable.Contains(requested)
             ? requested
             : restored.Count > 0 ? restored[0].Id : (BufferId?)null;
 

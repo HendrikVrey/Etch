@@ -79,7 +79,7 @@ public class WriteSchedulerTests
 
         var due = scheduler.TakeDue(T0.AddMilliseconds(1100));
 
-        Assert.Equal("hel", Assert.Single(due).Text);
+        Assert.Equal("hel", Assert.Single(due).ReadText());
     }
 
     [Fact]
@@ -102,7 +102,7 @@ public class WriteSchedulerTests
         var due = scheduler.TakeDue(T0.AddSeconds(5));
 
         Assert.Single(due);
-        Assert.Equal("text at 4900", due[0].Text);
+        Assert.Equal("text at 4900", due[0].ReadText());
     }
 
     [Fact]
@@ -112,12 +112,21 @@ public class WriteSchedulerTests
         var id = BufferId.New();
 
         scheduler.Record(id, "first", T0);
-        scheduler.Record(id, "second", T0.AddSeconds(4));
+        scheduler.Record(id, "second", T0.AddMilliseconds(4_800));
 
-        // 5 s after the first change, only 1 s after the second: the ceiling wins.
-        var wait = scheduler.TimeUntilNextDue(T0.AddSeconds(4));
+        // The edit lands late enough that its own debounce (5.3 s) would fall past the
+        // ceiling, so the ceiling is what decides — which is the only arrangement that
+        // can tell the two apart. Measured from the first change the deadline is 5.0 s,
+        // 200 ms away; measured from this one it would be 9.8 s, and the answer would
+        // instead be the debounce's 500 ms.
+        var wait = scheduler.TimeUntilNextDue(T0.AddMilliseconds(4_800));
 
-        Assert.Equal(TimeSpan.FromSeconds(1), wait);
+        Assert.Equal(TimeSpan.FromMilliseconds(200), wait);
+
+        // And it really does come due there, still holding the newer text.
+        var due = scheduler.TakeDue(T0.AddSeconds(5));
+
+        Assert.Equal("second", Assert.Single(due).ReadText());
     }
 
     [Fact]
@@ -135,7 +144,7 @@ public class WriteSchedulerTests
 
         var due = scheduler.TakeDue(T0.AddSeconds(10));
 
-        Assert.Equal("revision 99", Assert.Single(due).Text);
+        Assert.Equal("revision 99", Assert.Single(due).ReadText());
     }
 
     [Fact]
@@ -208,13 +217,13 @@ public class WriteSchedulerTests
         scheduler.Record(id, "before", T0);
 
         var due = scheduler.TakeDue(T0.AddSeconds(1));
-        Assert.Equal("before", Assert.Single(due).Text);
+        Assert.Equal("before", Assert.Single(due).ReadText());
         Assert.Equal(0, scheduler.PendingCount);
 
         scheduler.Record(id, "after", T0.AddSeconds(1));
 
         var next = scheduler.TakeDue(T0.AddSeconds(2));
-        Assert.Equal("after", Assert.Single(next).Text);
+        Assert.Equal("after", Assert.Single(next).ReadText());
     }
 
     [Fact]
@@ -239,7 +248,7 @@ public class WriteSchedulerTests
     {
         var scheduler = CreateScheduler();
         var id = BufferId.New();
-        var write = new PendingWrite(id, "failed once", T0);
+        var write = new PendingWrite(id, BufferContent.FromText("failed once"), T0);
 
         scheduler.Requeue(write, T0);
 
@@ -248,7 +257,7 @@ public class WriteSchedulerTests
 
         var retried = scheduler.TakeDue(T0.AddSeconds(1));
 
-        Assert.Equal("failed once", Assert.Single(retried).Text);
+        Assert.Equal("failed once", Assert.Single(retried).ReadText());
     }
 
     [Fact]
@@ -284,7 +293,7 @@ public class WriteSchedulerTests
         var due = Assert.Single(scheduler.TakeDue(T0.AddSeconds(1)));
 
         Assert.Equal(T0, due.FirstChangedAt);
-        Assert.Equal("two", due.Text);
+        Assert.Equal("two", due.ReadText());
     }
 
     [Fact]
@@ -320,7 +329,7 @@ public class WriteSchedulerTests
         scheduler.Record(id, "reopened", T0);
 
         Assert.False(scheduler.IsDiscarded(id));
-        Assert.Equal("reopened", Assert.Single(scheduler.TakeDue(T0.AddSeconds(1))).Text);
+        Assert.Equal("reopened", Assert.Single(scheduler.TakeDue(T0.AddSeconds(1))).ReadText());
     }
 
     [Fact]
@@ -347,11 +356,11 @@ public class WriteSchedulerTests
         var id = BufferId.New();
 
         scheduler.Record(id, "newer", T0.AddSeconds(1));
-        scheduler.Requeue(new PendingWrite(id, "stale", T0), T0.AddSeconds(1));
+        scheduler.Requeue(new PendingWrite(id, BufferContent.FromText("stale"), T0), T0.AddSeconds(1));
 
         var due = scheduler.TakeDue(T0.AddSeconds(10));
 
-        Assert.Equal("newer", Assert.Single(due).Text);
+        Assert.Equal("newer", Assert.Single(due).ReadText());
     }
 
     [Fact]
@@ -365,9 +374,12 @@ public class WriteSchedulerTests
     [Fact]
     public void Null_text_is_rejected()
     {
+        // Cast, because Record now has a string overload and a BufferContent overload and
+        // a bare null literal converts implicitly to both.
         var scheduler = CreateScheduler();
 
-        Assert.Throws<ArgumentNullException>(() => scheduler.Record(BufferId.New(), null!, T0));
+        Assert.Throws<ArgumentNullException>(() => scheduler.Record(BufferId.New(), (string)null!, T0));
+        Assert.Throws<ArgumentNullException>(() => scheduler.Record(BufferId.New(), (BufferContent)null!, T0));
     }
 
     [Fact]
@@ -383,7 +395,7 @@ public class WriteSchedulerTests
 
         var due = scheduler.TakeDue(T0.AddSeconds(1));
 
-        Assert.Equal(string.Empty, Assert.Single(due).Text);
+        Assert.Equal(string.Empty, Assert.Single(due).ReadText());
     }
 
     [Fact]
@@ -423,7 +435,7 @@ public class WriteSchedulerTests
 
         foreach (var id in ids)
         {
-            Assert.Contains(drained, write => write.Id == id && write.Text == $"{id}:19");
+            Assert.Contains(drained, write => write.Id == id && write.ReadText() == $"{id}:19");
         }
     }
 }

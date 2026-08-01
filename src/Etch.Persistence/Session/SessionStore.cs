@@ -29,6 +29,9 @@ public sealed class SessionStore
     /// </remarks>
     private const long MaxSessionBytes = 8L * 1024 * 1024;
 
+    /// <summary>The UTF-8 byte-order mark, which a hand-edited index may have acquired.</summary>
+    private static ReadOnlySpan<byte> Utf8Preamble => [0xEF, 0xBB, 0xBF];
+
     private readonly EtchPaths _paths;
     private readonly TimeProvider _time;
 
@@ -124,7 +127,18 @@ public sealed class SessionStore
 
         try
         {
-            session = JsonSerializer.Deserialize(bytes, SessionJsonContext.Default.SessionSnapshot);
+            // The byte-order mark is skipped rather than fed to the parser, which rejects
+            // it. Etch never writes one, but someone who opened session.json in Notepad to
+            // see what was in there and pressed save has now added one — and quarantining
+            // their whole tab layout for that would be a poor reward for curiosity.
+            var payload = bytes.AsSpan();
+
+            if (payload.StartsWith(Utf8Preamble))
+            {
+                payload = payload[Utf8Preamble.Length..];
+            }
+
+            session = JsonSerializer.Deserialize(payload, SessionJsonContext.Default.SessionSnapshot);
         }
         catch (Exception ex) when (ex is JsonException or NotSupportedException or ArgumentException)
         {
@@ -168,7 +182,12 @@ public sealed class SessionStore
             session with { Version = SessionSnapshot.CurrentVersion },
             SessionJsonContext.Default.SessionSnapshot);
 
-        await AtomicFile.WriteAllTextAsync(_paths.SessionFile, json, cancellationToken).ConfigureAwait(false);
+        // No backup generation. The index is the cheapest thing here to lose and the
+        // only thing that can be rebuilt from what is actually on disk; a second copy
+        // of it would just be another file holding tab titles and full file paths for
+        // a wipe to have to find.
+        await AtomicFile.WriteAllTextAsync(_paths.SessionFile, json, backupPath: null, cancellationToken)
+            .ConfigureAwait(false);
     }
 
     /// <summary>
@@ -254,7 +273,15 @@ public sealed class SessionStore
                 for (var i = 0; i < destination.Length; i++)
                 {
                     var character = source[i];
-                    destination[i] = char.IsControl(character) ? ' ' : character;
+
+                    // Both categories, not just Cc. char.IsControl covers the C0/C1
+                    // ranges but not the format characters — U+202E and friends — which
+                    // are exactly the ones that reorder the rest of a status bar around
+                    // themselves.
+                    destination[i] = char.IsControl(character)
+                        || char.GetUnicodeCategory(character) == UnicodeCategory.Format
+                        ? ' '
+                        : character;
                 }
             });
 

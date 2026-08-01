@@ -32,10 +32,16 @@
 
   <ItemGroup>
     <!--
-      UseWPF removes System.IO from the SDK's implicit usings, because
-      System.Windows.Shapes.Path collides with System.IO.Path. Etch never imports
-      System.Windows.Shapes, so putting System.IO back is safe and saves an import
-      in almost every file.
+      Belt and braces, and harmless either way: the SDK de-duplicates <Using> items, so
+      this produces exactly one `global using System.IO;` whether or not the SDK already
+      supplied one.
+
+      The original justification here was wrong and is worth correcting rather than
+      deleting. It claimed UseWPF drops System.IO because System.Windows.Shapes.Path
+      collides with System.IO.Path. Comparing the generated GlobalUsings files shows the
+      namespace UseWPF actually drops is System.Net.Http — System.IO is present in both.
+      To check whether this line is still doing anything, comment it out and diff
+      obj\Debug\net10.0-windows\Etch.App.GlobalUsings.g.cs.
     -->
     <Using Include="System.IO" />
 

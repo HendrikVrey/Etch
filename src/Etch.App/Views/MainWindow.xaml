@@ -3,7 +3,9 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:avalonEdit="http://icsharpcode.net/sharpdevelop/avalonedit"
+    xmlns:tabs="clr-namespace:Etch.App.Tabs"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:views="clr-namespace:Etch.App.Views"
     Title="Etch"
     Width="1100"
     Height="720"
@@ -14,27 +16,369 @@
     WindowCornerPreference="Round"
     WindowStartupLocation="CenterScreen">
 
-    <ui:FluentWindow.CommandBindings>
-        <!-- ApplicationCommands.Open already carries the Ctrl+O gesture. -->
-        <CommandBinding Command="ApplicationCommands.Open" Executed="OnOpenExecuted" />
-    </ui:FluentWindow.CommandBindings>
+    <ui:FluentWindow.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <views:WidthAllowanceConverter x:Key="WidthAllowance" />
+        <views:BooleanLabelConverter x:Key="BooleanLabel" />
 
+        <!--
+            The small glyph buttons in the strip: a tab's close button and the new-tab
+            button. No border, no fill until hovered, so the strip reads as a strip
+            rather than as a row of buttons.
+        -->
+        <Style x:Key="StripGlyphButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                            x:Name="Surface"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="4">
+                            <ContentPresenter
+                                Margin="{TemplateBinding Padding}"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <!--
+                                    Tertiary rather than secondary: this sits inside a tab
+                                    that is itself showing a secondary hover fill, and a
+                                    close button that vanishes into its own tab is a close
+                                    button nobody can aim at.
+                                -->
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--
+            The tab.
+
+            Flat and contiguous, separated by a hairline rather than by gaps, with a
+            uniform width band so the strip does not go ragged as titles change length.
+            The tab in front carries two cues, not one: a fill, and an accent underline
+            along its bottom edge. The fill alone was far too quiet over Mica, and the
+            underline is what visually attaches the front tab to the editor beneath it.
+
+            The whole tab lives in the control template rather than in the data
+            template's content, so that every visual state — active, pinned, ephemeral,
+            renaming, hovered — is expressed as one list of triggers in one place. A
+            ControlTemplate trigger can be a DataTrigger, and the templated button's
+            DataContext is the BufferTab, which is what makes that possible.
+        -->
+        <Style x:Key="TabStyle" TargetType="Button">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="MinWidth" Value="118" />
+            <Setter Property="MaxWidth" Value="196" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+
+            <!--
+                The title, because captions are trimmed at the tab's width and a truncated
+                name with no way to read it in full is worse than no tab strip at all. A
+                file tab shows its path instead, which is the more useful of the two and
+                is the only place the path appears anywhere in the UI.
+            -->
+            <Setter Property="ToolTip" Value="{Binding Title}" />
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="2" />
+                            </Grid.RowDefinitions>
+
+                            <Border
+                                x:Name="Surface"
+                                Grid.RowSpan="2"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                BorderThickness="0,0,1,0" />
+
+                            <Grid Grid.Row="0" Margin="11,0,5,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel
+                                    Grid.Column="0"
+                                    VerticalAlignment="Center"
+                                    Orientation="Horizontal">
+                                    <!--
+                                        Foreground is template-bound rather than left to
+                                        inherit. Inheritance would work, but the triggers
+                                        below change the tab's Foreground and it should be
+                                        obvious here that these two follow it.
+                                    -->
+                                    <TextBlock
+                                        x:Name="PinMark"
+                                        Margin="0,0,6,0"
+                                        FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                        FontSize="10"
+                                        Foreground="{TemplateBinding Foreground}"
+                                        Text="&#xE718;"
+                                        Visibility="Collapsed" />
+
+                                    <!-- Ephemeral is the one state that has to be visible without hovering. -->
+                                    <TextBlock
+                                        x:Name="EphemeralMark"
+                                        Margin="0,0,6,0"
+                                        FontSize="11"
+                                        Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                                        Text="&#x25CF;"
+                                        Visibility="Collapsed" />
+                                </StackPanel>
+
+                                <TextBlock
+                                    x:Name="Caption"
+                                    Grid.Column="1"
+                                    VerticalAlignment="Center"
+                                    FontSize="12"
+                                    Foreground="{TemplateBinding Foreground}"
+                                    Text="{Binding Title}"
+                                    TextTrimming="CharacterEllipsis" />
+
+                                <!--
+                                    Renaming happens here, in the strip, rather than in a
+                                    dialog. The plan bans modals.
+                                -->
+                                <TextBox
+                                    x:Name="RenameBox"
+                                    Grid.Column="1"
+                                    MinWidth="80"
+                                    Padding="2,0"
+                                    VerticalContentAlignment="Center"
+                                    FontSize="12"
+                                    IsVisibleChanged="OnRenameBoxVisibilityChanged"
+                                    KeyDown="OnRenameBoxKeyDown"
+                                    LostKeyboardFocus="OnRenameBoxLostFocus"
+                                    Text="{Binding Title, Mode=OneWay}"
+                                    Visibility="Collapsed" />
+
+                                <!--
+                                    Hidden rather than collapsed when it is not showing, so
+                                    the space it occupies is reserved and captions do not
+                                    shift sideways as the pointer crosses the strip.
+                                -->
+                                <Button
+                                    x:Name="CloseButton"
+                                    Grid.Column="2"
+                                    Width="20"
+                                    Height="20"
+                                    VerticalAlignment="Center"
+                                    Command="{Binding CloseTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding}"
+                                    Style="{StaticResource StripGlyphButtonStyle}"
+                                    ToolTip="Close — Ctrl+W. Reopen with Ctrl+Shift+T."
+                                    Visibility="Hidden">
+                                    <TextBlock
+                                        FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                        FontSize="9"
+                                        Text="&#xE711;" />
+                                </Button>
+                            </Grid>
+
+                            <Border
+                                x:Name="Accent"
+                                Grid.Row="1"
+                                Margin="0,0,1,0"
+                                Background="Transparent" />
+                        </Grid>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}" />
+                                <Setter TargetName="CloseButton" Property="Visibility" Value="Visible" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Trigger>
+
+                            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource SubtleFillColorTertiaryBrush}" />
+                                <Setter TargetName="Accent" Property="Background" Value="{DynamicResource AccentButtonBackground}" />
+                                <Setter TargetName="CloseButton" Property="Visibility" Value="Visible" />
+                                <Setter TargetName="Caption" Property="FontWeight" Value="SemiBold" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </DataTrigger>
+
+                            <DataTrigger Binding="{Binding IsPinned}" Value="True">
+                                <Setter TargetName="PinMark" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+
+                            <DataTrigger Binding="{Binding Kind}" Value="File">
+                                <Setter Property="ToolTip" Value="{Binding FilePath}" />
+                            </DataTrigger>
+
+                            <DataTrigger Binding="{Binding IsEphemeral}" Value="True">
+                                <Setter TargetName="EphemeralMark" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+
+                            <DataTrigger Binding="{Binding IsRenaming}" Value="True">
+                                <Setter TargetName="Caption" Property="Visibility" Value="Collapsed" />
+                                <Setter TargetName="RenameBox" Property="Visibility" Value="Visible" />
+                                <!-- Aiming for the caret and hitting close would be unforgivable. -->
+                                <Setter TargetName="CloseButton" Property="Visibility" Value="Hidden" />
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!--
+            The tab's context menu. It is the only route to pinning, which is the one tab
+            capability with no chord yet — and it costs nothing until it is opened, which
+            is the part of "no feature gets its own chrome" that actually matters.
+
+            The DataContext is taken from the placement target explicitly rather than left
+            to inherit: a context menu lives in its own visual tree, and a menu that
+            silently bound to nothing would leave every item quietly doing nothing.
+        -->
+        <ContextMenu x:Key="TabContextMenu" DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+            <MenuItem Click="OnPinTabClicked" Header="{Binding IsPinned, Converter={StaticResource BooleanLabel}, ConverterParameter='Unpin|Pin'}" />
+
+            <MenuItem
+                Click="OnRenameTabClicked"
+                Header="Rename"
+                InputGestureText="F2" />
+
+            <MenuItem
+                Click="OnToggleEphemeralClicked"
+                Header="{Binding IsEphemeral, Converter={StaticResource BooleanLabel}, ConverterParameter='Start saving this tab again|Never write this tab to disk'}"
+                InputGestureText="Ctrl+Shift+E" />
+
+            <Separator />
+
+            <MenuItem
+                Click="OnCloseTabClicked"
+                Header="Close"
+                InputGestureText="Ctrl+W" />
+        </ContextMenu>
+    </ui:FluentWindow.Resources>
+
+    <!--
+        There are deliberately no InputBindings and no CommandBindings here. Etch's whole
+        keyboard map lives in Etch.App.Input.KeyMap and is resolved on the window's
+        tunnelling key pass — see MainWindow.Keys.cs for why. Adding a KeyBinding here
+        would reintroduce the second source of truth that let Ctrl+T go missing.
+    -->
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!--
-            M1 puts the tab strip in here. Nothing else ever goes in the title bar:
-            no menu, no ribbon, no toolbar.
+            The tab strip lives in the title bar and nothing else does: no menu, no
+            ribbon, no toolbar. TitleBar.Header replaces the default title text block,
+            and WPF-UI's hit testing already treats a non-default header as content
+            rather than as caption, so the buttons receive their own clicks.
         -->
         <ui:TitleBar
             Grid.Row="0"
-            Title="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
+            Title="{x:Null}"
+            CanMaximize="True"
             ShowMaximize="True"
-            ShowMinimize="True" />
+            ShowMinimize="True">
+            <ui:TitleBar.Header>
+                <!--
+                    Bottom-aligned inside the title bar so the active tab's accent
+                    underline meets the top of the editor, which is what makes the front
+                    tab read as attached to the text below it.
+                -->
+                <Grid Margin="8,0,0,0" VerticalAlignment="Bottom">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <!--
+                        The width has to be bounded. WPF-UI lays the title bar out as a
+                        grid whose header column is Auto and whose caption buttons come
+                        later, so an unbounded strip pushes minimise, maximise and close
+                        off the right-hand edge. The allowance leaves room for those three
+                        plus breathing space; it tracks the window rather than being the
+                        hard-coded 880 px this replaced, which wasted half the bar on a
+                        wide monitor and overflowed on a narrow one.
+
+                        The scrollbar itself is hidden: a horizontal scrollbar inside a
+                        title bar looks like a defect, and it would sit between the tabs
+                        and the editor exactly where the accent underline belongs. Tabs
+                        past the edge stay reachable by wheel (handled below, because a
+                        vertically disabled ScrollViewer would otherwise forward the wheel
+                        to its parent), by Ctrl+Tab, and by Ctrl+1..9.
+                    -->
+                    <ScrollViewer
+                        x:Name="TabScroller"
+                        Grid.Column="0"
+                        MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource WidthAllowance}, ConverterParameter=230}"
+                        HorizontalScrollBarVisibility="Hidden"
+                        PreviewMouseWheel="OnTabStripMouseWheel"
+                        VerticalScrollBarVisibility="Disabled">
+                        <ItemsControl
+                            x:Name="TabStrip"
+                            ItemsSource="{Binding Tabs, RelativeSource={RelativeSource AncestorType=Window}}"
+                            LostMouseCapture="OnTabStripLostMouseCapture"
+                            PreviewMouseLeftButtonUp="OnTabStripMouseUp"
+                            PreviewMouseMove="OnTabStripMouseMove">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type tabs:BufferTab}">
+                                    <Button
+                                        Command="{Binding ActivateTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        ContextMenu="{StaticResource TabContextMenu}"
+                                        PreviewMouseLeftButtonDown="OnTabPressed"
+                                        Style="{StaticResource TabStyle}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <Button
+                        Grid.Column="1"
+                        Width="28"
+                        Height="28"
+                        Margin="6,0,0,3"
+                        VerticalAlignment="Bottom"
+                        Command="{Binding NewTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        Style="{StaticResource StripGlyphButtonStyle}"
+                        ToolTip="New tab — Ctrl+T">
+                        <TextBlock
+                            FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                            FontSize="11"
+                            Text="&#xE710;" />
+                    </Button>
+                </Grid>
+            </ui:TitleBar.Header>
+        </ui:TitleBar>
 
         <avalonEdit:TextEditor
             x:Name="Editor"
@@ -58,8 +402,103 @@
             </avalonEdit:TextEditor.Options>
         </avalonEdit:TextEditor>
 
+        <!--
+            Find and replace. A bar rather than a dialog, per the plan's no-modals rule,
+            and collapsed until Ctrl+F so it costs nothing before then. Plain WPF
+            controls: WPF-UI's controls dictionary restyles them, so they look native to
+            the window without depending on a specific library control's API.
+        -->
         <Border
+            x:Name="FindBar"
             Grid.Row="2"
+            Padding="14,7"
+            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+            BorderThickness="0,1,0,0"
+            Visibility="Collapsed">
+            <StackPanel Orientation="Horizontal">
+                <TextBox
+                    x:Name="FindInput"
+                    Width="220"
+                    VerticalContentAlignment="Center"
+                    KeyDown="OnFindInputKeyDown"
+                    TextChanged="OnFindInputChanged" />
+
+                <TextBox
+                    x:Name="ReplaceInput"
+                    Width="220"
+                    Margin="8,0,0,0"
+                    VerticalContentAlignment="Center"
+                    KeyDown="OnReplaceInputKeyDown"
+                    Visibility="Collapsed" />
+
+                <Button
+                    Margin="8,0,0,0"
+                    Padding="10,4"
+                    Click="OnFindPreviousClick"
+                    Content="Previous"
+                    ToolTip="Shift+Enter" />
+
+                <Button
+                    Margin="4,0,0,0"
+                    Padding="10,4"
+                    Click="OnFindNextClick"
+                    Content="Next"
+                    ToolTip="Enter" />
+
+                <Button
+                    x:Name="ReplaceOneButton"
+                    Margin="8,0,0,0"
+                    Padding="10,4"
+                    Click="OnReplaceOneClick"
+                    Content="Replace"
+                    Visibility="Collapsed" />
+
+                <Button
+                    x:Name="ReplaceAllButton"
+                    Margin="4,0,0,0"
+                    Padding="10,4"
+                    Click="OnReplaceAllClick"
+                    Content="Replace all"
+                    Visibility="Collapsed" />
+
+                <CheckBox
+                    x:Name="MatchCaseOption"
+                    Margin="12,0,0,0"
+                    VerticalAlignment="Center"
+                    Checked="OnFindOptionChanged"
+                    Content="Aa"
+                    ToolTip="Match case"
+                    Unchecked="OnFindOptionChanged" />
+
+                <CheckBox
+                    x:Name="WholeWordOption"
+                    Margin="8,0,0,0"
+                    VerticalAlignment="Center"
+                    Checked="OnFindOptionChanged"
+                    Content="Word"
+                    ToolTip="Whole word"
+                    Unchecked="OnFindOptionChanged" />
+
+                <CheckBox
+                    x:Name="RegexOption"
+                    Margin="8,0,0,0"
+                    VerticalAlignment="Center"
+                    Checked="OnFindOptionChanged"
+                    Content=".*"
+                    ToolTip="Regular expression"
+                    Unchecked="OnFindOptionChanged" />
+
+                <TextBlock
+                    x:Name="FindStatus"
+                    Margin="12,0,0,0"
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+        </Border>
+
+        <Border
+            Grid.Row="3"
             Padding="14,5"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
             BorderThickness="0,1,0,0">
@@ -74,10 +513,7 @@
                     Orientation="Horizontal"
                     TextBlock.FontSize="12"
                     TextBlock.Foreground="{DynamicResource TextFillColorSecondaryBrush}">
-                    <!--
-                        Detection lands in M2. Until then the chip is present but
-                        static, so the layout it has to live in is proven now.
-                    -->
+                    <!-- Detection lands in M2. Static until then, so the layout is proven now. -->
                     <TextBlock
                         x:Name="FormatChip"
                         FontWeight="SemiBold"
@@ -91,6 +527,8 @@
                     <TextBlock x:Name="LineEndingStatus" Text="CRLF" />
                     <TextBlock Margin="10,0" Text="·" />
                     <TextBlock x:Name="EncodingStatus" Text="UTF-8" />
+                    <TextBlock Margin="10,0" Text="·" />
+                    <TextBlock x:Name="SaveStatus" Text="Saved" />
                 </StackPanel>
 
                 <TextBlock
@@ -102,5 +540,104 @@
                     TextTrimming="CharacterEllipsis" />
             </Grid>
         </Border>
+
+        <!--
+            The command palette. A centred overlay over everything, dismissed on Esc or
+            by clicking away — not a window, because a second window would take focus
+            off the editor and put it back somewhere the caret has to be hunted for.
+            Collapsed until Ctrl+Shift+P, so it costs a template and nothing else.
+        -->
+        <Grid
+            x:Name="PaletteOverlay"
+            Grid.Row="0"
+            Grid.RowSpan="4"
+            Panel.ZIndex="10"
+            Visibility="Collapsed">
+
+            <Rectangle Fill="#66000000" MouseLeftButtonDown="OnPaletteBackdropClicked" />
+
+            <Border
+                Width="640"
+                MaxHeight="440"
+                Margin="0,96,0,0"
+                Padding="0,0,0,4"
+                VerticalAlignment="Top"
+                Background="{DynamicResource ApplicationBackgroundBrush}"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBox
+                        x:Name="PaletteQuery"
+                        Grid.Row="0"
+                        Margin="12,12,12,8"
+                        Padding="8,6"
+                        VerticalContentAlignment="Center"
+                        FontSize="14"
+                        KeyDown="OnPaletteQueryKeyDown"
+                        TextChanged="OnPaletteQueryChanged" />
+
+                    <ListBox
+                        x:Name="PaletteList"
+                        Grid.Row="1"
+                        Margin="6,0,6,0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        ItemsSource="{Binding PaletteRows, RelativeSource={RelativeSource AncestorType=Window}}"
+                        MouseLeftButtonUp="OnPaletteRowClicked"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="2,3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                        <!--
+                                            The marker is why the ordering looks the way it
+                                            does. Without it the top rows are simply in a
+                                            mysterious order.
+                                        -->
+                                        <TextBlock
+                                            Margin="0,0,7,0"
+                                            VerticalAlignment="Center"
+                                            FontSize="11"
+                                            Foreground="{DynamicResource SystemFillColorSuccessBrush}"
+                                            Text="&#x25CF;"
+                                            Visibility="{Binding IsSuggested, Converter={StaticResource BoolToVisibility}}" />
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            FontSize="13"
+                                            Text="{Binding Name}" />
+                                    </StackPanel>
+
+                                    <TextBlock
+                                        Grid.Column="1"
+                                        VerticalAlignment="Center"
+                                        FontSize="11"
+                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                        Text="{Binding Detail}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <TextBlock
+                        x:Name="PaletteEmpty"
+                        Grid.Row="2"
+                        Margin="14,4,14,8"
+                        FontSize="12"
+                        Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                </Grid>
+            </Border>
+        </Grid>
     </Grid>
 </ui:FluentWindow>

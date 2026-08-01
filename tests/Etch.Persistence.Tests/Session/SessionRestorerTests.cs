@@ -117,6 +117,22 @@ public class SessionRestorerTests
     }
 
     [Fact]
+    public void The_active_tab_always_names_a_tab_that_came_back()
+    {
+        // The invariant behind the case above, stated on its own because it is the one
+        // the caller relies on: an id that is not in Buffers gives the app an active tab
+        // it cannot select, and every route into the editor has to cope with that or
+        // open blank.
+        var lost = BufferId.New();
+
+        var result = SessionRestorer.Reconcile(Index(lost, Record(lost)), [], Now);
+
+        Assert.Empty(result.Buffers);
+        Assert.Equal(1, result.DroppedCount);
+        Assert.Null(result.ActiveBufferId);
+    }
+
+    [Fact]
     public void An_empty_session_restores_to_nothing()
     {
         var result = SessionRestorer.Reconcile(SessionSnapshot.Empty, [], Now);

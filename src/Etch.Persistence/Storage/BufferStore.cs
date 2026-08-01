@@ -42,6 +42,9 @@ public sealed class BufferStore
     /// </remarks>
     private const int MaxPreallocatedChars = 1 << 20;
 
+    /// <summary>UTF-8 with no preamble — see the read path for why the instance matters.</summary>
+    private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
+
     private readonly EtchPaths _paths;
 
     /// <summary>Creates a store over <paramref name="paths"/>.</summary>
@@ -61,42 +64,98 @@ public sealed class BufferStore
             + AtomicFile.SweepTemporaryFiles(_paths.Root);
     }
 
-    /// <summary>Writes <paramref name="text"/> as the contents of <paramref name="id"/>.</summary>
+    /// <summary>
+    /// Writes <paramref name="text"/> as the contents of <paramref name="id"/>,
+    /// keeping the previous revision alongside it.
+    /// </summary>
+    /// <remarks>
+    /// The retained generation exists because this method runs unattended, on a
+    /// debounce, with no human ever confirming a save. A single bad call from the
+    /// editor layer — an empty text change raised before a tab has finished
+    /// hydrating is the realistic one — would otherwise replace someone's notes with
+    /// nothing, permanently and silently. One extra rename per write buys the ability
+    /// to get it back.
+    /// </remarks>
     /// <exception cref="IOException">The write failed.</exception>
     /// <exception cref="UnauthorizedAccessException">Access was denied.</exception>
     public Task WriteAsync(BufferId id, string text, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(text);
 
-        return AtomicFile.WriteAllTextAsync(_paths.BufferFile(id), text, cancellationToken);
+        return AtomicFile.WriteAllTextAsync(
+            _paths.BufferFile(id),
+            text,
+            _paths.BufferBackupFile(id),
+            cancellationToken);
     }
 
     /// <summary>Reads the contents of <paramref name="id"/>, or null when it is not there.</summary>
     /// <remarks>
+    /// <para>
     /// A missing file is a normal outcome, not an error: the session index and the
     /// buffers directory are written separately, so a crash between the two leaves an
     /// index entry with nothing behind it. The caller drops that tab and carries on.
+    /// </para>
+    /// <para>
+    /// The retained generation is read only when the live file is absent, which is the
+    /// signature of a crash inside the rename window. Preferring it any earlier would
+    /// hand back stale text over good text.
+    /// </para>
     /// </remarks>
     /// <exception cref="IOException">The file exists but could not be read.</exception>
-    public Task<StoredBuffer?> ReadAsync(BufferId id, CancellationToken cancellationToken = default) =>
-        ReadFileAsync(_paths.BufferFile(id), cancellationToken);
+    public async Task<StoredBuffer?> ReadAsync(BufferId id, CancellationToken cancellationToken = default)
+    {
+        var live = await ReadFileAsync(_paths.BufferFile(id), cancellationToken).ConfigureAwait(false);
+
+        // A live file with content always wins. The generation is consulted when the live
+        // file is missing — a process that died inside the rename window — and also when
+        // it is present but empty, which is the signature of the bad write the generation
+        // exists to survive. Without the second case the good revision sits on disk
+        // permanently unreachable behind an empty tab.
+        if (live is { Text.Length: > 0 })
+        {
+            return live;
+        }
+
+        var backup = await ReadFileAsync(_paths.BufferBackupFile(id), cancellationToken).ConfigureAwait(false);
+
+        if (backup is { Text.Length: > 0 } recovered)
+        {
+            return recovered with { RecoveredFromBackup = true };
+        }
+
+        // Genuinely empty, or gone. An empty buffer is a legitimate state — a new tab —
+        // so the live result is returned as-is rather than treated as a failure.
+        return live;
+    }
 
     /// <summary>Reads a trashed buffer, or null when it is not there.</summary>
     public Task<StoredBuffer?> ReadTrashedAsync(BufferId id, CancellationToken cancellationToken = default) =>
         ReadFileAsync(_paths.TrashFile(id), cancellationToken);
 
-    /// <summary>True when live text exists for <paramref name="id"/>.</summary>
-    public bool Exists(BufferId id) => File.Exists(_paths.BufferFile(id));
+    /// <summary>True when text exists for <paramref name="id"/>, live or recoverable.</summary>
+    public bool Exists(BufferId id) =>
+        File.Exists(_paths.BufferFile(id)) || File.Exists(_paths.BufferBackupFile(id));
 
     /// <summary>
     /// Deletes live text outright, without trashing it.
     /// </summary>
     /// <remarks>
-    /// Not the close path — this exists to undo a write that lost a race with a
-    /// close, where the file was recreated after the trash move. Returns false rather
-    /// than throwing, because the caller is already handling one problem.
+    /// Not the close path — this exists to undo a write that lost a race with a close
+    /// or a suppression, where the file was recreated after the trash move. The
+    /// retained generation goes with it: leaving it behind would resurrect the buffer
+    /// on the next launch through the very fallback that makes a crash recoverable,
+    /// and for an ephemeral tab it would leave on disk the one thing that must never
+    /// be written there. Returns false rather than throwing, because the caller is
+    /// already handling one problem.
     /// </remarks>
-    public bool DeleteLive(BufferId id) => TryDelete(_paths.BufferFile(id));
+    public bool DeleteLive(BufferId id)
+    {
+        var deletedLive = TryDelete(_paths.BufferFile(id));
+        var deletedBackup = TryDelete(_paths.BufferBackupFile(id));
+
+        return deletedLive || deletedBackup;
+    }
 
     /// <summary>
     /// Every buffer with text on disk, whether or not the session index mentions it.
@@ -104,9 +163,37 @@ public sealed class BufferStore
     /// <remarks>
     /// This is what makes a lost or corrupt <c>session.json</c> survivable. The index
     /// records tab order and titles; the text is the part that actually matters, and
-    /// it can always be recovered by looking at what is really there.
+    /// it can always be recovered by looking at what is really there — including a
+    /// buffer that exists only as a retained generation because the process died
+    /// between the rotate and the publish.
     /// </remarks>
-    public IReadOnlyList<BufferId> EnumerateLive() => Enumerate(_paths.BuffersDirectory);
+    public IReadOnlyList<BufferId> EnumerateLive()
+    {
+        var live = Enumerate(_paths.BuffersDirectory, BufferId.Extension, BufferId.TryParseFileName);
+
+        var orphanedBackups = Enumerate(
+            _paths.BuffersDirectory,
+            BufferId.BackupExtension,
+            BufferId.TryParseBackupFileName);
+
+        if (orphanedBackups.Count == 0)
+        {
+            return live;
+        }
+
+        var all = new List<BufferId>(live);
+        var seen = new HashSet<BufferId>(live);
+
+        foreach (var id in orphanedBackups)
+        {
+            if (seen.Add(id))
+            {
+                all.Add(id);
+            }
+        }
+
+        return all;
+    }
 
     /// <summary>Every trashed buffer, with the time it was trashed.</summary>
     public IReadOnlyList<TrashedBuffer> EnumerateTrash()
@@ -171,9 +258,17 @@ public sealed class BufferStore
     {
         ArgumentNullException.ThrowIfNull(policy);
 
-        var source = _paths.BufferFile(id);
+        var backup = _paths.BufferBackupFile(id);
 
-        if (!File.Exists(source))
+        // Normally the live file. When it is missing but a retained generation is not,
+        // the process died inside the rename window and that generation is the only
+        // copy of the text — trashing it is what keeps Ctrl+Shift+T honest in exactly
+        // the case where the user is most likely to need it.
+        var source = File.Exists(_paths.BufferFile(id)) ? _paths.BufferFile(id)
+            : File.Exists(backup) ? backup
+            : null;
+
+        if (source is null)
         {
             return false;
         }
@@ -184,6 +279,7 @@ public sealed class BufferStore
             // stops the UI offering a "reopen closed tab" that would silently do
             // nothing — the user chose zero retention and the interface has to agree.
             TryDelete(source);
+            TryDelete(backup);
             return false;
         }
 
@@ -201,6 +297,11 @@ public sealed class BufferStore
         {
             return false;
         }
+
+        // The trashed copy is now the canonical one. A generation left behind in the
+        // buffers directory would be adopted as a recovered tab on the next launch,
+        // resurrecting a tab the user closed with text one revision out of date.
+        TryDelete(backup);
 
         // Retention has to run from the close, not from the last edit. File.Move
         // preserves the last-write time, so without this stamp a note last touched
@@ -328,6 +429,12 @@ public sealed class BufferStore
         foreach (var id in EnumerateLive())
         {
             Attempt(_paths.BufferFile(id));
+
+            // The retained generation holds a full prior revision of the same text.
+            // Wiping the live file and leaving that behind would defeat the point
+            // entirely — and it is precisely the copy a user would not think to look
+            // for.
+            Attempt(_paths.BufferBackupFile(id));
         }
 
         foreach (var entry in EnumerateTrash())
@@ -349,7 +456,9 @@ public sealed class BufferStore
         return new WipeResult(deleted, failed);
     }
 
-    private static IReadOnlyList<BufferId> Enumerate(string directory)
+    private delegate bool FileNameParser(ReadOnlySpan<char> fileName, out BufferId id);
+
+    private static IReadOnlyList<BufferId> Enumerate(string directory, string extension, FileNameParser parse)
     {
         if (!Directory.Exists(directory))
         {
@@ -360,9 +469,9 @@ public sealed class BufferStore
 
         try
         {
-            foreach (var path in Directory.EnumerateFiles(directory, "*" + BufferId.Extension, SearchOption.TopDirectoryOnly))
+            foreach (var path in Directory.EnumerateFiles(directory, "*" + extension, SearchOption.TopDirectoryOnly))
             {
-                if (BufferId.TryParseFileName(Path.GetFileName(path.AsSpan()), out var id))
+                if (parse(Path.GetFileName(path.AsSpan()), out var id))
                 {
                     results.Add(id);
                 }
@@ -400,16 +509,22 @@ public sealed class BufferStore
 
         await using (stream.ConfigureAwait(false))
         {
-            // Byte-order-mark detection off: Etch writes UTF-8 without one, so the
-            // only thing detection can do here is silently eat a leading U+FEFF that
-            // is part of the user's actual text — and the journal would then write
-            // the stripped version back, losing the character permanently.
-            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, BufferSize);
+            // A byte-order-mark-free encoding instance, and that is what does the work
+            // here — not the detect flag. StreamReader sets its internal preamble check
+            // from the encoding's own preamble, independently of
+            // detectEncodingFromByteOrderMarks, so passing Encoding.UTF8 would strip a
+            // leading EF BB BF whatever the flag said. Etch writes these files without a
+            // mark, so any such bytes are the user's own text — a pasted U+FEFF — and the
+            // journal would write the stripped version straight back, losing the
+            // character permanently.
+            using var reader = new StreamReader(stream, Utf8NoBom, detectEncodingFromByteOrderMarks: false, BufferSize);
 
-            var (text, wasTruncated) = await ReadCappedAsync(reader, stream.Length, cancellationToken)
+            var length = stream.Length;
+
+            var (text, wasTruncated) = await ReadCappedAsync(reader, length, cancellationToken)
                 .ConfigureAwait(false);
 
-            return new StoredBuffer(text, wasTruncated);
+            return new StoredBuffer(text, wasTruncated, length);
         }
     }
 
@@ -483,7 +598,23 @@ public sealed class BufferStore
 /// user has to be told, and the buffer must not be journaled: auto-save would write
 /// the truncated text back over the original and make the loss permanent.
 /// </param>
-public readonly record struct StoredBuffer(string Text, bool WasTruncated);
+/// <param name="SizeInBytes">
+/// The length of the file it was read from. Reported rather than recomputed from
+/// <paramref name="Text"/>: the caller needs it to decide which editor features this
+/// document may switch on, and re-encoding the whole buffer to count its bytes would
+/// be a full extra pass over it on the startup path.
+/// </param>
+/// <param name="RecoveredFromBackup">
+/// True when the live file was gone and the retained previous generation was read
+/// instead — the signature of a process that died inside the rename window. The text
+/// is one revision behind, which is worth a quiet line in the status bar and nothing
+/// more.
+/// </param>
+public readonly record struct StoredBuffer(
+    string Text,
+    bool WasTruncated,
+    long SizeInBytes,
+    bool RecoveredFromBackup = false);
 
 /// <summary>A closed buffer waiting out its retention period.</summary>
 /// <param name="Id">Identifies the buffer.</param>

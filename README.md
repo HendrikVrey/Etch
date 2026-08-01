@@ -6,10 +6,12 @@ You paste something into a tab. Etch works out what it is, and `Ctrl+Enter` does
 the obvious thing to it — in place, so transforms chain. Everything is saved
 continuously, so there is never a save dialog and never a lost thought.
 
-> **Status: M0 — spike.** This is the go/no-go performance gate, not the product.
-> There are no tabs, no persistence and no transforms yet. What exists is a shell
-> that answers one question: *can WPF get on screen inside 250 ms, and can it hold
-> a 50 MB file?* Full plan lives in `../Linda/Etch.md`.
+> **Status: M2 complete.** Everything from M1 — tabs, continuous auto-save, session
+> restore, non-destructive close, reopen-closed, find and replace, per-tab ephemeral
+> buffers — plus format detection, the command palette, and the **42 transforms** of
+> the v1 catalogue. M3 is polish and release: large-file modes, a settings UI, syntax
+> highlighting, and the measurement this project has still never run.
+> Full plan lives in `../Linda/Etch.md`; **its §0 says what to do next.**
 
 ## Stack
 
@@ -24,10 +26,12 @@ continuously, so there is never a save dialog and never a lost thought.
 ## Layout
 
 ```
-src/Etch.Core        pure functions over text — no UI, no I/O, no platform
-src/Etch.App         WPF shell, startup diagnostics, file loading
-tests/Etch.Core.Tests   size policy, line-ending detection
-tests/Etch.App.Tests    command line — the untrusted-input boundary
+src/Etch.Core          pure functions over text — no UI, no I/O, no platform
+src/Etch.Persistence   every byte Etch writes: buffers, trash, session index, journal
+src/Etch.App           WPF shell, tabs, find/replace, single-instance, diagnostics
+tests/Etch.Core.Tests         detection corpus, every transform, palette ranking, search
+tests/Etch.Persistence.Tests  atomic writes, retention, crash recovery, the journal
+tests/Etch.App.Tests          workspace orderings, keyboard map, tab order, editor colours
 ```
 
 `Etch.Core` is where the value of the product will live, which is why it is kept
@@ -42,7 +46,7 @@ dotnet build Etch.slnx -c Release
 dotnet test  Etch.slnx
 ```
 
-## Measure (the point of M0)
+## Measure
 
 Publish the way it will actually ship, then measure that — a debug build through
 `dotnet run` is not the thing users launch:
@@ -75,6 +79,105 @@ that dies early still leaves the numbers behind.
 
 The full protocol — how many runs, warm versus cold cache, and what each number
 means — is in [`docs/M0-measurement.md`](docs/M0-measurement.md).
+
+## Keyboard
+
+| Key | Action |
+|---|---|
+| `Ctrl+T` / `Ctrl+N` | New scratch tab |
+| `Ctrl+W` | Close tab — never destructive |
+| `Ctrl+Shift+T` | Reopen the last closed tab |
+| `Ctrl+Tab` / `Ctrl+Shift+Tab` | Next / previous tab |
+| `Ctrl+PageDown` / `Ctrl+PageUp` | Next / previous tab |
+| `Ctrl+1..9` | Jump to a tab by position |
+| `Ctrl+O` / `Ctrl+S` | Open a file / write through (or give a scratch tab a home) |
+| `Ctrl+F` / `Ctrl+H` | Find / find and replace |
+| `Ctrl+Enter` | Do the obvious thing to whatever is in the buffer |
+| `Ctrl+Shift+P` | Command palette — everything else |
+| `F2` | Rename the tab, in place |
+| `Ctrl+Shift+E` | Toggle ephemeral — this tab is never written to disk |
+| `Ctrl+K, P` | Pin or unpin the tab |
+| `Esc` | Dismiss the palette or the find bar |
+
+Everything else the text area does — cut, copy, paste, undo, redo, select all, the
+caret and selection keys, `Tab` for indentation — is AvalonEdit's and is deliberately
+left alone. The whole map is one table in `Etch.App.Input.KeyMap`, and
+`KeyMapTests` asserts both that it matches this list and that it claims nothing the
+editor owns.
+
+## Tabs
+
+The strip lives in the title bar. Nothing else does — no menu, no ribbon, no toolbar.
+
+- **Drag a tab** along the strip to reorder it. Pinned tabs and ordinary tabs are
+  separate groups, so a drag never pins or unpins anything as a side effect.
+- **Right-click a tab** for pin, rename, ephemeral and close. `Ctrl+K, P` pins from the
+  keyboard.
+- **Pinned tabs** sit at the front of the strip and carry a pin glyph. The order
+  survives a restart.
+- A **caution dot** marks an ephemeral tab, which is never written to disk.
+- The strip **scrolls on the wheel** when there are more tabs than fit. There is no
+  scrollbar: `Ctrl+Tab` and `Ctrl+1..9` reach everything regardless.
+
+## Transforms
+
+Etch works out what a buffer is and puts the right action under `Ctrl+Enter`.
+Transforms apply **in place**, so they chain: base64 → JSON → sorted keys is three
+keystrokes in one buffer. With a selection, only the selection is transformed. Each
+transform is a single undo.
+
+Detected: JSON, NDJSON, base64, base64url, hex, URL-encoded, JWT, GUID, Unix time,
+ISO-8601. The status bar names what it found, and says "(sampled)" when the document was
+large enough that only its first 64 KB was examined.
+
+**42 transforms** in the v1 catalogue — JSON format/minify/validate/sort-keys and string
+escaping; base64, base64url, URL and HTML-entity encoding both ways; hex to text; JWT
+decode; MD5, SHA-1, SHA-256, SHA-512 and a GUID generator; Unix time ↔ ISO-8601 and UTC ↔
+local; six case conversions; and the line and whitespace operations (sort, reverse,
+dedupe, blank lines, join, split, trim, collapse, tabs ↔ spaces, indent, dedent).
+`Ctrl+Shift+P` fuzzy-searches all of them.
+
+| `Ctrl+Enter` does | when the buffer is |
+|---|---|
+| Format JSON | JSON |
+| Base64 decode | base64, base64url |
+| URL decode | URL-encoded |
+| Hex to text | hex |
+| Decode JWT | JWT |
+| Unix time to ISO-8601 | Unix time |
+| ISO-8601 to Unix time | ISO-8601 |
+
+Encoding and hashing are never the suggested action: decoding is something the buffer
+tells you it needs, encoding is something you go looking for. Which transform wins a tie
+is decided by an explicit precedence, not by the alphabet — until that landed, `Ctrl+Enter`
+on JSON chose "Format" over "Minify" because F comes before M.
+
+Encoding transforms are never the suggested action: decoding is something the buffer
+tells you it needs, encoding is something you go looking for.
+
+**JWT tokens are decoded, never verified.** The output says so on its first line, and
+that is not decoration — a tool that renders claims as though they were established
+facts teaches people to trust attacker-controlled input.
+
+## Where your text lives
+
+```
+%LOCALAPPDATA%\Etch\
+├─ session.json          tab order, titles, caret and scroll positions
+├─ .lock                 held by the running instance
+├─ buffers\<guid>.txt    one file per tab, raw UTF-8
+├─ buffers\<guid>.prev   the previous revision of each, kept as a safety net
+└─ trash\<guid>.txt      closed tabs, kept 7 days
+```
+
+There is no save dialog because there is nothing to save: every edit is written
+about half a second after you stop typing, and at least every five seconds while
+you keep going. Closing a tab moves it to `trash\`, which is what makes closing
+safe to do without a confirmation prompt.
+
+**Only one Etch runs per data directory.** Two would journal to the same files and
+overwrite each other with no error anywhere. A second launch hands its file to the
+window already open and exits.
 
 ## Command line
 
@@ -120,18 +223,27 @@ the one most able to win that race.
 
 ## Not yet verified
 
-It compiles. It has not been **measured**, and until it has, M0 has not happened —
-the whole milestone is a number, not a build.
+Etch has still never been **measured**. The M0 startup gate was answered by
+judgement rather than by `--diag`, so there is no baseline, and M1's cost can no
+longer be separated from M0's. The protocol in `docs/M0-measurement.md` is still
+worth running, as a baseline rather than as a gate.
 
 Runtime-only risks, which a successful build says nothing about:
 
-1. **Mica behind the editor.** The editor background is transparent so the backdrop
-   shows through. If text readability suffers, especially in light mode, swap it for
-   a solid theme brush — a one-line change in `MainWindow.xaml`.
-2. **Theme resource keys** are `DynamicResource` lookups, so a wrong key degrades
-   silently rather than throwing. Check the status bar actually looks right in both
-   light and dark.
-3. **AvalonEdit at 50 MB.** Unverified behaviour, and the reason M0 exists.
+1. **Theme resource keys** are `DynamicResource` lookups, so a wrong key degrades
+   silently rather than throwing. Check the tab strip and status bar actually look
+   right in both light and dark.
+2. **AvalonEdit at 50 MB.** Still unverified, and still the risk M0 was built to
+   answer.
+3. **Idle CPU and idle working set** have never been checked against the budget.
+
+Mica behind the editor used to be listed here as a readability risk, and it was a real
+one: AvalonEdit's default selection is the system highlight at 70% opacity, which over a
+transparent editor composites against the *wallpaper*. It sank into the page in dark mode
+and put white text on 70% blue — about 2.9:1 — in light. The selection and current-line
+colours are now derived from the accent to stated contrast floors in
+`Etch.App.Editor.EditorColours`, and `EditorColoursTests` sweeps 125 accents against both
+themes. Ordinary text over Mica is still worth an eye.
 
 ## Security posture
 
@@ -147,9 +259,23 @@ touches no file system at all, so a hostile path cannot block startup on a netwo
 timeout before the window exists.
 
 Diagnostic logs under `%LOCALAPPDATA%\Etch\diag` record absolute file paths, which
-means usernames and directory names. They roll at 4 MB and will come under M1's
-"wipe all scratch data" command.
+means usernames and directory names. They roll at 4 MB.
 
-Session data will be plaintext under `%LOCALAPPDATA%` when persistence lands in M1.
-People paste secrets into scratchpads, so that will ship alongside per-tab
-ephemeral buffers and a "wipe all scratch data" command.
+**Everything you type is stored as plaintext under `%LOCALAPPDATA%\Etch`.** People
+paste credentials into scratchpads, so this is worth being precise about:
+
+- Each buffer is stored **twice** — the current text and one previous revision
+  (`.prev`), kept so that a bad write is recoverable. A wipe removes both.
+- Because every revision is written to a fresh file and renamed into place, older
+  copies of your text exist on disk until their blocks are reused. Deleting a file
+  unlinks it; it is not a secure erase, and shadow copies keep whole prior versions.
+- The honest answer for a real secret is not to write it at all. `Ctrl+Shift+E`
+  marks a tab **ephemeral**: it is never journaled, never trashed, and never named
+  in `session.json`.
+- Trash retention is 7 days by default and can be set to 0.
+- "Wipe all scratch data" exists in `Etch.Persistence` and is not yet wired to a
+  command — that lands with the settings UI in M3.
+
+Etch initiates no network requests — no telemetry, no update check, nothing. The
+instance hand-off uses a named pipe restricted to the current user, and every path
+that arrives over it is validated with the same rules the command line uses.

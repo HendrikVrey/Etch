@@ -243,59 +243,17 @@ internal static class CommandLineParser
     }
 
     /// <summary>
-    /// Resolves a user-supplied path to absolute form, rejecting anything malformed
-    /// or pointing at something that is not an ordinary file.
+    /// Resolves a user-supplied path to absolute form.
     /// </summary>
     /// <remarks>
-    /// <see cref="Path.GetFullPath(string)"/> normalises away <c>..</c> traversal
-    /// and relative segments, so downstream code only ever sees a fully resolved
-    /// path. It throws on invalid characters and over-long paths, which is exactly
-    /// the validation wanted — converted here into a clear message rather than an
-    /// unhandled exception at startup.
-    /// <para>
-    /// It also resolves DOS device names, so <c>CON</c> and <c>\\.\PhysicalDrive0</c>
-    /// would otherwise pass. Those are rejected explicitly: <c>--gen-sample</c>
-    /// opens its target for writing.
-    /// </para>
+    /// Delegated to <see cref="PathGuard"/>, which the instance hand-off pipe uses
+    /// too. The two are the only routes by which a path reaches Etch from outside the
+    /// process, and a validator applied to one but not the other is a validator with
+    /// a bypass.
     /// </remarks>
     private static bool TryResolvePath(
         string candidate,
         [NotNullWhen(true)] out string? fullPath,
-        [NotNullWhen(false)] out string? error)
-    {
-        fullPath = null;
-        error = null;
-
-        if (string.IsNullOrWhiteSpace(candidate))
-        {
-            error = "A path was expected but the value was empty.";
-            return false;
-        }
-
-        string resolved;
-        try
-        {
-            resolved = Path.GetFullPath(candidate);
-        }
-        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
-        {
-            error = $"'{candidate}' is not a usable path: {ex.Message}";
-            return false;
-        }
-
-        if (resolved.StartsWith(@"\\.\", StringComparison.Ordinal) || resolved.StartsWith(@"\\?\", StringComparison.Ordinal))
-        {
-            error = $"'{candidate}' resolves to a device path, which Etch will not open.";
-            return false;
-        }
-
-        if (!Path.IsPathFullyQualified(resolved))
-        {
-            error = $"'{candidate}' does not resolve to a fully qualified path.";
-            return false;
-        }
-
-        fullPath = resolved;
-        return true;
-    }
+        [NotNullWhen(false)] out string? error) =>
+        PathGuard.TryResolve(candidate, out fullPath, out error);
 }

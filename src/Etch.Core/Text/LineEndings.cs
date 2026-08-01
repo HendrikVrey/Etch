@@ -114,6 +114,66 @@ public static class LineEndings
         _ => throw new ArgumentOutOfRangeException(nameof(style), style, "Unknown line ending style."),
     };
 
+    /// <summary>
+    /// Rewrites every line ending in <paramref name="text"/> as <paramref name="newLine"/>.
+    /// </summary>
+    /// <remarks>
+    /// Transforms need this because the libraries they are built on choose their own
+    /// newline. Writing LF into a CRLF buffer produces a file with both conventions in
+    /// it, which is invisible on screen, loud in a diff, and blamed on the editor.
+    /// </remarks>
+    /// <param name="text">The text to rewrite.</param>
+    /// <param name="newLine">The ending to emit. Must be CRLF, LF or CR.</param>
+    public static string Normalise(string text, string newLine)
+    {
+        ArgumentNullException.ThrowIfNull(text);
+
+        if (newLine is not ("\r\n" or "\n" or "\r"))
+        {
+            throw new ArgumentException("Only CRLF, LF and CR are line endings.", nameof(newLine));
+        }
+
+        var counts = Count(text);
+
+        // Already uniform in the requested style. The common case by far, and worth not
+        // allocating a second copy of a possibly very large buffer for.
+        if (counts.Total == 0
+            || (newLine == "\r\n" && counts.Lf == 0 && counts.Cr == 0)
+            || (newLine == "\n" && counts.Crlf == 0 && counts.Cr == 0)
+            || (newLine == "\r" && counts.Crlf == 0 && counts.Lf == 0))
+        {
+            return text;
+        }
+
+        var builder = new System.Text.StringBuilder(text.Length + counts.Total);
+
+        for (var i = 0; i < text.Length; i++)
+        {
+            var character = text[i];
+
+            if (character == '\r')
+            {
+                if (i + 1 < text.Length && text[i + 1] == '\n')
+                {
+                    i++;
+                }
+
+                builder.Append(newLine);
+                continue;
+            }
+
+            if (character == '\n')
+            {
+                builder.Append(newLine);
+                continue;
+            }
+
+            builder.Append(character);
+        }
+
+        return builder.ToString();
+    }
+
     /// <summary>The short label shown in the status bar.</summary>
     public static string ToDisplayName(LineEndingStyle style) => style switch
     {

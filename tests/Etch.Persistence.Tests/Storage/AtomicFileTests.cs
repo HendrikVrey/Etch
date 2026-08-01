@@ -83,7 +83,7 @@ public class AtomicFileTests
         await cancelled.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => AtomicFile.WriteAllTextAsync(path, "replacement", cancelled.Token));
+            () => AtomicFile.WriteAllTextAsync(path, "replacement", backupPath: null, cancelled.Token));
 
         Assert.Equal("original", await File.ReadAllTextAsync(path));
         Assert.Empty(Directory.GetFiles(workspace.Root, "*.tmp"));

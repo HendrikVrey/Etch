@@ -16,6 +16,7 @@ public sealed class EtchPaths
     private const string BuffersFolder = "buffers";
     private const string TrashFolder = "trash";
     private const string SessionFileName = "session.json";
+    private const string LockFileName = ".lock";
     private const string QuarantinePrefix = "session.quarantined-";
 
     /// <summary>Creates a layout rooted at <paramref name="root"/>.</summary>
@@ -36,6 +37,7 @@ public sealed class EtchPaths
         BuffersDirectory = Path.Combine(Root, BuffersFolder);
         TrashDirectory = Path.Combine(Root, TrashFolder);
         SessionFile = Path.Combine(Root, SessionFileName);
+        LockFile = Path.Combine(Root, LockFileName);
     }
 
     /// <summary>The data directory, <c>%LOCALAPPDATA%\Etch</c> by default.</summary>
@@ -49,6 +51,20 @@ public sealed class EtchPaths
 
     /// <summary>The session index.</summary>
     public string SessionFile { get; }
+
+    /// <summary>
+    /// The file whose exclusive handle marks this data directory as owned by a
+    /// running Etch.
+    /// </summary>
+    /// <remarks>
+    /// A file rather than a named mutex, deliberately. The invariant being protected
+    /// is "one process writes this directory", and a lock file is scoped to exactly
+    /// that: it works across terminal-server sessions, where the <c>Local\</c> object
+    /// namespace does not and <c>Global\</c> needs a privilege a locked-down user may
+    /// not have. Windows releases the handle when the process dies however it dies,
+    /// so there is no stale lock to reap.
+    /// </remarks>
+    public string LockFile { get; }
 
     /// <summary>The default layout, under the local application data folder.</summary>
     /// <exception cref="InvalidOperationException">
@@ -75,6 +91,16 @@ public sealed class EtchPaths
     /// <summary>The live file for <paramref name="id"/>.</summary>
     public string BufferFile(BufferId id) => Path.Combine(BuffersDirectory, id.FileName);
 
+    /// <summary>
+    /// The retained previous generation of <paramref name="id"/>, alongside the live file.
+    /// </summary>
+    /// <remarks>
+    /// Same directory as the live file, deliberately, so that rotating a generation is
+    /// a rename within one volume rather than a copy — and so that a wipe or a trash
+    /// move only ever has one place to look.
+    /// </remarks>
+    public string BufferBackupFile(BufferId id) => Path.Combine(BuffersDirectory, id.BackupFileName);
+
     /// <summary>The trash file for <paramref name="id"/>.</summary>
     public string TrashFile(BufferId id) => Path.Combine(TrashDirectory, id.FileName);
 
@@ -96,6 +122,17 @@ public sealed class EtchPaths
     public string QuarantinedSessionFile(DateTimeOffset stampUtc, string discriminator)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(discriminator);
+
+        // Validated, not trusted. This type exists so that nothing else concatenates a
+        // path under the data root, and a caller-supplied fragment interpolated straight
+        // into one would defeat that with a single `..` segment. Alphanumeric only, and
+        // short.
+        if (discriminator.Length > 8 || !discriminator.All(char.IsAsciiLetterOrDigit))
+        {
+            throw new ArgumentException(
+                "A quarantine discriminator must be one to eight ASCII letters or digits.",
+                nameof(discriminator));
+        }
 
         var stamp = stampUtc.UtcDateTime.ToString("yyyyMMdd-HHmmss-fff", CultureInfo.InvariantCulture);
 
