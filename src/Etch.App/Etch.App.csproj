@@ -9,6 +9,21 @@
     <UseWindowsForms>false</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+
+    <!--
+      The icon is embedded in the executable as a Win32 resource, and that is the only
+      copy of it in the shipped product. A WPF Window with no Icon set falls back to the
+      executable's icon, so this one property covers the taskbar, Alt+Tab, the window,
+      and Explorer without loading an image resource during startup.
+
+      Deliberately NOT set on ui:TitleBar: the title bar holds the tab strip and nothing
+      else (see MainWindow.xaml), and an icon there would take width from the tabs.
+
+      assets/ is the single source of truth — see assets/build-icon.py. Keeping one copy
+      rather than a build-input duplicate inside the project is what stops the shipped
+      .ico from drifting away from the SVG it was drawn from.
+    -->
+    <ApplicationIcon>..\..\assets\etch.ico</ApplicationIcon>
     <DebugType>embedded</DebugType>
     <!-- Required by the [LibraryImport] source generator (ConsoleBridge). -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

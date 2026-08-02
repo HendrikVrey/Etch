@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/etch-256.png" alt="Etch" width="120">
+</p>
+
 # Etch
 
 A fast, editor-first developer scratchpad for Windows.
@@ -32,7 +36,13 @@ src/Etch.App           WPF shell, tabs, find/replace, single-instance, diagnosti
 tests/Etch.Core.Tests         detection corpus, every transform, palette ranking, search
 tests/Etch.Persistence.Tests  atomic writes, retention, crash recovery, the journal
 tests/Etch.App.Tests          workspace orderings, keyboard map, tab order, editor colours
+assets                 the icon: SVG sources, the packed .ico, and build-icon.py
 ```
+
+The icon is drawn from the SVGs in `assets/`, not traced from a raster, and
+`assets/build-icon.py` packs the ten sizes Windows asks for — rendering each one at its
+own resolution rather than downsampling. `Etch.App.csproj` embeds `assets/etch.ico` in
+the executable; there is no second copy to fall out of sync.
 
 `Etch.Core` is where the value of the product will live, which is why it is kept
 free of any UI or I/O dependency: it stays exhaustively testable without a GUI.
