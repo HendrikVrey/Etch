@@ -1,6 +1,7 @@
 using Etch.Core.Abstractions;
 using Etch.Core.Detection;
 using Etch.Core.Palette;
+using Etch.Core.Transforms;
 using Xunit;
 
 namespace Etch.Core.Tests.Palette;
@@ -77,6 +78,40 @@ public class PaletteRankingTests
     public void A_query_that_matches_nothing_returns_nothing()
     {
         Assert.Empty(PaletteRanking.Rank("zzzzqqqq", DetectionResult.PlainText));
+    }
+
+    [Theory]
+    [InlineData("epoch")]
+    [InlineData("timestamp")]
+    [InlineData("unix time")]
+    public void The_detected_format_still_decides_which_way_a_reversible_pair_runs(string query)
+    {
+        // The other half of the rule that gave time.epochToIso the bare format nouns: a
+        // typed word picks the transform that consumes that format, but only while the
+        // buffer has nothing to say. Once it is recognisably ISO-8601 the suggested bonus
+        // outranks every fuzzy score, and these queries have to arrive at the inverse.
+        //
+        // Worth pinning because the mechanism is invisible: time.isoToEpoch no longer
+        // carries any of these words itself, so it is reached through "to epoch" and its
+        // siblings. Narrow the aliases any further and the transform stops being findable
+        // for the buffer it exists to serve.
+        var ranked = PaletteRanking.Rank(query, FormatDetection.Detect("2026-08-02T09:45:00Z"));
+
+        Assert.NotEmpty(ranked);
+        Assert.Equal("time.isoToEpoch", ranked[0].Transform.Id);
+    }
+
+    [Fact]
+    public void Neither_half_of_a_reversible_pair_answers_to_the_others_bare_noun()
+    {
+        // The defect this pins cost a test failure and was invisible in either file alone:
+        // both transforms listed "epoch", so both scored 97, and Precedence — a value that
+        // exists to settle Ctrl+Enter on a detected buffer — silently decided what a typed
+        // word meant. A shared alias between inverses is a tie by construction.
+        var epochToIso = TransformRegistry.All.Single(static t => t.Id == "time.epochToIso");
+        var isoToEpoch = TransformRegistry.All.Single(static t => t.Id == "time.isoToEpoch");
+
+        Assert.Empty(epochToIso.Aliases.Intersect(isoToEpoch.Aliases, StringComparer.OrdinalIgnoreCase));
     }
 
     [Fact]

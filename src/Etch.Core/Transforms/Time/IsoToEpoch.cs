@@ -45,7 +45,23 @@ internal sealed class IsoToEpoch : ITransform
     public TransformCategory Category => TransformCategory.Time;
 
     /// <inheritdoc />
-    public IReadOnlyList<string> Aliases { get; } = ["epoch", "unix time", "timestamp", "to epoch"];
+    /// <remarks>
+    /// <b>Directional forms only, deliberately.</b> This transform and
+    /// <see cref="EpochToIso"/> are inverses, so any alias they share is a tie neither can
+    /// win on merit: both scored 97 on a query of <c>epoch</c>, and the winner was decided
+    /// by <see cref="Precedence"/> — a value chosen to settle <c>Ctrl+Enter</c> on a
+    /// detected buffer, which has nothing to say about what a typed word means. The rule
+    /// that resolves it: <b>a bare format noun belongs to the transform that consumes that
+    /// format, and its inverse takes the "to …" form.</b> Someone typing <c>epoch</c> at a
+    /// buffer that is an epoch wants it made readable.
+    /// <para>
+    /// Nothing is lost in the other direction. When the buffer really is ISO-8601,
+    /// detection applies the suggested bonus, which outranks every fuzzy score by two
+    /// orders of magnitude — so <c>epoch</c>, <c>timestamp</c> and <c>unix time</c> all
+    /// still land here first, reached through the "to …" aliases below.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyList<string> Aliases { get; } = ["to epoch", "to unix time", "to timestamp"];
 
     /// <inheritdoc />
     /// <remarks>
