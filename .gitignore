@@ -43,3 +43,6 @@ desktop.ini
 diag/
 *.diag.log
 samples/*.generated.*
+## Build diagnostics captured for analysis
+warnings.txt
+build.log

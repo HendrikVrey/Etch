@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Etch.Core.Abstractions;
 
 /// <summary>
@@ -44,6 +46,15 @@ public enum FormatId
     Jwt = 7,
 
     /// <summary>A GUID, in any of the forms .NET round-trips.</summary>
+    [SuppressMessage(
+        "Naming",
+        "CA1720:Identifier contains type name",
+        Justification =
+            "The rule is aimed at parameters and members named after their own type. This is " +
+            "a member of a list of formats, and the format is called a GUID — that is what " +
+            "the status bar has to say, and what a user would search the palette for. " +
+            "Renaming it to avoid colliding with System.Guid would make the enum describe " +
+            "the world less accurately to satisfy a rule about a different situation.")]
     Guid = 8,
 
     /// <summary>A Unix timestamp, in seconds or milliseconds.</summary>

@@ -241,7 +241,10 @@ public class ValueTransformTests
         // keeps "New GUID" reachable in its normal starting case.
         var independent = TransformRegistry.All.Where(static t => !t.NeedsInput).Select(static t => t.Id).ToArray();
 
-        Assert.Equal(new[] { "guid.new" }, independent);
+        // Single rather than comparing against a one-element array: it asserts the count
+        // and the value separately, so "two transforms claim to need no input" fails as
+        // that rather than as an opaque sequence mismatch.
+        Assert.Equal("guid.new", Assert.Single(independent));
     }
 
     [Fact]

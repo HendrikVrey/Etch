@@ -1,0 +1,31 @@
+# Rules relaxed for test code only.
+#
+# This file exists so the relaxations are scoped, visible, and each one has a reason
+# written next to it. Nothing here applies to src/ — a rule that is wrong for a test is
+# usually still right for the thing being tested. Anything switched off below should be
+# switched back on if its reason stops being true.
+
+[*.cs]
+
+# CA1707 — Identifiers should not contain underscores.
+#
+# 373 hits, all of them test method names, and the convention is deliberate:
+# Every_recognised_format_has_a_label_of_its_own reads as a sentence in a test runner's
+# output, which is the one place these names are ever read. The rule is aimed at public
+# API surface that callers have to type; a test method has no callers. Renaming 373
+# methods to PascalCase would make the failure output harder to read in exchange for
+# nothing at all.
+dotnet_diagnostic.CA1707.severity = none
+
+# xUnit1051 — pass TestContext.Current.CancellationToken to methods that accept one.
+#
+# DEFERRED, NOT DISMISSED. 155 hits, and the rule is right: without the token a hung test
+# cannot be cancelled by the runner, which matters here because the persistence suite does
+# real file I/O with retries and semaphores. It is switched off for one specific reason —
+# the fix is 155 call-site edits to a suite that has never been run end to end, and making
+# them now would mean that when the suite is first run, a failure could equally be an
+# untested transform or an edit made blind, with no way to tell which.
+#
+# Turn this back on once the suite is green, then work through the 155 in one pass. Tracked
+# in the M3 list in Linda/Etch.md §0. (Deferred 2026-08-01.)
+dotnet_diagnostic.xUnit1051.severity = none

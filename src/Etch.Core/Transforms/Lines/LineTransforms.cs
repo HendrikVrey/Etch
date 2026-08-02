@@ -57,14 +57,22 @@ internal abstract class LineTransform : ITransform
             message);
     }
 
-    private static bool Unchanged(IReadOnlyList<string> before, IReadOnlyList<string> after)
+    /// <summary>Whether a rework produced the same lines it was given.</summary>
+    /// <remarks>
+    /// The two parameters are deliberately different types rather than both being
+    /// <c>IReadOnlyList</c>. <c>before</c> is always the array <c>TextLines.Split</c>
+    /// returned, so taking it as one indexes it directly instead of through an interface;
+    /// <c>after</c> is whatever a <c>Rework</c> override chose to build. The asymmetry also
+    /// makes the arguments impossible to pass in the wrong order.
+    /// </remarks>
+    private static bool Unchanged(string[] before, IReadOnlyList<string> after)
     {
-        if (before.Count != after.Count)
+        if (before.Length != after.Count)
         {
             return false;
         }
 
-        for (var i = 0; i < before.Count; i++)
+        for (var i = 0; i < before.Length; i++)
         {
             if (!string.Equals(before[i], after[i], StringComparison.Ordinal))
             {

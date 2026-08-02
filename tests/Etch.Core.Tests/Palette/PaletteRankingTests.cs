@@ -114,12 +114,15 @@ public class PaletteRankingTests
         Assert.Equal(expectedId, suggested!.Id);
     }
 
+    /// <summary>What "b" moving to the front should leave behind, spelled out once.</summary>
+    private static readonly string[] BMovedToTheFront = ["b", "a", "c"];
+
     [Fact]
     public void Remembering_moves_a_transform_to_the_front_without_duplicating_it()
     {
         var recent = PaletteRanking.Remember(["a", "b", "c"], "b");
 
-        Assert.Equal(new[] { "b", "a", "c" }, recent);
+        Assert.Equal(BMovedToTheFront, recent);
     }
 
     [Fact]

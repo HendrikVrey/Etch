@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
 using Etch.Core.Abstractions;
@@ -78,6 +79,16 @@ internal sealed class HashMd5 : HashTransform
     public override IReadOnlyList<string> Aliases { get; } = ["md5", "hash", "checksum", "digest"];
 
     /// <inheritdoc />
+    [SuppressMessage(
+        "Security",
+        "CA5351:Do Not Use Broken Cryptographic Algorithms",
+        Justification =
+            "Deliberate, and the analyser is reading the intent backwards. Etch is not " +
+            "protecting anything with MD5; it is showing the user the MD5 of text they " +
+            "already have, because the world is full of MD5 checksums that need comparing. " +
+            "Refusing to compute one would not make those go away, it would just mean " +
+            "reaching for a website to paste the text into. The transform is named " +
+            "\"MD5 (legacy — not for security)\" in the palette so the caveat travels with it.")]
     protected override byte[] ComputeHash(byte[] bytes) => MD5.HashData(bytes);
 }
 
@@ -98,6 +109,13 @@ internal sealed class HashSha1 : HashTransform
     public override IReadOnlyList<string> Aliases { get; } = ["sha1", "hash", "checksum", "digest", "git"];
 
     /// <inheritdoc />
+    [SuppressMessage(
+        "Security",
+        "CA5350:Do Not Use Weak Cryptographic Algorithms",
+        Justification =
+            "Same reasoning as CA5351 on MD5 above, with one addition that makes it stronger: " +
+            "a git object id is a SHA-1, so this is the transform someone reaches for when " +
+            "checking one. Displayed, never trusted, and labelled legacy in its own name.")]
     protected override byte[] ComputeHash(byte[] bytes) => SHA1.HashData(bytes);
 }
 

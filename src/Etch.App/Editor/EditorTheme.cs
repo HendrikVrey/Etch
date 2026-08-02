@@ -83,7 +83,10 @@ internal sealed class EditorTheme : IDisposable
     /// </remarks>
     private void OnThemeChanged(ApplicationTheme theme, Color accent) => Refresh();
 
-    private EditorColourScheme Resolve() =>
+    // Static: every input is read from the system at the moment of the call, so there is
+    // no instance state here and pretending otherwise would imply the scheme depends on
+    // which editor it is for. It does not.
+    private static EditorColourScheme Resolve() =>
         SystemParameters.HighContrast
             ? EditorColours.HighContrast()
             : EditorColours.Build(SystemThemeReader.Detect() == SystemThemeMode.Dark, Accent());

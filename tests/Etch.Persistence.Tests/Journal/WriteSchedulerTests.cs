@@ -399,7 +399,7 @@ public class WriteSchedulerTests
     }
 
     [Fact]
-    public void Concurrent_recording_and_draining_loses_nothing()
+    public async Task Concurrent_recording_and_draining_loses_nothing()
     {
         // The real access pattern: the UI thread records while the journal thread
         // drains. Every write must come out exactly once.
@@ -427,7 +427,14 @@ public class WriteSchedulerTests
         });
 
         Volatile.Write(ref stop, true);
-        drainer.Wait(TimeSpan.FromSeconds(30));
+
+        // Awaited rather than blocked on. Two things were wrong with Wait(timeout): it
+        // blocks a test thread on a task, which is the deadlock shape this codebase has
+        // already been bitten by twice, and it returns a bool saying whether the task
+        // actually finished — which was discarded. So a drainer that hung was reported as
+        // missing writes, thirty seconds later, pointing at the wrong component entirely.
+        // WaitAsync throws TimeoutException instead, which names what went wrong.
+        await drainer.WaitAsync(TimeSpan.FromSeconds(30));
 
         // Coalescing means the count is not deterministic, but the final text for
         // every buffer must have been observed and nothing may be left behind.

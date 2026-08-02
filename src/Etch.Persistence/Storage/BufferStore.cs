@@ -458,7 +458,9 @@ public sealed class BufferStore
 
     private delegate bool FileNameParser(ReadOnlySpan<char> fileName, out BufferId id);
 
-    private static IReadOnlyList<BufferId> Enumerate(string directory, string extension, FileNameParser parse)
+    // Returns the concrete List rather than IReadOnlyList: it is private, both callers
+    // only ever enumerate it, and the interface bought nothing but a layer of dispatch.
+    private static List<BufferId> Enumerate(string directory, string extension, FileNameParser parse)
     {
         if (!Directory.Exists(directory))
         {

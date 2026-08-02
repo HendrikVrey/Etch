@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Input;
@@ -44,6 +45,16 @@ namespace Etch.App.Views;
 /// at all.
 /// </para>
 /// </remarks>
+[SuppressMessage(
+    "Design",
+    "CA1001:Types that own disposable fields should be disposable",
+    Justification =
+        "A WPF Window has no disposal story to implement — nothing calls Dispose on one, " +
+        "and making it IDisposable would advertise a contract the framework never honours. " +
+        "OnClosed is where a Window's deterministic cleanup belongs, and that is where " +
+        "_editorTheme is disposed, alongside the timers and the event unsubscriptions. " +
+        "The analyser cannot see OnClosed as a disposal path, which is the whole of the " +
+        "disagreement.")]
 public partial class MainWindow : FluentWindow
 {
     private static readonly TimeSpan MessageDuration = TimeSpan.FromSeconds(6);
@@ -439,7 +450,9 @@ public partial class MainWindow : FluentWindow
     private Task CloseAsync(BufferTab? tab) =>
         tab is null ? Task.CompletedTask : _workspace.CloseAsync(tab);
 
-    private Task OpenAsync(string path) => _workspace.OpenFileAsync(path);
+    // Task<BufferTab?> rather than Task: the workspace already returns the tab, and
+    // widening it to the base type only added a cast for every caller to pay for.
+    private Task<BufferTab?> OpenAsync(string path) => _workspace.OpenFileAsync(path);
 
     private void OnActiveChanged(BufferTab? tab) => Bind(tab);
 
