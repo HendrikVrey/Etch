@@ -507,7 +507,7 @@ public partial class MainWindow : FluentWindow
             Editor.SyntaxHighlighting = null;
 
             Editor.CaretOffset = Math.Clamp(tab.CaretOffset, 0, document.TextLength);
-            Editor.ScrollToLine(Math.Clamp(tab.FirstVisibleLine, 1, document.LineCount));
+            RestoreScrollPosition(Math.Clamp(tab.FirstVisibleLine, 1, document.LineCount));
 
             Title = $"{tab.Title} — Etch";
         }
@@ -527,6 +527,55 @@ public partial class MainWindow : FluentWindow
                 RefreshFindMatches();
             }
         }
+    }
+
+    /// <summary>
+    /// Puts <paramref name="line"/> back at the top of the viewport.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Not <c>ScrollToLine</c>, which only brings a line <i>into view</i> — if it is
+    /// already visible anywhere on screen that method does nothing at all. Restoring a
+    /// tab scrolled to line 400 would leave it wherever the previous document had
+    /// happened to be, and a tab scrolled to line 3 would not move from the top.
+    /// </para>
+    /// <para>
+    /// <see cref="ICSharpCode.AvalonEdit.Rendering.TextView.GetVisualTopByDocumentLine"/> is the exact inverse of the
+    /// <see cref="ICSharpCode.AvalonEdit.Rendering.TextView.GetDocumentLineByVisualTop"/> that captured the value, so the
+    /// round trip is a matched pair rather than two methods that happen to be near each
+    /// other. It reads the height tree, which exists as soon as a document is set, so it
+    /// does not need a layout pass first.
+    /// </para>
+    /// <para>
+    /// Scrolling does, though. The scroll viewer cannot honour an offset before its
+    /// extent is known, so on the very first bind the request is re-issued once layout
+    /// has run. That cannot fight the user: the only case it applies to is one where the
+    /// text has never been laid out, and nobody can scroll a view they have not seen.
+    /// </para>
+    /// </remarks>
+    private void RestoreScrollPosition(int line)
+    {
+        var textView = Editor.TextArea.TextView;
+
+        Editor.ScrollToVerticalOffset(textView.GetVisualTopByDocumentLine(line));
+
+        if (textView.VisualLinesValid)
+        {
+            return;
+        }
+
+        Dispatcher.BeginInvoke(
+            DispatcherPriority.Loaded,
+            () =>
+            {
+                // The tab may have been switched away from between the two, in which case
+                // this offset belongs to a document the editor no longer holds.
+                if (_bound?.Document is { } current && ReferenceEquals(Editor.Document, current))
+                {
+                    Editor.ScrollToVerticalOffset(
+                        textView.GetVisualTopByDocumentLine(Math.Clamp(line, 1, current.LineCount)));
+                }
+            });
     }
 
     /// <summary>

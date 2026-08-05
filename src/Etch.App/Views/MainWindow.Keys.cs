@@ -185,7 +185,7 @@ public partial class MainWindow
             return false;
         }
 
-        Execute(action);
+        Execute(action, e.IsRepeat);
         return true;
     }
 
@@ -266,7 +266,7 @@ public partial class MainWindow
         if (KeyMap.TryResolveChord(second, out var action))
         {
             CancelChord();
-            Execute(action);
+            Execute(action, isRepeat: false);
 
             return true;
         }
@@ -304,7 +304,7 @@ public partial class MainWindow
     /// context menu use, so a shortcut and a click cannot drift into doing different
     /// things.
     /// </remarks>
-    private void Execute(KeyAction action)
+    private void Execute(KeyAction action, bool isRepeat)
     {
         switch (action.Command)
         {
@@ -317,7 +317,15 @@ public partial class MainWindow
                 return;
 
             case EtchCommandId.Save:
-                SaveActiveTab();
+                // Not on auto-repeat. Holding Ctrl+S would otherwise walk straight
+                // through the overwrite guard: the first press refuses and arms against
+                // what is on disk, and the repeat ~30 ms later finds that arm and writes,
+                // so a warning nobody had time to read counts as having been read.
+                if (!isRepeat)
+                {
+                    SaveActiveTab();
+                }
+
                 return;
 
             case EtchCommandId.Find:

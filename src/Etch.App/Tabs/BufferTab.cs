@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Etch.App.Editor;
 using Etch.Core.Documents;
 using Etch.Core.Text;
 using Etch.Persistence.Model;
@@ -63,6 +64,28 @@ public sealed class BufferTab : INotifyPropertyChanged
 
     /// <summary>The user's file, for a <see cref="BufferKind.File"/> tab.</summary>
     public string? FilePath { get; private set; }
+
+    /// <summary>
+    /// Which file this tab is actually over, independent of how its path is spelled.
+    /// </summary>
+    /// <remarks>
+    /// Not restored from the session index, and deliberately so: an identity is a
+    /// statement about the file that is on disk right now, and the one recorded last
+    /// week may since have been deleted and recreated. It is established when the file
+    /// is opened and left unknown until then, so a restored tab de-duplicates on its
+    /// path — a weaker guarantee, honestly held, rather than a stale strong one.
+    /// </remarks>
+    internal FileIdentity Identity { get; private set; }
+
+    /// <summary>
+    /// What the file looked like when Etch last read or wrote it, or null if unknown.
+    /// </summary>
+    /// <remarks>
+    /// Null after a session restore for the same reason <see cref="Identity"/> is
+    /// unknown, and the save path treats null as "cannot tell" rather than as
+    /// "unchanged".
+    /// </remarks>
+    internal FileWitness? Witness { get; private set; }
 
     /// <summary>The tab caption.</summary>
     public string Title
@@ -314,6 +337,53 @@ public sealed class BufferTab : INotifyPropertyChanged
         Raise(nameof(IsJournaled));
     }
 
+    /// <summary>
+    /// Records which file this tab is over and what it looked like at that moment.
+    /// </summary>
+    /// <remarks>
+    /// Called after a load and again after every successful write-through. The second
+    /// call is not optional: leave the witness describing the file as it was before
+    /// Etch's own save and the very next <c>Ctrl+S</c> reports Etch's own write as
+    /// somebody else's change, which trains the user to dismiss the one warning that
+    /// matters.
+    /// </remarks>
+    internal void AdoptFileState(FileIdentity identity, FileWitness witness)
+    {
+        Identity = identity;
+        Witness = witness;
+    }
+
+    /// <summary>
+    /// Forgets the file state, for when the tab stops being over the file it was.
+    /// </summary>
+    internal void ForgetFileState()
+    {
+        Identity = default;
+        Witness = null;
+        OverwriteArmedFor = null;
+    }
+
+    /// <summary>
+    /// The on-disk state the user has been warned about and chosen to overwrite anyway.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Carries the witness rather than a bare flag, and that is the whole point. A
+    /// boolean "the user said yes" outlives the situation it was answered for: the file
+    /// changes a second time, the flag is still set, and the save the user consented to
+    /// is not the save that happens. Holding the state they consented to means a further
+    /// change re-arms the warning by simply not matching.
+    /// </para>
+    /// <para>
+    /// The same shape as the <c>Ctrl+K</c> prefix fix: a pending state must not outlive
+    /// the thing that explains it.
+    /// </para>
+    /// </remarks>
+    internal DiskState? OverwriteArmedFor { get; private set; }
+
+    /// <summary>Records that the user has been warned about <paramref name="state"/>.</summary>
+    internal void ArmOverwrite(DiskState? state) => OverwriteArmedFor = state;
+
     /// <summary>Turns a scratch tab into one backed by a file the user chose.</summary>
     /// <remarks>
     /// The path is validated by <see cref="BufferRecord"/> at the next session save,
@@ -342,6 +412,12 @@ public sealed class BufferTab : INotifyPropertyChanged
         Kind = BufferKind.File;
         FilePath = filePath;
         Encoding = encoding;
+
+        // Whatever this tab was over before, it is not over it now. Carrying the old
+        // identity forward would let a Save As onto an existing file inherit a witness
+        // describing a different file, and the overwrite guard would then wave through
+        // the one case it exists to catch.
+        ForgetFileState();
 
         Title = Path.GetFileName(filePath) is { Length: > 0 } fileName ? fileName : filePath;
 

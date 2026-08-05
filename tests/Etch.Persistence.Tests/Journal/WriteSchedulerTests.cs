@@ -31,6 +31,83 @@ public class WriteSchedulerTests
     }
 
     [Fact]
+    public void Discards_are_dropped_once_nothing_is_pending()
+    {
+        // The leak: one BufferId per tab closed, held for the life of the process. The
+        // set only ever answers about ids in a batch, so with nothing pending here and
+        // nothing in flight in the journal, every entry in it is unreachable.
+        var scheduler = CreateScheduler();
+
+        var first = BufferId.New();
+        var second = BufferId.New();
+
+        scheduler.Discard(first);
+        scheduler.Discard(second);
+
+        Assert.True(scheduler.IsDiscarded(first));
+        Assert.Equal(2, scheduler.PruneDiscards());
+
+        Assert.False(scheduler.IsDiscarded(first));
+        Assert.False(scheduler.IsDiscarded(second));
+    }
+
+    [Fact]
+    public void Discards_survive_while_anything_is_still_pending()
+    {
+        // Pending work means a batch can still be taken, and a batch that is taken will
+        // ask. Pruning here would let a write that lost the race to a close recreate the
+        // file the close had just moved to the trash.
+        var scheduler = CreateScheduler();
+        var closed = BufferId.New();
+
+        scheduler.Discard(closed);
+        scheduler.Record(BufferId.New(), "still typing", T0);
+
+        Assert.Equal(0, scheduler.PruneDiscards());
+        Assert.True(scheduler.IsDiscarded(closed));
+    }
+
+    [Fact]
+    public void Pruning_drops_the_suppression_of_a_buffer_that_was_closed()
+    {
+        // The same leak by a quieter route: SetSuppressed(id, false) is the only other
+        // thing that removes one, and a closed ephemeral tab never calls it. Dropped at
+        // prune time rather than at Discard, so that the two sets stay independent while
+        // the buffer is alive — an id still discarded here was closed and never reopened,
+        // because Record lifts a discard.
+        var scheduler = CreateScheduler();
+        var ephemeral = BufferId.New();
+
+        scheduler.SetSuppressed(ephemeral, suppressed: true);
+        scheduler.Discard(ephemeral);
+
+        // Still both, right up until the prune. This is the contract SuppressionTests
+        // pins from the other side.
+        Assert.True(scheduler.IsSuppressed(ephemeral));
+        Assert.True(scheduler.IsDiscarded(ephemeral));
+
+        scheduler.PruneDiscards();
+
+        Assert.False(scheduler.IsSuppressed(ephemeral));
+        Assert.False(scheduler.IsDiscarded(ephemeral));
+    }
+
+    [Fact]
+    public void A_suppression_outlives_a_prune_because_its_buffer_may_still_be_open()
+    {
+        // Only a *closed* buffer's suppression is dropped. An ephemeral tab the user
+        // still has open must stay suppressed for ever; dropping its entry would resume
+        // writing to disk the one buffer promised never to reach it.
+        var scheduler = CreateScheduler();
+        var ephemeral = BufferId.New();
+
+        scheduler.SetSuppressed(ephemeral, suppressed: true);
+        scheduler.PruneDiscards();
+
+        Assert.True(scheduler.IsSuppressed(ephemeral));
+    }
+
+    [Fact]
     public void A_null_next_due_is_what_lets_the_loop_sleep_instead_of_polling()
     {
         // The 0% idle CPU budget depends on this distinction: null means "block

@@ -275,6 +275,8 @@ public sealed class JournalWriter : IAsyncDisposable
 
         if (wait is null)
         {
+            await PruneDiscardsAsync(token).ConfigureAwait(false);
+
             // Nothing pending: sleep until an edit arrives. No timer, no tick, no CPU.
             await _wake.WaitAsync(token).ConfigureAwait(false);
         }
@@ -290,6 +292,43 @@ public sealed class JournalWriter : IAsyncDisposable
         }
 
         DrainWakeSignals();
+    }
+
+    /// <summary>
+    /// Drops discards that nothing can ask about any more.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The discard set exists to beat a write that was already in flight when a tab was
+    /// closed, so an entry is needed exactly as long as a batch containing that id might
+    /// still be running. Left alone the set grew by one <c>BufferId</c> per tab closed,
+    /// for the life of the process.
+    /// </para>
+    /// <para>
+    /// Taken under <c>_writeGate</c>, and deliberately not under a test of
+    /// <c>_inFlight</c>. Every batch leaves the scheduler <i>inside</i> the gate —
+    /// <c>WriteBatchAsync(_scheduler.TakeAll(), …)</c> evaluates its argument once the
+    /// gate is held — but <c>_inFlight</c> is not incremented until the method body
+    /// begins. Between those two points the scheduler is empty, <c>_inFlight</c> is still
+    /// zero, and a batch is nonetheless in somebody's hand: a prune there clears the
+    /// discard for an id in that batch, the closed tab's buffer file is republished, and
+    /// the next launch adopts it as a recovered tab holding text the user closed. The
+    /// gate is what the batch is actually taken under, so the gate is the only thing that
+    /// covers the window.
+    /// </para>
+    /// </remarks>
+    private async Task PruneDiscardsAsync(CancellationToken token)
+    {
+        await _writeGate.WaitAsync(token).ConfigureAwait(false);
+
+        try
+        {
+            _scheduler.PruneDiscards();
+        }
+        finally
+        {
+            _writeGate.Release();
+        }
     }
 
     /// <summary>Collapses the backlog of wake signals a burst of typing left behind.</summary>

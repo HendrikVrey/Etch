@@ -73,6 +73,13 @@ internal static class DocumentLoader
                 capabilities.Notice ?? $"{DocumentSizePolicy.Describe(sizeInBytes)} is too large to open.");
         }
 
+        // Taken from this handle, for the same reason the size is: anything read from
+        // the path instead could describe a different file by the time it is used. The
+        // identity de-duplicates tabs and the witness lets Ctrl+S notice a change made
+        // by something else, so both have to mean *this* file, not that path.
+        var identity = FileIdentity.FromHandle(stream.SafeFileHandle, path);
+        var witness = FileWitness.FromHandle(stream.SafeFileHandle);
+
         // The fallback is a private byte-order-mark-free instance, not Encoding.UTF8.
         // StreamReader only replaces its encoding when it actually detects a mark, and
         // for UTF-8 it replaces it with the Encoding.UTF8 singleton — whose GetPreamble()
@@ -109,7 +116,9 @@ internal static class DocumentLoader
             SizeInBytes: sizeInBytes,
             Capabilities: capabilities,
             WasTruncated: wasTruncated,
-            ReadDuration: stopwatch.Elapsed));
+            ReadDuration: stopwatch.Elapsed,
+            Identity: identity,
+            Witness: witness));
     }
 
     /// <summary>

@@ -195,7 +195,67 @@ public sealed class WriteScheduler
         lock (_gate)
         {
             _discarded.Add(id);
+
             return _pending.Remove(id);
+        }
+    }
+
+    /// <summary>
+    /// Forgets every discard, which is only correct when nothing can ask about one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The discard set exists to beat a write that was already in flight when a tab
+    /// closed, so an entry is needed exactly as long as a batch containing that id
+    /// might still be running. It has no other reader: the journal asks
+    /// <see cref="IsDiscarded"/> only about ids in a batch it is holding.
+    /// </para>
+    /// <para>
+    /// So when there is nothing pending here and no batch is in anybody's hand, no id can
+    /// be asked about and every entry in the set is unreachable — one
+    /// <see cref="BufferId"/> of dead weight per tab closed since the process started.
+    /// </para>
+    /// <para>
+    /// The scheduler can only see the first half of that. A batch that has already been
+    /// taken is, from here, indistinguishable from no batch at all, so the caller must
+    /// hold whatever lock it takes batches under before calling this — see
+    /// <c>JournalWriter.PruneDiscardsAsync</c>, which holds the write gate. Calling it
+    /// without that is unsound however empty this looks.
+    /// </para>
+    /// <para>
+    /// <b>Suppressions are deliberately not cleared.</b> A suppressed buffer can be
+    /// live — an ephemeral tab the user still has open — and dropping its entry would
+    /// resume writing to disk the one buffer that was promised never to reach it. The
+    /// two sets answer different questions and are pruned on different conditions.
+    /// </para>
+    /// </remarks>
+    /// <returns>How many entries were dropped.</returns>
+    public int PruneDiscards()
+    {
+        lock (_gate)
+        {
+            if (_pending.Count > 0)
+            {
+                return 0;
+            }
+
+            // A suppression outlives its buffer the same way a discard does — and by a
+            // quieter route, because SetSuppressed(id, false) is the only other thing
+            // that removes one and a closed ephemeral tab never calls it. Dropped here
+            // rather than in Discard: an id that is still discarded at this point was
+            // closed and never reopened (Record lifts a discard), so nothing can ask
+            // about it, whereas dropping it at Discard would make that method mean two
+            // things and would break the promise that the two sets are independent
+            // while the buffer is alive.
+            foreach (var id in _discarded)
+            {
+                _suppressed.Remove(id);
+            }
+
+            var dropped = _discarded.Count;
+            _discarded.Clear();
+
+            return dropped;
         }
     }
 

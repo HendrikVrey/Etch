@@ -286,17 +286,30 @@ internal sealed class Workspace : IAsyncDisposable
     /// Opens a file in a new tab, or activates the tab that already has it open.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Reusing the existing tab is not a nicety. Two tabs over one file would journal
     /// to two shadow copies and then race each other on <c>Ctrl+S</c>, and the user
     /// would have no way to tell which one won.
+    /// </para>
+    /// <para>
+    /// Which makes comparing path strings the wrong test, because Windows hands the
+    /// same file back under several spellings — an 8.3 short name, a junction, a mapped
+    /// drive that is really a UNC share, a hard link. <see cref="FileIdentity"/> asks
+    /// the filesystem instead. The path comparison is kept as a fallback for tabs whose
+    /// identity was never established, which is what a session restore leaves behind.
+    /// </para>
     /// </remarks>
     public async Task<BufferTab?> OpenFileAsync(string path, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
 
-        var existing = _tabs.FirstOrDefault(tab =>
-            tab.Kind == BufferKind.File
-            && string.Equals(tab.FilePath, path, StringComparison.OrdinalIgnoreCase));
+        // Probed before the load rather than after, so a 300 MB file that is already
+        // open is not read a second time only to be thrown away. The file is opened
+        // again a moment later for the read itself; if it is swapped in between, the
+        // identity stored on the tab is the one from the read, which is the truth.
+        var identity = FileIdentity.TryRead(path, out var probed) ? probed : default;
+
+        var existing = _tabs.FirstOrDefault(tab => IsSameFile(tab, path, identity));
 
         if (existing is not null)
         {
@@ -343,6 +356,7 @@ internal sealed class Workspace : IAsyncDisposable
         var tab = BufferTab.FromRecord(record);
         tab.Hydrate(loaded.Text, loaded.Capabilities, loaded.WasTruncated, recoveredFromBackup: false);
         tab.AdoptFileMetadata(loaded.Encoding, loaded.LineEnding, loaded.Capabilities);
+        tab.AdoptFileState(loaded.Identity, loaded.Witness);
 
         Attach(tab);
         SetActive(tab);
@@ -777,6 +791,11 @@ internal sealed class Workspace : IAsyncDisposable
             return false;
         }
 
+        if (!await ConfirmOverwriteAsync(tab, path, cancellationToken).ConfigureAwait(true))
+        {
+            return false;
+        }
+
         try
         {
             await DocumentWriter.WriteThroughAsync(path, document.CreateSnapshot(), tab.Encoding, cancellationToken)
@@ -793,9 +812,107 @@ internal sealed class Workspace : IAsyncDisposable
             return false;
         }
 
+        // Re-read after the write, so the tab's idea of the file is Etch's own output.
+        // Skipping this would make the next Ctrl+S report this save as somebody else's
+        // change — and a warning that cries wolf is worse than none, because the user
+        // learns to press through it.
+        await RefreshFileStateAsync(tab, path, cancellationToken).ConfigureAwait(true);
+
         Announce($"Saved {tab.Title}.");
         return true;
     }
+
+    /// <summary>
+    /// Checks whether anything else has written to the file since Etch last read it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A refusal and a status-bar line rather than a modal dialog, per the UI rules, and
+    /// pressing <c>Ctrl+S</c> again goes through. That is a real confirmation and not a
+    /// speed bump: the second press is armed against the exact on-disk state the message
+    /// described, so if the file changes again in between, the warning returns.
+    /// </para>
+    /// <para>
+    /// The probe runs off the UI thread for the same reason
+    /// <see cref="DocumentWriter.WriteThroughAsync"/> does: opening a file is synchronous
+    /// however the handle is configured, and a share that has just gone away makes the
+    /// open alone last for the SMB timeout. A save guard that freezes the window is not
+    /// an improvement on the bug it guards against.
+    /// </para>
+    /// <para>
+    /// <b>Known limit, stated rather than hidden.</b> A tab restored from a previous
+    /// session has no witness: the session index records a path and not a timestamp, and
+    /// the text comes from the journal so the file is never read. A change made while
+    /// Etch was <i>closed</i> is therefore not detected, and the first save after a
+    /// restore merely establishes the witness — which is a shame, because "changed while
+    /// the editor was shut" is the likelier case of the two. Closing it means persisting
+    /// the witness in the session index, which is a schema change and is not attempted
+    /// here rather than being approximated with the buffer's own edit time.
+    /// </para>
+    /// </remarks>
+    /// <returns>True when the write may proceed.</returns>
+    private async Task<bool> ConfirmOverwriteAsync(BufferTab tab, string path, CancellationToken cancellationToken)
+    {
+        if (tab.Witness is not { } expected)
+        {
+            return true;
+        }
+
+        var actual = await Task.Run(() => DiskState.Read(path), cancellationToken).ConfigureAwait(true);
+
+        if (actual.Matches(expected))
+        {
+            tab.ArmOverwrite(null);
+            return true;
+        }
+
+        // Armed against this exact state by a previous refusal, so this is the user
+        // pressing Ctrl+S a second time having read the message. A null arm never
+        // matches, because DiskState is a value even when the file is missing.
+        if (tab.OverwriteArmedFor == actual)
+        {
+            tab.ArmOverwrite(null);
+            return true;
+        }
+
+        tab.ArmOverwrite(actual);
+
+        Announce(actual.Presence switch
+        {
+            DiskPresence.Present => $"{tab.Title} has changed on disk since Etch opened it. Ctrl+S again to overwrite it.",
+            DiskPresence.Missing => $"{tab.Title} no longer exists on disk. Ctrl+S again to write it out again.",
+            _ => $"{tab.Title} could not be read — it may be open in another program. Ctrl+S again to write over it.",
+        });
+
+        return false;
+    }
+
+    /// <summary>Re-reads the file's identity and witness after Etch has written to it.</summary>
+    /// <remarks>
+    /// A failure here clears the state rather than leaving the old one. The stale witness
+    /// describes the file as it was <i>before</i> Etch's own save, so keeping it would
+    /// make the very next Ctrl+S report this write as somebody else's change — the
+    /// failure this method exists to prevent, reached down its error path.
+    /// </remarks>
+    private static async Task RefreshFileStateAsync(BufferTab tab, string path, CancellationToken cancellationToken)
+    {
+        var refreshed = await Task.Run(() => ReadFileState(path), cancellationToken).ConfigureAwait(true);
+
+        if (refreshed is { } state)
+        {
+            tab.AdoptFileState(state.Identity, state.Witness);
+            tab.ArmOverwrite(null);
+            return;
+        }
+
+        tab.ForgetFileState();
+    }
+
+    /// <summary>Identity and witness together, or null when either could not be read.</summary>
+    private static (FileIdentity Identity, FileWitness Witness)? ReadFileState(string path) =>
+        FileIdentity.TryRead(path, out var identity) && FileWitness.TryRead(path, out var witness)
+            ? (identity, witness.Value)
+            : null;
 
     /// <summary>Promotes a scratch tab to a file the user has chosen, and writes it.</summary>
     public async Task<bool> SaveAsAsync(BufferTab tab, string path, CancellationToken cancellationToken = default)
@@ -816,6 +933,32 @@ internal sealed class Workspace : IAsyncDisposable
         RequestSessionSave();
 
         return await SaveThroughAsync(tab, cancellationToken).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Whether <paramref name="tab"/> is already over the file at <paramref name="path"/>.
+    /// </summary>
+    /// <remarks>
+    /// Identity when both sides have one, path otherwise. The fallback is reached by
+    /// tabs restored from a session index, which records a path and not an identity —
+    /// and by files on a filesystem that will not supply an id.
+    /// </remarks>
+    private static bool IsSameFile(BufferTab tab, string path, FileIdentity identity)
+    {
+        if (tab.Kind != BufferKind.File)
+        {
+            return false;
+        }
+
+        // Either test is enough, and the path is not merely a fallback for when the
+        // identity is unknown. A file id does not survive delete-and-recreate, and
+        // rename-over-temp is how almost everything saves — git checkout, VS Code,
+        // Notepad, most build tools. Stopping at "both ids known and different" would
+        // therefore open a second tab over a path already open the moment another tool
+        // wrote to it, which is the two-tabs-one-file race this method exists to stop,
+        // arriving by a new route.
+        return (identity.IsKnown && tab.Identity.IsKnown && tab.Identity == identity)
+            || string.Equals(tab.FilePath, path, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Records the current text of <paramref name="tab"/> for writing.</summary>

@@ -21,6 +21,14 @@ namespace Etch.App.Editor;
 /// out because I/O and document construction are optimised in completely different
 /// ways, and a single combined number tells you nothing about which to attack.
 /// </param>
+/// <param name="Identity">
+/// Which file this actually is, independent of how the path was spelled. Read from the
+/// handle the text came off, so it cannot describe a different file than the one loaded.
+/// </param>
+/// <param name="Witness">
+/// Length and last-write time at the moment of reading, so a later <c>Ctrl+S</c> can
+/// tell whether anything else has touched the file since.
+/// </param>
 internal sealed record LoadedDocument(
     string Path,
     string Text,
@@ -29,7 +37,9 @@ internal sealed record LoadedDocument(
     long SizeInBytes,
     DocumentCapabilities Capabilities,
     bool WasTruncated,
-    TimeSpan ReadDuration);
+    TimeSpan ReadDuration,
+    FileIdentity Identity,
+    FileWitness Witness);
 
 /// <summary>The outcome of attempting to load a file.</summary>
 internal abstract record DocumentLoadResult
