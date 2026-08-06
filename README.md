@@ -1,94 +1,147 @@
 <p align="center">
-  <img src="assets/etch-256.png" alt="Etch" width="120">
+  <img src="assets/etch-256.png" alt="" width="112">
 </p>
 
-# Etch
+<h1 align="center">Etch</h1>
 
-A fast, editor-first developer scratchpad for Windows.
+<p align="center">
+  <b>A developer scratchpad for Windows that knows what you just pasted.</b>
+</p>
 
-You paste something into a tab. Etch works out what it is, and `Ctrl+Enter` does
-the obvious thing to it — in place, so transforms chain. Everything is saved
-continuously, so there is never a save dialog and never a lost thought.
+<p align="center">
+  <a href="#download">Download</a> ·
+  <a href="#what-it-does">What it does</a> ·
+  <a href="#keyboard">Keyboard</a> ·
+  <a href="#where-your-text-lives">Where your text lives</a> ·
+  <a href="#security-posture">Security</a> ·
+  <a href="#licence">Licence</a>
+</p>
 
-> **Status: M2 complete.** Everything from M1 — tabs, continuous auto-save, session
-> restore, non-destructive close, reopen-closed, find and replace, per-tab ephemeral
-> buffers — plus format detection, the command palette, and the **42 transforms** of
-> the v1 catalogue. M3 is polish and release: large-file modes, a settings UI, syntax
-> highlighting, and the measurement this project has still never run.
-> Full plan lives in `../Linda/Etch.md`; **its §0 says what to do next.**
+<p align="center">
+  <img alt="Windows 10 and 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4">
+  <img alt=".NET 10" src="https://img.shields.io/badge/.NET-10-512BD4">
+  <img alt="Licence: source-available" src="https://img.shields.io/badge/licence-source--available-B8860B">
+  <img alt="No telemetry" src="https://img.shields.io/badge/telemetry-none-2E7D32">
+</p>
 
-## Stack
+---
 
-| Piece | Choice |
+Notepad is where a thought goes to be lost. Etch is the opposite: **nothing is ever
+unsaved, and closing a tab is not destructive.** There is no save dialog, because there
+is nothing to save.
+
+Then it does the other thing you actually wanted. Paste a JWT and it says *JWT*. Press
+`Ctrl+Enter` and it is decoded — in the same buffer, so the next transform picks up where
+that one left off. Base64 → JSON → sorted keys is three keystrokes and no round trip
+through a website you had to trust with the payload.
+
+<!-- SCREENSHOTS: replace the placeholder below before tagging v1.
+     1. Dark mode, a JSON file open, tab strip in the title bar, format chip visible.
+     2. The command palette open over a buffer, showing the ranked list.
+     3. Light mode, two tabs, one pinned and one ephemeral (caution dot).
+     Capture at 1x on a 1920x1080 display, window ~1200x800, no personal paths on screen. -->
+
+<p align="center"><i>Screenshots go here before the first tag.</i></p>
+
+---
+
+## Download
+
+> **Etch has not been tagged yet.** The first release will appear on the
+> [Releases](https://github.com/HendrikVrey/Etch/releases) page as a portable ZIP for
+> `win-x64` and `win-arm64`. No installer, no service, and nothing written outside your
+> own user profile.
+
+Unzip it anywhere and run `Etch.exe`.
+
+Windows SmartScreen will warn you the first time, because the binary is not code-signed.
+That is a real warning and worth treating as one: it means Windows cannot confirm who
+built this. If that is not a trade you want to make,
+[build it yourself](#build-it-yourself) — the source is right here, and that is rather
+the point.
+
+---
+
+## What it does
+
+### Nothing is ever unsaved
+
+Every edit is written about half a second after you stop typing, and at least every five
+seconds while you keep going. Close a tab and it goes to the trash, not to nothing —
+`Ctrl+Shift+T` brings it back. Kill the process, pull the power, restart the machine: the
+tabs come back as they were, with the caret and scroll position where you left them.
+
+For a tab you would rather not have on disk at all, `Ctrl+Shift+E` marks it
+**ephemeral**: never journaled, never trashed, never named in the session file.
+
+### It works out what the buffer is
+
+JSON, NDJSON, base64, base64url, hex, URL-encoded, JWT, GUID, Unix time and ISO-8601.
+The status bar names what it found, and says *(sampled)* when the document was big enough
+that only its first 64 KB was read — because a chip that just said "JSON" would be
+claiming the whole file had been checked when it had not.
+
+Detection runs on a debounce, off the UI thread, never on a keystroke.
+
+### `Ctrl+Enter` does the obvious thing
+
+| The buffer is | `Ctrl+Enter` does |
 |---|---|
-| Framework | .NET 10, WPF |
-| Fluent shell | [WPF-UI](https://github.com/lepoco/wpfui) 4.3.0 |
-| Editor | [AvalonEdit](https://github.com/icsharpcode/AvalonEdit) 6.3.1 |
-| Tests | xUnit v3 |
-| Licence | MIT |
+| JSON | Format |
+| base64 / base64url | Decode |
+| URL-encoded | Decode |
+| hex | To text |
+| JWT | Decode |
+| Unix time | To ISO-8601 |
+| ISO-8601 | To Unix time |
 
-## Layout
+Encoding and hashing are never the *suggested* action. Decoding is something the buffer
+tells you it needs; encoding is something you go looking for.
 
-```
-src/Etch.Core          pure functions over text — no UI, no I/O, no platform
-src/Etch.Persistence   every byte Etch writes: buffers, trash, session index, journal
-src/Etch.App           WPF shell, tabs, find/replace, single-instance, diagnostics
-tests/Etch.Core.Tests         detection corpus, every transform, palette ranking, search
-tests/Etch.Persistence.Tests  atomic writes, retention, crash recovery, the journal
-tests/Etch.App.Tests          workspace orderings, keyboard map, tab order, editor colours
-assets                 the icon: SVG sources, the packed .ico, and build-icon.py
-```
+Transforms apply **in place**, so they chain. With a selection, only the selection is
+transformed. Each one is a single undo.
 
-The icon is drawn from the SVGs in `assets/`, not traced from a raster, and
-`assets/build-icon.py` packs the ten sizes Windows asks for — rendering each one at its
-own resolution rather than downsampling. `Etch.App.csproj` embeds `assets/etch.ico` in
-the executable; there is no second copy to fall out of sync.
+### …and `Ctrl+Shift+P` does the other 42
 
-`Etch.Core` is where the value of the product will live, which is why it is kept
-free of any UI or I/O dependency: it stays exhaustively testable without a GUI.
-If a `PackageReference` or a `using System.Windows` ever appears in that project,
-something has gone wrong.
+The full v1 catalogue, fuzzy-searchable and ranked against what is actually in the
+buffer: JSON format, minify, validate, sort keys and string escaping; base64, base64url,
+URL and HTML-entity encoding both ways; hex to text; JWT decode; MD5, SHA-1, SHA-256,
+SHA-512 and a GUID generator; Unix time ↔ ISO-8601 and UTC ↔ local; six case conversions;
+and the line and whitespace operations — sort, reverse, dedupe, drop blank lines, join,
+split, trim, collapse, tabs ↔ spaces, indent, dedent.
 
-## Build and test
+**JWTs are decoded, never verified.** The output says so on its first line, and that is
+not decoration: a tool that renders claims as though they were established facts teaches
+people to trust attacker-controlled input.
 
-```powershell
-dotnet build Etch.slnx -c Release
-dotnet test  Etch.slnx
-```
+### Syntax highlighting and folding
 
-## Measure
+Fifteen languages by file extension — C#, JavaScript and TypeScript, JSON, XML and XAML,
+HTML, CSS, Java, C and C++, Python, PowerShell, SQL, PHP, Visual Basic, Markdown and
+unified diffs. Scratch tabs are highlighted from what detection found, which today means
+JSON.
 
-Publish the way it will actually ship, then measure that — a debug build through
-`dotnet run` is not the thing users launch:
+The colours are Etch's own, not the grammar's, and every one is held to **4.5:1 contrast**
+against the page in both themes. That is asserted by a test rather than by looking at it,
+because "looks fine on my machine" is exactly how the bundled grammars ended up
+unreadable on a dark background in the first place.
 
-```powershell
-dotnet publish src\Etch.App\Etch.App.csproj -c Release -r win-x64 `
-  --self-contained true -p:PublishSingleFile=true -p:PublishReadyToRun=true `
-  -o artifacts\win-x64
-```
+Brace folding for the C family and JSON; XML and HTML fold as markup.
 
-Startup timeline:
+### Big files degrade honestly
 
-```powershell
-artifacts\win-x64\Etch.exe --diag
-```
+| Size | What changes |
+|---|---|
+| up to 2 MiB | everything on |
+| 2–10 MiB | folding off, detection stops re-running as you type |
+| 10–100 MiB | plain text, and **auto-save off** |
+| over 100 MiB | refused, with the size in the message |
 
-Large file, generated from a fixed seed so the test is reproducible:
+The 10 MiB tier is the one worth knowing: above it Etch stops journaling, so the promise
+at the top of this page no longer holds — and the status bar says so plainly rather than
+quietly dropping it.
 
-```powershell
-artifacts\win-x64\Etch.exe --gen-sample samples\big.ndjson --size 50
-artifacts\win-x64\Etch.exe --diag samples\big.ndjson
-```
-
-`--gen-sample` will not replace an existing file unless you pass `--force`, and it
-writes through a temporary file so a cancelled run leaves nothing behind.
-
-Diagnostics print to the terminal *and* append to
-`%LOCALAPPDATA%\Etch\diag\etch-<date>.log`, so a run launched from Explorer or one
-that dies early still leaves the numbers behind.
-
-The full protocol — how many runs, warm versus cold cache, and what each number
-means — is in [`docs/M0-measurement.md`](docs/M0-measurement.md).
+---
 
 ## Keyboard
 
@@ -100,74 +153,30 @@ means — is in [`docs/M0-measurement.md`](docs/M0-measurement.md).
 | `Ctrl+Tab` / `Ctrl+Shift+Tab` | Next / previous tab |
 | `Ctrl+PageDown` / `Ctrl+PageUp` | Next / previous tab |
 | `Ctrl+1..9` | Jump to a tab by position |
-| `Ctrl+O` / `Ctrl+S` | Open a file / write through (or give a scratch tab a home) |
+| `Ctrl+O` | Open a file |
+| `Ctrl+S` | Write through — or give a scratch tab a home |
 | `Ctrl+F` / `Ctrl+H` | Find / find and replace |
-| `Ctrl+Enter` | Do the obvious thing to whatever is in the buffer |
-| `Ctrl+Shift+P` | Command palette — everything else |
+| `Ctrl+Enter` | Do the obvious thing to the buffer |
+| `Ctrl+Shift+P` | Command palette |
 | `F2` | Rename the tab, in place |
-| `Ctrl+Shift+E` | Toggle ephemeral — this tab is never written to disk |
+| `Ctrl+Shift+E` | Toggle ephemeral |
 | `Ctrl+K, P` | Pin or unpin the tab |
 | `Esc` | Dismiss the palette or the find bar |
 
-Everything else the text area does — cut, copy, paste, undo, redo, select all, the
-caret and selection keys, `Tab` for indentation — is AvalonEdit's and is deliberately
-left alone. The whole map is one table in `Etch.App.Input.KeyMap`, and
-`KeyMapTests` asserts both that it matches this list and that it claims nothing the
-editor owns.
+Everything the text area owns — cut, copy, paste, undo, redo, select all, caret and
+selection keys, `Tab` for indentation — is left alone deliberately. The whole map is one
+table in `Etch.App.Input.KeyMap`, and a test asserts both that it matches this list and
+that it claims nothing the editor owns.
 
-## Tabs
+### Tabs
 
 The strip lives in the title bar. Nothing else does — no menu, no ribbon, no toolbar.
+Drag to reorder; pinned tabs are a separate group, so a drag never pins anything by
+accident. Right-click for pin, rename, ephemeral and close. The strip scrolls on the
+wheel when there are more tabs than fit, with no scrollbar, because `Ctrl+Tab` and
+`Ctrl+1..9` reach everything anyway.
 
-- **Drag a tab** along the strip to reorder it. Pinned tabs and ordinary tabs are
-  separate groups, so a drag never pins or unpins anything as a side effect.
-- **Right-click a tab** for pin, rename, ephemeral and close. `Ctrl+K, P` pins from the
-  keyboard.
-- **Pinned tabs** sit at the front of the strip and carry a pin glyph. The order
-  survives a restart.
-- A **caution dot** marks an ephemeral tab, which is never written to disk.
-- The strip **scrolls on the wheel** when there are more tabs than fit. There is no
-  scrollbar: `Ctrl+Tab` and `Ctrl+1..9` reach everything regardless.
-
-## Transforms
-
-Etch works out what a buffer is and puts the right action under `Ctrl+Enter`.
-Transforms apply **in place**, so they chain: base64 → JSON → sorted keys is three
-keystrokes in one buffer. With a selection, only the selection is transformed. Each
-transform is a single undo.
-
-Detected: JSON, NDJSON, base64, base64url, hex, URL-encoded, JWT, GUID, Unix time,
-ISO-8601. The status bar names what it found, and says "(sampled)" when the document was
-large enough that only its first 64 KB was examined.
-
-**42 transforms** in the v1 catalogue — JSON format/minify/validate/sort-keys and string
-escaping; base64, base64url, URL and HTML-entity encoding both ways; hex to text; JWT
-decode; MD5, SHA-1, SHA-256, SHA-512 and a GUID generator; Unix time ↔ ISO-8601 and UTC ↔
-local; six case conversions; and the line and whitespace operations (sort, reverse,
-dedupe, blank lines, join, split, trim, collapse, tabs ↔ spaces, indent, dedent).
-`Ctrl+Shift+P` fuzzy-searches all of them.
-
-| `Ctrl+Enter` does | when the buffer is |
-|---|---|
-| Format JSON | JSON |
-| Base64 decode | base64, base64url |
-| URL decode | URL-encoded |
-| Hex to text | hex |
-| Decode JWT | JWT |
-| Unix time to ISO-8601 | Unix time |
-| ISO-8601 to Unix time | ISO-8601 |
-
-Encoding and hashing are never the suggested action: decoding is something the buffer
-tells you it needs, encoding is something you go looking for. Which transform wins a tie
-is decided by an explicit precedence, not by the alphabet — until that landed, `Ctrl+Enter`
-on JSON chose "Format" over "Minify" because F comes before M.
-
-Encoding transforms are never the suggested action: decoding is something the buffer
-tells you it needs, encoding is something you go looking for.
-
-**JWT tokens are decoded, never verified.** The output says so on its first line, and
-that is not decoration — a tool that renders claims as though they were established
-facts teaches people to trust attacker-controlled input.
+---
 
 ## Where your text lives
 
@@ -180,16 +189,91 @@ facts teaches people to trust attacker-controlled input.
 └─ trash\<guid>.txt      closed tabs, kept 7 days
 ```
 
-There is no save dialog because there is nothing to save: every edit is written
-about half a second after you stop typing, and at least every five seconds while
-you keep going. Closing a tab moves it to `trash\`, which is what makes closing
-safe to do without a confirmation prompt.
-
 **Only one Etch runs per data directory.** Two would journal to the same files and
-overwrite each other with no error anywhere. A second launch hands its file to the
-window already open and exits.
+overwrite each other with no error anywhere. A second launch hands its file to the window
+already open and exits.
 
-## Command line
+---
+
+## Security posture
+
+Every buffer is untrusted input, even on the desktop.
+
+Paths from the command line are resolved to absolute form, device paths (`\\.\`, `\\?\`)
+are refused, nothing reaches a shell, hyperlink detection in the editor is off, reads are
+bounded, and the instance hand-off uses a named pipe restricted to the current user with
+every path revalidated on arrival.
+
+**Etch initiates no network requests** — no telemetry, no update check, no crash
+reporting, nothing. Opening a UNC path does SMB I/O exactly as any Windows file open
+does; that is your request, not Etch reaching out. Command-line parsing touches no
+filesystem at all, so a hostile path cannot hang startup on a network timeout before the
+window even exists.
+
+### Your text is stored as plaintext
+
+People paste credentials into scratchpads, so this deserves to be precise rather than
+reassuring:
+
+- Each buffer is stored **twice** — the current text and one previous revision
+  (`.prev`), kept so a bad write is recoverable. A wipe removes both.
+- Because every revision is written to a fresh file and renamed into place, **older
+  copies of your text remain on disk** until their blocks are reused. Deleting a file
+  unlinks it; it is not a secure erase, and Volume Shadow Copy keeps whole prior
+  versions.
+- Diagnostic logs under `%LOCALAPPDATA%\Etch\diag` record absolute paths, which means
+  usernames and directory names. They roll at 4 MB.
+- The honest answer for a real secret is **not to write it at all** — which is what
+  `Ctrl+Shift+E` is for.
+
+Trash retention is **fixed at 7 days** today. The persistence layer supports any window
+including zero — which deletes on close instead of trashing — but nothing in the UI sets
+it yet. "Wipe all scratch data" is in the same position: implemented, tested, and not yet
+reachable from a command. Both arrive with the settings screen.
+
+---
+
+## Not yet verified
+
+Kept here rather than buried in an issue tracker, because a README that only lists
+strengths is not describing the software.
+
+1. **Etch has never been measured.** The startup gate was answered by judgement rather
+   than by running `--diag`, so there is no baseline and no published number. The protocol
+   is in [`docs/M0-measurement.md`](docs/M0-measurement.md), and running it is a condition
+   of the first tag. Any performance claim on this page is design intent, not a
+   measurement.
+2. **AvalonEdit at 50 MB is unverified** — still the risk the whole spike was built to
+   answer.
+3. **Idle CPU and idle working set** have never been checked against their budgets.
+4. A tab restored from a previous session has no on-disk witness, so a file changed while
+   Etch was **closed** is not caught by the overwrite guard. Changes made while it is
+   running are.
+
+---
+
+## Build it yourself
+
+```powershell
+dotnet build Etch.slnx -c Release
+dotnet test  Etch.slnx
+```
+
+Publish the way it actually ships — a debug build through `dotnet run` is not the thing
+anyone launches:
+
+```powershell
+dotnet publish src\Etch.App\Etch.App.csproj -c Release -r win-x64 `
+  --self-contained true -p:PublishSingleFile=true -p:PublishReadyToRun=true `
+  -o artifacts\win-x64
+```
+
+Requires the .NET 10 SDK and Windows. Single-file compression is off permanently — it
+trades startup time for file size by decompressing on every launch, and Etch sells startup
+time. Trimming is off too: WPF resolves types from XAML by reflection, so trimming breaks
+it in ways that only surface at runtime.
+
+### Command line
 
 ```
 Etch [file]                Open a file.
@@ -201,91 +285,68 @@ Etch --gen-sample <path>   Write a synthetic file, then exit.
 Etch --help
 ```
 
-## Design decisions worth knowing
+Diagnostics print to the terminal *and* append to
+`%LOCALAPPDATA%\Etch\diag\etch-<date>.log`, so a run launched from Explorer, or one that
+dies early, still leaves the numbers behind.
 
-**Etch owns its own `Main`.** Clearing `EnableDefaultApplicationDefinition` leaves
-`App.xaml` to be picked up by the default `Page` glob, so the SDK generates
-`InitializeComponent` but no `Main` of its own. That lets `Program.Main` start the
-clock *before* the `Application` object and its XAML resource dictionaries exist.
-Those dictionaries are the largest controllable cost in a WPF-UI startup; a
-timeline that cannot see them separately cannot tell you whether to cut them.
+---
 
-**Single-file compression is off, permanently.** It trades startup time for file
-size by decompressing on every launch. Etch sells startup time.
+## How it is put together
 
-**No trimming.** WPF resolves types from XAML by reflection, so trimming breaks it
-in ways that only surface at runtime. ReadyToRun is where the win is; NativeAOT is
-not available for WPF at all.
+```
+src/Etch.Core          pure functions over text — no UI, no I/O, no platform
+src/Etch.Persistence   every byte Etch writes: buffers, trash, session index, journal
+src/Etch.App           WPF shell, tabs, find/replace, single-instance, diagnostics
+tests/                 three suites, one per project
+assets/                the icon: SVG sources, the packed .ico, and build-icon.py
+```
 
-**The theme is applied, not guessed.** The system theme is read straight from the
-registry, then handed to WPF-UI unconditionally — skipping the call when it already
-matches would save a resource merge but also skip the DWM dark-mode window
-attribute that comes with it, leaving a light frame around dark content. The cost
-shows up as its own phase in the timeline.
+`Etch.Core` is where the value of the product lives, which is why it takes no
+`PackageReference`, no UI reference and no I/O: it stays exhaustively testable without a
+window. If a `using System.Windows` ever appears in it, something has gone wrong.
 
-**No polling timers.** Idle CPU is a budget, not an aspiration. The one
-`DispatcherTimer` is created on first use, is one-shot, and stops itself.
+| Piece | Choice |
+|---|---|
+| Framework | .NET 10, WPF |
+| Fluent shell | [WPF UI](https://github.com/lepoco/wpfui) 4.3.0 |
+| Editor | [AvalonEdit](https://github.com/icsharpcode/AvalonEdit) 6.3.1 |
+| Tests | xUnit v3 |
 
-**The size ceiling is enforced on the handle being read**, not on a `FileInfo`
-snapshot taken earlier, and the read is capped rather than unbounded. A log file
-another process is still appending to is the most likely input this editor sees and
-the one most able to win that race.
+A few decisions that are load-bearing rather than incidental:
 
-## Not yet verified
+- **Etch owns its own `Main`,** so the clock starts before the `Application` object and
+  its XAML resource dictionaries exist. Those dictionaries are the largest controllable
+  cost in a WPF-UI startup, and a timeline that cannot see them separately cannot tell you
+  whether to cut them.
+- **No polling timers.** Idle CPU is a budget, not an aspiration. Timers are created on
+  first use, fire once, and stop themselves.
+- **The size ceiling is enforced on the handle being read,** not on a `FileInfo` snapshot
+  taken earlier. A log file another process is still appending to is the likeliest input
+  this editor sees, and the one most able to win that race.
+- **The theme is applied, not guessed** — read from the registry, then handed to WPF-UI
+  unconditionally, because skipping the call when it already matches would also skip the
+  DWM dark-mode window attribute and leave a light frame around dark content.
 
-Etch has still never been **measured**. The M0 startup gate was answered by
-judgement rather than by `--diag`, so there is no baseline, and M1's cost can no
-longer be separated from M0's. The protocol in `docs/M0-measurement.md` is still
-worth running, as a baseline rather than as a gate.
+---
 
-Runtime-only risks, which a successful build says nothing about:
+## Licence
 
-1. **Theme resource keys** are `DynamicResource` lookups, so a wrong key degrades
-   silently rather than throwing. Check the tab strip and status bar actually look
-   right in both light and dark.
-2. **AvalonEdit at 50 MB.** Still unverified, and still the risk M0 was built to
-   answer.
-3. **Idle CPU and idle working set** have never been checked against the budget.
+Etch is **source-available, not open source**.
 
-Mica behind the editor used to be listed here as a readability risk, and it was a real
-one: AvalonEdit's default selection is the system highlight at 70% opacity, which over a
-transparent editor composites against the *wallpaper*. It sank into the page in dark mode
-and put white text on 70% blue — about 2.9:1 — in light. The selection and current-line
-colours are now derived from the accent to stated contrast floors in
-`Etch.App.Editor.EditorColours`, and `EditorColoursTests` sweeps 125 accents against both
-themes. Ordinary text over Mica is still worth an eye.
+You may read the code, download it, build it, and run it for anything — including at
+work, commercially, free of charge. You may **not** modify it, republish it, or sell it.
+The full terms are in [`LICENSE`](LICENSE), and they are short enough to actually read.
 
-## Security posture
+Bug reports and feature requests are welcome. Pull requests are not, and the licence says
+why rather than leaving you to find out in a comment.
 
-Every buffer is untrusted input, even on the desktop. In M0 that means: paths from
-the command line are resolved to absolute form, device paths (`\\.\`, `\\?\`) are
-refused, nothing reaches a shell, hyperlink detection in the editor is off, reads
-are bounded, and `--gen-sample` will not overwrite a file without `--force`.
+Etch is built on MIT-licensed components — AvalonEdit, WPF UI and the .NET runtime —
+whose licences are reproduced in [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md) and
+ship with every release. Nothing in Etch's licence restricts your rights under theirs.
 
-Etch initiates no network requests — no telemetry, no update check, nothing.
-Opening a UNC path performs SMB I/O exactly as any Windows file open does; that is
-the user's request, not Etch reaching out. Command-line parsing deliberately
-touches no file system at all, so a hostile path cannot block startup on a network
-timeout before the window exists.
+Versions up to and including commit `c9bc42a` were published under the MIT Licence. That
+grant stands for those versions.
 
-Diagnostic logs under `%LOCALAPPDATA%\Etch\diag` record absolute file paths, which
-means usernames and directory names. They roll at 4 MB.
-
-**Everything you type is stored as plaintext under `%LOCALAPPDATA%\Etch`.** People
-paste credentials into scratchpads, so this is worth being precise about:
-
-- Each buffer is stored **twice** — the current text and one previous revision
-  (`.prev`), kept so that a bad write is recoverable. A wipe removes both.
-- Because every revision is written to a fresh file and renamed into place, older
-  copies of your text exist on disk until their blocks are reused. Deleting a file
-  unlinks it; it is not a secure erase, and shadow copies keep whole prior versions.
-- The honest answer for a real secret is not to write it at all. `Ctrl+Shift+E`
-  marks a tab **ephemeral**: it is never journaled, never trashed, and never named
-  in `session.json`.
-- Trash retention is 7 days by default and can be set to 0.
-- "Wipe all scratch data" exists in `Etch.Persistence` and is not yet wired to a
-  command — that lands with the settings UI in M3.
-
-Etch initiates no network requests — no telemetry, no update check, nothing. The
-instance hand-off uses a named pipe restricted to the current user, and every path
-that arrives over it is validated with the same rules the command line uses.
+<p align="center">
+  <sub>Copyright © 2026 Hendrik Vrey</sub>
+</p>
