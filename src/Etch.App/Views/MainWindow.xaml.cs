@@ -18,6 +18,7 @@ using Wpf.Ui.Controls;
 // The XAML-generated field for the editor is called Editor, which shadows the
 // Etch.App.Editor namespace inside this type. Aliasing the one type needed from it is
 // less surprising than renaming a control that is correctly named.
+using EditorSyntax = Etch.App.Editor.EditorSyntax;
 using EditorTheme = Etch.App.Editor.EditorTheme;
 using Loader = Etch.App.Editor.DocumentLoader;
 using TextBlock = System.Windows.Controls.TextBlock;
@@ -52,7 +53,8 @@ namespace Etch.App.Views;
         "A WPF Window has no disposal story to implement — nothing calls Dispose on one, " +
         "and making it IDisposable would advertise a contract the framework never honours. " +
         "OnClosed is where a Window's deterministic cleanup belongs, and that is where " +
-        "_editorTheme is disposed, alongside the timers and the event unsubscriptions. " +
+        "_editorTheme and _syntax are disposed, alongside the timers and the event " +
+        "unsubscriptions. " +
         "The analyser cannot see OnClosed as a disposal path, which is the whole of the " +
         "disagreement.")]
 public partial class MainWindow : FluentWindow
@@ -82,6 +84,10 @@ public partial class MainWindow : FluentWindow
     private readonly Workspace _workspace;
     private readonly string? _fileToOpen;
     private readonly EditorTheme _editorTheme;
+    private readonly EditorSyntax _syntax;
+
+    /// <summary>Debounces fold recomputation. Null until the first edit to a foldable tab.</summary>
+    private DispatcherTimer? _foldingTimer;
 
     private DispatcherTimer? _messageTimer;
     private BufferTab? _bound;
@@ -126,6 +132,12 @@ public partial class MainWindow : FluentWindow
         // window is shown, because AvalonEdit's own selection colours are what it replaces.
         // The application refreshes it again once the theme has been applied — see Refresh.
         _editorTheme = new EditorTheme(Editor);
+
+        // Constructed here but deliberately inert: it touches HighlightingManager only when
+        // a document that wants a grammar is bound, so launching into an empty scratch tab
+        // still parses no grammars at all. See EditorSyntax for why that matters and for
+        // what a Debug build does differently.
+        _syntax = new EditorSyntax(Editor, EditorTheme.IsDark);
 
         _workspace.Notice += OnWorkspaceNotice;
         _workspace.ActiveChanged += OnActiveChanged;
@@ -234,7 +246,18 @@ public partial class MainWindow : FluentWindow
     /// is assigned in time for the DWM dark-mode attribute — which means the colours picked
     /// during construction were picked against a theme that had not been applied yet.
     /// </remarks>
-    internal void RefreshEditorTheme() => _editorTheme.Refresh();
+    internal void RefreshEditorTheme()
+    {
+        _editorTheme.Refresh();
+
+        // Syntax colours are held against the same page, so they move with it. Redrawn only
+        // when the palette genuinely changed: this also runs for accent changes, which the
+        // selection cares about and highlighting does not.
+        if (_syntax.Retheme(EditorTheme.IsDark))
+        {
+            Editor.TextArea.TextView.Redraw();
+        }
+    }
 
     /// <summary>Registers what to run the moment the window starts closing.</summary>
     /// <remarks>
@@ -402,8 +425,16 @@ public partial class MainWindow : FluentWindow
         // is, whatever the window handle does.
         _editorTheme.Dispose();
 
+        // Removes the colorizer and the fold margin from the text view. Nothing outlives
+        // the window here, but leaving a line transformer attached to a view that is being
+        // torn down is the kind of thing that only shows up as a redraw during shutdown.
+        _syntax.Dispose();
+
         _messageTimer?.Stop();
         _messageTimer = null;
+
+        _foldingTimer?.Stop();
+        _foldingTimer = null;
 
         StopCounting();
         _countTimer = null;
@@ -484,12 +515,29 @@ public partial class MainWindow : FluentWindow
         _bound = tab;
         _suppressEditorEvents = true;
 
+        // Before the document is replaced, not after. AvalonEdit requires the folding
+        // manager to be uninstalled while it is still bound to the document it was
+        // installed against — uninstalling afterwards dereferences a height tree the
+        // document swap has already disposed. EditorSyntax.DetachFolding says why at
+        // length; ApplySyntax reinstalls against the new document a few lines below.
+        _syntax.DetachFolding();
+
+        // A fold scan queued against the tab being left would otherwise land on the one
+        // being entered. The version check inside RefreshFoldings would discard it, but
+        // not before it had run.
+        _foldingTimer?.Stop();
+
         try
         {
             if (tab?.Document is not { } document)
             {
                 Editor.Document = new TextDocument();
                 Editor.IsEnabled = false;
+
+                // Or the fold margin and the previous tab's colours would stay behind on an
+                // empty editor, describing a buffer that is no longer anywhere.
+                _syntax.Apply(SyntaxLanguage.None, DocumentCapabilities.None);
+
                 Title = "Etch";
                 return;
             }
@@ -502,9 +550,12 @@ public partial class MainWindow : FluentWindow
             Editor.Document = document;
             Editor.Encoding = tab.Encoding;
 
-            // M2 owns highlighting. Being explicit documents where the capability check
-            // belongs once there is one.
+            // Null on purpose, and it stays null. Setting it would install AvalonEdit's own
+            // colorizer with the grammar's light-theme colours; EditorSyntax installs a
+            // themed one into the same LineTransformers collection instead.
             Editor.SyntaxHighlighting = null;
+
+            ApplySyntax(tab);
 
             Editor.CaretOffset = Math.Clamp(tab.CaretOffset, 0, document.TextLength);
             RestoreScrollPosition(Math.Clamp(tab.FirstVisibleLine, 1, document.LineCount));
@@ -527,6 +578,32 @@ public partial class MainWindow : FluentWindow
                 RefreshFindMatches();
             }
         }
+    }
+
+    /// <summary>
+    /// Applies the highlighting and folding <paramref name="tab"/> should have.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The precedence rule lives in <see cref="LanguageSelector.Select"/> and not here.
+    /// It was written in both places to begin with and the two disagreed — this one asked
+    /// detection only for a tab with no file at all, while the tested one asked whenever
+    /// the extension said nothing — which is the ordinary way a rule with two homes goes
+    /// wrong: the tested statement of it was not the one that shipped.
+    /// </para>
+    /// <para>
+    /// Detection is passed as a callback rather than a value so that a file whose extension
+    /// already answers never pays for a scan. <c>DetectNow</c> is bounded to a 64 KB sample
+    /// and returns a cached answer when the buffer has not moved, so it is affordable on a
+    /// bind — but not being called at all is cheaper still, and a 10 MB log opened by name
+    /// is exactly the case where it would have been wasted.
+    /// </para>
+    /// </remarks>
+    private void ApplySyntax(BufferTab tab)
+    {
+        var language = LanguageSelector.Select(tab.FilePath, () => _detection.DetectNow(tab.Document).Format);
+
+        _syntax.Apply(language, tab.Capabilities);
     }
 
     /// <summary>
@@ -631,13 +708,69 @@ public partial class MainWindow : FluentWindow
         UpdateSaveStatus();
 
         // Debounced and off-thread. This is the only line on the keystroke path that
-        // detection costs.
-        InvalidateDetection(_bound?.Document);
+        // detection costs — and above the reduced-size threshold it is not paid at all,
+        // which is what DocumentCapabilities.DetectOnEdit has been asking for since M1.
+        // The result from load time stays on the chip, which is the honest answer: it is
+        // what the buffer was, and nothing has claimed otherwise.
+        if (_syntax.DetectOnEdit)
+        {
+            InvalidateDetection(_bound?.Document);
+        }
+
+        ScheduleFoldingRefresh();
 
         if (FindBar.Visibility == Visibility.Visible)
         {
             RefreshFindMatches();
         }
+    }
+
+    /// <summary>
+    /// Recomputes fold regions shortly after typing stops.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Debounced for the same reason detection is, and on the same timer discipline: one
+    /// shot, created on first use, stopped before it runs. An editor that has been open all
+    /// day without being typed into has no timer object at all, which is what the plan's 0%
+    /// idle CPU target actually requires.
+    /// </para>
+    /// <para>
+    /// Slower than detection's 150 ms on purpose. A fold marker appearing beside the line
+    /// being typed is a distraction, and unlike the format chip nobody is waiting for it —
+    /// whereas a margin that flickers on every pause is the thing people turn folding off
+    /// to escape.
+    /// </para>
+    /// </remarks>
+    private void ScheduleFoldingRefresh()
+    {
+        if (!_syntax.IsFolding)
+        {
+            return;
+        }
+
+        _foldingTimer ??= CreateFoldingTimer();
+
+        _foldingTimer.Stop();
+        _foldingTimer.Start();
+    }
+
+    private DispatcherTimer CreateFoldingTimer()
+    {
+        var timer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromMilliseconds(400),
+        };
+
+        timer.Tick += (_, _) =>
+        {
+            // Stopped first, so an exception below cannot leave a timer running for ever
+            // against a document nobody is looking at.
+            timer.Stop();
+            _syntax.RefreshFoldings();
+        };
+
+        return timer;
     }
 
     /// <summary>Handles <c>Ctrl+O</c>.</summary>

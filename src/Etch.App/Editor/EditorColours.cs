@@ -138,9 +138,12 @@ internal static class EditorColours
             // whose contrast does not depend on the fill's compromise between two bounds.
             SelectionBorder: FrozenPen(Legible(accent, page, BorderOnSurface)),
 
-            // Null on purpose. AvalonEdit forces selected text to a single colour, which
-            // would flatten syntax highlighting the moment M3 turns it on; the fill above
-            // is built to be readable against the text's own colour instead.
+            // Null on purpose, and M3 is where that decision started paying: AvalonEdit
+            // forces selected text to a single colour, which would flatten syntax
+            // highlighting to one shade the moment a selection touched it. The fill above is
+            // built to be readable against the text's own colour instead. The cost is stated
+            // on SyntaxPalette — inside a selection, syntax colours sit on this fill rather
+            // than on the page, so they clear less than the 4.5:1 that palette promises.
             SelectionForeground: null,
 
             CurrentLineBackground: FrozenBrush(WithAlpha(ink, CurrentLineFillAlpha)),
@@ -198,7 +201,7 @@ internal static class EditorColours
     /// answer satisfy the ratio by construction rather than by luck.
     /// </para>
     /// </remarks>
-    private static Color Legible(Color colour, Color page, double minimum)
+    internal static Color Legible(Color colour, Color page, double minimum)
     {
         if (Contrast(colour, page) >= minimum)
         {

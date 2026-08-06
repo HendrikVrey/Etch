@@ -31,5 +31,33 @@ public readonly record struct DocumentCapabilities(
     string? Notice)
 {
     /// <summary>True when any capability was withheld because of size.</summary>
+    /// <remarks>
+    /// True for <see cref="None"/> as well, which is worth knowing before relying on it:
+    /// that value carries <see cref="DocumentTier.PlainText"/> because there is no tier
+    /// meaning "no document", so it reports itself as degraded. Nothing reads this for a
+    /// buffer that is absent, and adding a tier for the absent case would put a member on
+    /// an enum that <see cref="DocumentSizePolicy.Evaluate"/> can never return — a wider
+    /// lie than this one.
+    /// </remarks>
     public bool IsDegraded => Tier != DocumentTier.Full;
+
+    /// <summary>
+    /// Everything off, for when there is no document at all.
+    /// </summary>
+    /// <remarks>
+    /// Not a tier and not reachable from <see cref="DocumentSizePolicy.Evaluate"/> — it
+    /// describes the absence of a buffer rather than a large one. It exists so that the
+    /// editor's "no tab bound" path can say what it means to the features that read these
+    /// flags, instead of leaving the last real document's capabilities in force over an
+    /// empty view. <see cref="Notice"/> is null because there is nothing to explain to
+    /// anyone: no document was degraded, there is simply nothing open.
+    /// </remarks>
+    public static DocumentCapabilities None { get; } = new(
+        DocumentTier.PlainText,
+        CanOpen: false,
+        SyntaxHighlighting: false,
+        Folding: false,
+        DetectOnEdit: false,
+        Journaling: false,
+        Notice: null);
 }

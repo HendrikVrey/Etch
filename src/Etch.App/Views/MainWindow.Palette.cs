@@ -6,6 +6,7 @@ using System.Windows.Threading;
 using Etch.App.Diagnostics;
 using Etch.App.Palette;
 using Etch.Core.Abstractions;
+using Etch.Core.Documents;
 using Etch.Core.Palette;
 using Etch.Core.Text;
 using ICSharpCode.AvalonEdit.Document;
@@ -100,6 +101,19 @@ public partial class MainWindow
     private void OnDetectionChanged(DetectionResult result)
     {
         SetText(FormatChip, DescribeFormat(result));
+
+        // The result is applied directly rather than by calling back into ApplySyntax,
+        // which would re-enter DetectNow -> Publish -> here. That terminated at depth two
+        // and was harmless, but only by accident: Bind calls ApplySyntax with
+        // _suppressEditorEvents still set and the caret not yet restored, so the recursion
+        // ran through the middle of a half-finished bind.
+        //
+        // LanguageSelector still owns the precedence rule; the detection is already in
+        // hand, so the callback simply hands it over.
+        if (_bound is { } tab)
+        {
+            _syntax.Apply(LanguageSelector.Select(tab.FilePath, () => result.Format), tab.Capabilities);
+        }
 
         // The palette is ranked against the detection, so a result arriving while it is
         // open has to reorder it — otherwise pasting into an open palette leaves the

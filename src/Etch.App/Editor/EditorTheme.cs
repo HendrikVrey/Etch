@@ -83,13 +83,27 @@ internal sealed class EditorTheme : IDisposable
     /// </remarks>
     private void OnThemeChanged(ApplicationTheme theme, Color accent) => Refresh();
 
+    /// <summary>
+    /// Whether Windows is in dark mode right now.
+    /// </summary>
+    /// <remarks>
+    /// Exposed so that <see cref="SyntaxPalette"/> and the selection answer the same
+    /// question the same way. The registry rather than
+    /// <c>ApplicationThemeManager.GetAppTheme</c>, for the reason given on this type: Etch
+    /// constructs its window before it applies a theme, so the library's cached answer is
+    /// <c>Unknown</c> for part of startup. Read afresh on every call — it costs
+    /// microseconds and a cached copy is a second source of truth about something the user
+    /// can change at any moment.
+    /// </remarks>
+    internal static bool IsDark => SystemThemeReader.Detect() == SystemThemeMode.Dark;
+
     // Static: every input is read from the system at the moment of the call, so there is
     // no instance state here and pretending otherwise would imply the scheme depends on
     // which editor it is for. It does not.
     private static EditorColourScheme Resolve() =>
         SystemParameters.HighContrast
             ? EditorColours.HighContrast()
-            : EditorColours.Build(SystemThemeReader.Detect() == SystemThemeMode.Dark, Accent());
+            : EditorColours.Build(IsDark, Accent());
 
     /// <summary>Reads the system accent, with somewhere to fall back to at each step.</summary>
     /// <remarks>
