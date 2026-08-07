@@ -11,12 +11,20 @@ noise at 16 px, and a two-stop gradient bands once the plate is a dozen pixels t
 There are therefore three drawings, and as the size falls the plate tightens, the mark
 grows, and the gradient goes flat:
 
-    etch-tiny.svg    16, 20, 24    flat plate, no hairline, mark at 1.20x
+    etch-tiny.svg    16, 20, 24    flat plate, no hairline, mark at 1.20x, THREE rules
     etch-small.svg   32, 40, 48    gradient plate, no hairline, mark at 1.14x
     etch.svg         64+           gradient plate, 1 px inner hairline, mark at 1.00x
 
 The 32-48 group is one drawing on purpose: that is the taskbar across 100-150% DPI,
 and the mark must not change weight as somebody drags a window between monitors.
+
+The tiny drawing carries three rules and no caret where the others carry four and a
+caret, and that is the one place the mark's *content* changes rather than its scale.
+It is not a preference. Rendered at 16 px, an 18-unit rule is about one pixel and the
+four of them come out as four grey smears with the caret merged into the line beside
+it; three rules at 24 units stay three distinct rules. Both were rendered and
+magnified before choosing. The seam falls between 24 and 32 px, which is already where
+the drawings change, so nothing changes shape inside a group.
 
 Every frame is rendered from vector at its own resolution. Downsampling one big raster
 is the thing this script exists to avoid.
