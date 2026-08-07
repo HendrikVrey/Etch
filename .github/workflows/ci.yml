@@ -1,0 +1,52 @@
+name: CI
+
+# Build and test on every pull request into master.
+#
+# This is the check that actually protects the rolling installer. release.yml gates
+# its own publish on the same suite, but by then the code is already on master - a
+# red run there means the download link keeps serving an older build while master is
+# broken. Catching it on the pull request is the difference between "no new build"
+# and "no new build, and master needs fixing".
+#
+# Deliberately does not build the installer. Nothing here is published, and the
+# packaging step is exercised on every merge anyway.
+on:
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Etch targets net10.0-windows with UseWPF and does not build anywhere else.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Build
+        run: dotnet build Etch.slnx -c Release
+
+      - name: Test
+        run: dotnet test Etch.slnx -c Release --no-build --logger "trx;LogFileName=results.trx"
+
+      # Uploaded on failure only: a green run has nothing worth reading, and a red
+      # one is far quicker to diagnose from the trx than from scrolled log output.
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: "**/TestResults/*.trx"
+          retention-days: 7

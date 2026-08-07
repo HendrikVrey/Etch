@@ -1,24 +1,59 @@
 name: Release
 
-# Tag-driven. Pushing v1.2.3 publishes both architectures, builds one installer
-# carrying them, and attaches it to a GitHub release.
+# Builds Etch-Setup.exe and publishes it. Two channels, one pipeline, because the
+# only thing that differs between them is which release the artefact lands in.
+#
+#   push to master  ->  the rolling "latest" prerelease, force-replaced every time,
+#                       so the download link is always the newest build of master
+#   push of a v* tag ->  a stable, draft release at that version, kept for ever
+#
+# The two are addressed by different permanent URLs, and the difference is not
+# arbitrary. GitHub's /releases/latest/ deliberately skips prereleases, so it can
+# never serve the rolling build; the rolling build is reached through its fixed tag
+# instead. That is what lets both links be permanent and mean different things:
+#
+#   .../releases/download/latest/Etch-Setup.exe        newest build of master
+#   .../releases/latest/download/Etch-Setup.exe        newest versioned release
+#
+# Neither channel publishes anything unless the tests pass. A red suite leaves the
+# previous installer in place rather than replacing it with a broken one.
 #
 # There is no signing certificate, so Etch-Setup.exe is unsigned and SmartScreen
-# will warn about it. That is stated plainly in the README rather than left for a
-# user to discover; adding a certificate here later means one extra step between
-# iscc and the upload.
+# will warn about it - more insistently than it does for a bare executable, because
+# it weights installers. The README says so plainly rather than leaving a user to
+# discover it.
 on:
   push:
+    branches:
+      - master
     tags:
       - "v*"
+    # Documentation-only pushes do not change the binary, and republishing an
+    # identical installer costs a download URL a needless gap while it is replaced.
+    #
+    # This affects the master channel only: GitHub evaluates path filters for branch
+    # pushes and skips them entirely for tag pushes, so a v* tag always releases no
+    # matter which files it happens to sit on top of. That is the behaviour wanted
+    # here, and it is written down because the opposite would be a silent no-release.
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".gitignore"
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to build, without the leading v"
+        description: "Version to build, without the leading v. Publishes a draft release."
         required: true
 
 permissions:
   contents: write
+
+# Two merges in quick succession must not race to replace the same release. The
+# older run is cancelled rather than queued: its output would be stale the moment
+# the newer one finished.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   release:
@@ -33,32 +68,81 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
-      - name: Work out the version
-        id: version
+      # Everything channel-specific is decided here and nowhere else, so the rest of
+      # the pipeline is identical for a nightly and for a tagged release.
+      - name: Decide the channel and the version
+        id: channel
         shell: pwsh
-        # The input arrives through the environment rather than being substituted into
-        # the script text, where a value containing a quote would end the literal and
-        # run whatever followed.
+        # The manual input arrives through the environment rather than being pasted
+        # into the script text, where a value containing a quote would end the
+        # literal and run whatever followed.
         env:
           INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
-          $version = if ($env:GITHUB_REF -like 'refs/tags/v*') {
-            $env:GITHUB_REF -replace '^refs/tags/v', ''
-          } else {
-            $env:INPUT_VERSION
+          # Directory.Build.props is the single source of truth for the base version.
+          # Bumping it there is what moves the nightly version, so there is no second
+          # place to remember.
+          $props = Get-Content Directory.Build.props -Raw
+          if ($props -notmatch '<VersionPrefix>([^<]+)</VersionPrefix>') {
+            throw 'No <VersionPrefix> in Directory.Build.props.'
           }
+          $base = $Matches[1].Trim()
+
+          $sha = "$env:GITHUB_SHA".Substring(0, 7)
+
+          if ("$env:GITHUB_REF" -like 'refs/tags/v*') {
+            $channel  = 'stable'
+            $version  = "$env:GITHUB_REF" -replace '^refs/tags/v', ''
+            $tag      = "v$version"
+            $title    = "Etch $version"
+            $pre      = 'false'
+            $draft    = 'true'
+          }
+          elseif ("$env:GITHUB_EVENT_NAME" -eq 'workflow_dispatch') {
+            $channel  = 'stable'
+            $version  = $env:INPUT_VERSION
+            $tag      = "v$version"
+            $title    = "Etch $version"
+            $pre      = 'false'
+            $draft    = 'true'
+          }
+          else {
+            # The rolling build. The run number makes it monotonic so Windows treats
+            # a newer nightly as an upgrade; the sha makes it traceable back to a
+            # commit from the Apps & features entry alone.
+            $channel  = 'latest'
+            $version  = "$base-dev.$env:GITHUB_RUN_NUMBER"
+            $tag      = 'latest'
+            $title    = "Etch $version (latest build of master)"
+            $pre      = 'true'
+            $draft    = 'false'
+          }
+
           if (-not $version) { throw 'No version could be determined.' }
 
-          # Inno Setup's VersionInfoVersion must be strictly numeric, and the v* tag
-          # glob admits v1.2.3-rc1. Strip the suffix for that one directive only.
-          $numeric = ($version -split '[-+]')[0]
+          # Inno Setup's VersionInfoVersion must be strictly numeric (x.y.z[.w]), and
+          # neither a -dev suffix nor a v1.2.3-rc1 tag qualifies. Derived here for
+          # that one directive; everything else shows the full version.
+          $numeric = if ($channel -eq 'latest') { "$base.$env:GITHUB_RUN_NUMBER" }
+                     else { ($version -split '[-+]')[0] }
+
           if ($numeric -notmatch '^\d+(\.\d+){1,3}$') {
             throw "Cannot derive a numeric version from '$version'."
           }
 
-          "version=$version" >> $env:GITHUB_OUTPUT
-          "numeric=$numeric" >> $env:GITHUB_OUTPUT
+          "channel=$channel"   >> $env:GITHUB_OUTPUT
+          "version=$version"   >> $env:GITHUB_OUTPUT
+          "numeric=$numeric"   >> $env:GITHUB_OUTPUT
+          "tag=$tag"           >> $env:GITHUB_OUTPUT
+          "title=$title"       >> $env:GITHUB_OUTPUT
+          "prerelease=$pre"    >> $env:GITHUB_OUTPUT
+          "draft=$draft"       >> $env:GITHUB_OUTPUT
+          "sha=$sha"           >> $env:GITHUB_OUTPUT
 
+          Write-Host "channel=$channel version=$version numeric=$numeric tag=$tag"
+
+      # The gate. Nothing below this runs if the suite is red, so a failing merge
+      # leaves the existing download in place instead of replacing it.
       - name: Build and test
         run: |
           dotnet build Etch.slnx -c Release
@@ -72,7 +156,7 @@ jobs:
           dotnet publish src/Etch.App/Etch.App.csproj
           -c Release -r win-x64 --self-contained true
           -p:PublishSingleFile=true -p:PublishReadyToRun=true
-          -p:Version=${{ steps.version.outputs.version }}
+          -p:Version=${{ steps.channel.outputs.version }}
           -o publish/win-x64
 
       # Cross-publishing R2R for arm64 from an x64 runner is supported: the SDK
@@ -82,7 +166,7 @@ jobs:
           dotnet publish src/Etch.App/Etch.App.csproj
           -c Release -r win-arm64 --self-contained true
           -p:PublishSingleFile=true -p:PublishReadyToRun=true
-          -p:Version=${{ steps.version.outputs.version }}
+          -p:Version=${{ steps.channel.outputs.version }}
           -o publish/win-arm64
 
       # windows-latest currently ships Inno Setup already (it is in the 2025 image's
@@ -94,16 +178,51 @@ jobs:
       - name: Build the installer
         run: >
           iscc installer\Etch.iss
-          /DAppVersion=${{ steps.version.outputs.version }}
-          /DNumericVersion=${{ steps.version.outputs.numeric }}
+          /DAppVersion=${{ steps.channel.outputs.version }}
+          /DNumericVersion=${{ steps.channel.outputs.numeric }}
 
-      - name: Publish the release
+      # The rolling build replaces its release outright rather than accumulating
+      # assets on it. gh has no atomic "move a tag and replace its assets", so the
+      # old release and tag are deleted and recreated at this commit - which leaves
+      # a few seconds where the download 404s. Acceptable for a nightly; it is the
+      # reason stable releases are a separate, permanent tag.
+      - name: Replace the rolling release
+        if: steps.channel.outputs.channel == 'latest'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view latest 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            gh release delete latest --yes --cleanup-tag
+            if ($LASTEXITCODE -ne 0) { throw 'Could not remove the previous latest release.' }
+          }
+
+          $notes = @"
+          The newest build of ``master``, rebuilt on every merge. Unsigned, so
+          SmartScreen will warn; see the README.
+
+          Built from ``$env:GITHUB_SHA``.
+
+          For a fixed, reproducible build, use a versioned release instead.
+          "@
+
+          gh release create latest dist/Etch-Setup.exe `
+            --prerelease `
+            --target "$env:GITHUB_SHA" `
+            --title "${{ steps.channel.outputs.title }}" `
+            --notes "$notes"
+          if ($LASTEXITCODE -ne 0) { throw 'Could not publish the latest release.' }
+
+      - name: Publish the versioned release
+        if: steps.channel.outputs.channel == 'stable'
         uses: softprops/action-gh-release@v2
         with:
-          # Explicit, because the action defaults tag_name to github.ref - which on the
-          # workflow_dispatch path is a branch, and would publish a release against a
-          # tag named after the branch while the title claimed a version number.
-          tag_name: v${{ steps.version.outputs.version }}
-          name: Etch ${{ steps.version.outputs.version }}
-          draft: true
+          # Explicit, because the action defaults tag_name to github.ref - which on
+          # the workflow_dispatch path is a branch, and would publish a release
+          # against a tag named after the branch while the title claimed a version.
+          tag_name: ${{ steps.channel.outputs.tag }}
+          name: ${{ steps.channel.outputs.title }}
+          draft: ${{ steps.channel.outputs.draft }}
+          prerelease: ${{ steps.channel.outputs.prerelease }}
           files: dist/Etch-Setup.exe

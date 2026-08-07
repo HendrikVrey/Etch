@@ -47,9 +47,19 @@ through a website you had to trust with the payload.
 
 ## Download
 
-> **Etch has not been tagged yet.** The first release will appear on the
-> [Releases](https://github.com/HendrikVrey/Etch/releases) page as a single
-> `Etch-Setup.exe` carrying both `win-x64` and `win-arm64`.
+**[Download Etch-Setup.exe](https://github.com/HendrikVrey/Etch/releases/download/latest/Etch-Setup.exe)**
+- one installer carrying both `win-x64` and `win-arm64`.
+
+That link is permanent and always serves the newest build of `master`. Every merge
+rebuilds it, and nothing is published unless the test suite passes, so a broken commit
+leaves the previous installer in place rather than replacing it. The version it reports
+looks like `0.1.0-dev.47`, which is the base version plus the build that produced it.
+
+> **Etch has not been tagged yet**, so there is no fixed release to pin to yet. Once
+> there is, versioned releases will appear on the
+> [Releases](https://github.com/HendrikVrey/Etch/releases) page and
+> `releases/latest/download/Etch-Setup.exe` will serve the newest of those - GitHub's
+> `/latest/` deliberately skips prereleases, which is what keeps the two links apart.
 
 The installer is **per-user**. It asks for no administrator rights and shows no UAC
 prompt, it installs to `%LOCALAPPDATA%\Programs\Etch`, and everything it writes to the
