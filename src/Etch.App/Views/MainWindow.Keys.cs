@@ -130,6 +130,15 @@ public partial class MainWindow
             return true;
         }
 
+        // Above the find bar for the same reason the palette is: both are drawn over
+        // everything, so when the bar is also open Escape has to dismiss the thing the
+        // user is actually looking at.
+        if (IsSettingsOpen)
+        {
+            CloseSettings();
+            return true;
+        }
+
         if (FindBar.Visibility == Visibility.Visible)
         {
             CloseFindBar();
@@ -149,6 +158,16 @@ public partial class MainWindow
             // A sequence cannot survive the palette opening over it. Left pending, the next
             // key pressed after the palette closed would complete a chord the user began
             // before doing something else entirely.
+            CancelChord();
+            return false;
+        }
+
+        // The settings panel owns the keyboard while it is up, exactly as the palette
+        // does. Every shortcut here acts on a buffer the overlay is covering — Ctrl+T
+        // would silently create tabs behind it, and Ctrl+Enter would rewrite text the
+        // user cannot currently see. Escape still works: TryDismiss runs before this.
+        if (IsSettingsOpen)
+        {
             CancelChord();
             return false;
         }
@@ -367,6 +386,7 @@ public partial class MainWindow
         EtchCommandId.TogglePinned => TogglePinnedCommand,
         EtchCommandId.OpenPalette => OpenPaletteCommand,
         EtchCommandId.ApplySuggested => ApplySuggestedCommand,
+        EtchCommandId.OpenSettings => OpenSettingsCommand,
         _ => throw new ArgumentOutOfRangeException(nameof(id), id, "No command is wired to this identifier."),
     };
 }

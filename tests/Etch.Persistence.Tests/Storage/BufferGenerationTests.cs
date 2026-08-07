@@ -22,7 +22,7 @@ public sealed class BufferGenerationTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "first");
+        await workspace.Buffers.WriteAsync(id, "first", TestContext.Current.CancellationToken);
 
         Assert.False(File.Exists(workspace.Paths.BufferBackupFile(id)));
     }
@@ -33,14 +33,14 @@ public sealed class BufferGenerationTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "a long note the user cares about");
+        await workspace.Buffers.WriteAsync(id, "a long note the user cares about", TestContext.Current.CancellationToken);
 
         // The failure this exists for: something upstream enqueues an empty document.
-        await workspace.Buffers.WriteAsync(id, string.Empty);
+        await workspace.Buffers.WriteAsync(id, string.Empty, TestContext.Current.CancellationToken);
 
         Assert.Equal(
             "a long note the user cares about",
-            await File.ReadAllTextAsync(workspace.Paths.BufferBackupFile(id)));
+            await File.ReadAllTextAsync(workspace.Paths.BufferBackupFile(id), TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -50,12 +50,12 @@ public sealed class BufferGenerationTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "before the crash");
-        await workspace.Buffers.WriteAsync(id, "after the crash");
+        await workspace.Buffers.WriteAsync(id, "before the crash", TestContext.Current.CancellationToken);
+        await workspace.Buffers.WriteAsync(id, "after the crash", TestContext.Current.CancellationToken);
 
         File.Delete(workspace.Paths.BufferFile(id));
 
-        var stored = await workspace.Buffers.ReadAsync(id);
+        var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
 
         Assert.NotNull(stored);
         Assert.Equal("before the crash", stored!.Value.Text);
@@ -68,10 +68,10 @@ public sealed class BufferGenerationTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "old");
-        await workspace.Buffers.WriteAsync(id, "new");
+        await workspace.Buffers.WriteAsync(id, "old", TestContext.Current.CancellationToken);
+        await workspace.Buffers.WriteAsync(id, "new", TestContext.Current.CancellationToken);
 
-        var stored = await workspace.Buffers.ReadAsync(id);
+        var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
 
         Assert.Equal("new", stored!.Value.Text);
         Assert.False(stored.Value.RecoveredFromBackup);
@@ -85,8 +85,8 @@ public sealed class BufferGenerationTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "one");
-        await workspace.Buffers.WriteAsync(id, "two");
+        await workspace.Buffers.WriteAsync(id, "one", TestContext.Current.CancellationToken);
+        await workspace.Buffers.WriteAsync(id, "two", TestContext.Current.CancellationToken);
         File.Delete(workspace.Paths.BufferFile(id));
 
         Assert.Equal(id, Assert.Single(workspace.Buffers.EnumerateLive()));
@@ -101,8 +101,8 @@ public sealed class BufferGenerationTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "one");
-        await workspace.Buffers.WriteAsync(id, "two");
+        await workspace.Buffers.WriteAsync(id, "one", TestContext.Current.CancellationToken);
+        await workspace.Buffers.WriteAsync(id, "two", TestContext.Current.CancellationToken);
 
         Assert.True(workspace.Buffers.Trash(id, RetentionPolicy.Default, DateTimeOffset.UtcNow));
 
@@ -118,13 +118,13 @@ public sealed class BufferGenerationTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "one");
-        await workspace.Buffers.WriteAsync(id, "two");
+        await workspace.Buffers.WriteAsync(id, "one", TestContext.Current.CancellationToken);
+        await workspace.Buffers.WriteAsync(id, "two", TestContext.Current.CancellationToken);
         File.Delete(workspace.Paths.BufferFile(id));
 
         Assert.True(workspace.Buffers.Trash(id, RetentionPolicy.Default, DateTimeOffset.UtcNow));
 
-        var trashed = await workspace.Buffers.ReadTrashedAsync(id);
+        var trashed = await workspace.Buffers.ReadTrashedAsync(id, TestContext.Current.CancellationToken);
         Assert.Equal("one", trashed!.Value.Text);
     }
 
@@ -136,8 +136,8 @@ public sealed class BufferGenerationTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "one");
-        await workspace.Buffers.WriteAsync(id, "two");
+        await workspace.Buffers.WriteAsync(id, "one", TestContext.Current.CancellationToken);
+        await workspace.Buffers.WriteAsync(id, "two", TestContext.Current.CancellationToken);
 
         Assert.True(workspace.Buffers.DeleteLive(id));
 
@@ -153,8 +153,8 @@ public sealed class BufferGenerationTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "an api key");
-        await workspace.Buffers.WriteAsync(id, "an api key, edited");
+        await workspace.Buffers.WriteAsync(id, "an api key", TestContext.Current.CancellationToken);
+        await workspace.Buffers.WriteAsync(id, "an api key, edited", TestContext.Current.CancellationToken);
 
         var result = workspace.Buffers.WipeAll();
 

@@ -4,7 +4,7 @@ Etch is built on the components below. Each is used unmodified, under its own
 licence, and each of those licences requires that its copyright notice and
 permission notice travel with any copy of the software.
 
-This file is that notice. **It ships inside the release archive** — it is not
+This file is that notice. **It ships inside the release archive** - it is not
 only a repository courtesy, it is a condition of using these components at all.
 
 Etch's own licence (`LICENSE`) does not apply to any of them, and nothing in it
@@ -46,7 +46,7 @@ SOFTWARE.
 
 **Note on the highlighting grammars.** Etch uses AvalonEdit's bundled `.xshd`
 definitions for parsing, but replaces their colours at render time with its own
-palette. The grammars are read, never altered — the substitution happens in
+palette. The grammars are read, never altered - the substitution happens in
 Etch's own code, and nothing in AvalonEdit is patched or re-published.
 
 ---
@@ -111,4 +111,4 @@ listed for completeness rather than obligation.
 
 The icon itself is original work by Hendrik Vrey, drawn as SVG in `assets/`. It
 is not derived from any third-party artwork and carries no attribution
-requirement — which is the reason it was drawn rather than sourced.
+requirement - which is the reason it was drawn rather than sourced.

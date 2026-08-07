@@ -30,7 +30,7 @@ public class WorkspaceTests
     private static async Task<Workspace> OpenAsync(TemporaryDataDirectory directory)
     {
         var workspace = Workspace.Create(directory.Paths);
-        await workspace.RestoreAsync();
+        await workspace.RestoreAsync(TestContext.Current.CancellationToken);
 
         return workspace;
     }
@@ -68,7 +68,7 @@ public class WorkspaceTests
         var tab = workspace.Active!;
         SetText(tab, "a thought worth keeping");
 
-        await workspace.FlushAsync();
+        await workspace.FlushAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal("a thought worth keeping", directory.ReadBuffer(tab.Id));
     });
@@ -88,7 +88,7 @@ public class WorkspaceTests
             tab.Title = "notes";
             SetText(tab, "written before the restart");
 
-            await first.ShutdownAsync();
+            await first.ShutdownAsync(TestContext.Current.CancellationToken);
         }
 
         await using var second = await OpenAsync(directory);
@@ -115,13 +115,13 @@ public class WorkspaceTests
         {
             id = first.Active!.Id;
             SetText(first.Active!, "must survive being reopened");
-            await first.ShutdownAsync();
+            await first.ShutdownAsync(TestContext.Current.CancellationToken);
         }
 
         await using (var second = await OpenAsync(directory))
         {
-            await second.FlushAsync();
-            await second.ShutdownAsync();
+            await second.FlushAsync(TestContext.Current.CancellationToken);
+            await second.ShutdownAsync(TestContext.Current.CancellationToken);
         }
 
         Assert.Equal("must survive being reopened", directory.ReadBuffer(id));
@@ -138,7 +138,7 @@ public class WorkspaceTests
         var tab = workspace.Active!;
         SetText(tab, "typed a moment before closing");
 
-        await workspace.CloseAsync(tab);
+        await workspace.CloseAsync(tab, TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain(tab, workspace.Tabs);
         Assert.Null(directory.ReadBuffer(tab.Id));
@@ -151,7 +151,7 @@ public class WorkspaceTests
         using var directory = TemporaryDataDirectory.Create();
         await using var workspace = await OpenAsync(directory);
 
-        await workspace.CloseAsync(workspace.Active!);
+        await workspace.CloseAsync(workspace.Active!, TestContext.Current.CancellationToken);
 
         Assert.Single(workspace.Tabs);
         Assert.NotNull(workspace.Active);
@@ -166,11 +166,11 @@ public class WorkspaceTests
         var tab = workspace.Active!;
         SetText(tab, "closed by mistake");
 
-        await workspace.CloseAsync(tab);
+        await workspace.CloseAsync(tab, TestContext.Current.CancellationToken);
 
         Assert.True(workspace.CanReopenClosed);
 
-        var reopened = await workspace.ReopenLastClosedAsync();
+        var reopened = await workspace.ReopenLastClosedAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(reopened);
         Assert.Equal(tab.Id, reopened!.Id);
@@ -187,16 +187,16 @@ public class WorkspaceTests
         await using var workspace = await OpenAsync(directory);
 
         var file = Path.Combine(directory.Root, "settings.json");
-        await File.WriteAllTextAsync(file, "{ \"real\": true }");
+        await File.WriteAllTextAsync(file, "{ \"real\": true }", TestContext.Current.CancellationToken);
 
-        var opened = await workspace.OpenFileAsync(file);
+        var opened = await workspace.OpenFileAsync(file, TestContext.Current.CancellationToken);
 
         Assert.NotNull(opened);
         Assert.Equal(BufferKind.File, opened!.Kind);
 
-        await workspace.CloseAsync(opened);
+        await workspace.CloseAsync(opened, TestContext.Current.CancellationToken);
 
-        var reopened = await workspace.ReopenLastClosedAsync();
+        var reopened = await workspace.ReopenLastClosedAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(reopened);
         Assert.Equal(BufferKind.File, reopened!.Kind);
@@ -215,8 +215,8 @@ public class WorkspaceTests
 
         SetText(tab, "an api key");
 
-        await workspace.FlushAsync();
-        await workspace.ShutdownAsync();
+        await workspace.FlushAsync(TestContext.Current.CancellationToken);
+        await workspace.ShutdownAsync(TestContext.Current.CancellationToken);
 
         Assert.False(tab.IsJournaled);
         Assert.Null(directory.ReadBuffer(tab.Id));
@@ -232,7 +232,7 @@ public class WorkspaceTests
 
         var tab = workspace.Active!;
         SetText(tab, "a password, pasted before thinking");
-        await workspace.FlushAsync();
+        await workspace.FlushAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(directory.ReadBuffer(tab.Id));
 
@@ -254,10 +254,10 @@ public class WorkspaceTests
             tab.Title = "prod-db-password";
             workspace.SetEphemeral(tab, ephemeral: true);
 
-            await workspace.ShutdownAsync();
+            await workspace.ShutdownAsync(TestContext.Current.CancellationToken);
         }
 
-        var index = await File.ReadAllTextAsync(directory.Paths.SessionFile);
+        var index = await File.ReadAllTextAsync(directory.Paths.SessionFile, TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain("prod-db-password", index, StringComparison.Ordinal);
     });
@@ -281,20 +281,20 @@ public class WorkspaceTests
             // run to their first suspension point on this thread, so the shutdown
             // snapshot is guaranteed to be the newer of the two, whichever order the
             // write gate then hands them out in.
-            var earlier = workspace.SaveSessionAsync();
+            var earlier = workspace.SaveSessionAsync(TestContext.Current.CancellationToken);
 
             var plan = workspace.PrepareShutdown();
 
             // Nothing may queue a *newer* snapshot after that point either: it would
             // carry a higher revision than the shutdown one, so no ordering rule could
             // discard it. This call has to be refused outright.
-            await workspace.SaveSessionAsync();
+            await workspace.SaveSessionAsync(TestContext.Current.CancellationToken);
 
-            await workspace.CompleteShutdownAsync(plan);
+            await workspace.CompleteShutdownAsync(plan, TestContext.Current.CancellationToken);
             await earlier;
         }
 
-        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(directory.Paths.SessionFile));
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(directory.Paths.SessionFile, TestContext.Current.CancellationToken));
 
         Assert.True(document.RootElement.GetProperty("cleanShutdown").GetBoolean());
     });
@@ -326,7 +326,7 @@ public class WorkspaceTests
         // delete succeeding is itself proof that no handle is still open on it.
         File.Delete(directory.Paths.SessionFile);
 
-        await Task.Delay(TimeSpan.FromMilliseconds(250));
+        await Task.Delay(TimeSpan.FromMilliseconds(250), TestContext.Current.CancellationToken);
 
         Assert.False(File.Exists(directory.Paths.SessionFile));
     });
@@ -342,7 +342,7 @@ public class WorkspaceTests
         SetText(tab, "not written");
 
         workspace.SetEphemeral(tab, ephemeral: false);
-        await workspace.FlushAsync();
+        await workspace.FlushAsync(TestContext.Current.CancellationToken);
 
         Assert.True(tab.IsJournaled);
         Assert.Equal("not written", directory.ReadBuffer(tab.Id));
@@ -361,7 +361,7 @@ public class WorkspaceTests
             var second = first.NewScratch();
             second.Title = "for later";
 
-            await first.ShutdownAsync();
+            await first.ShutdownAsync(TestContext.Current.CancellationToken);
         }
 
         await using var reopened = await OpenAsync(directory);
@@ -379,10 +379,10 @@ public class WorkspaceTests
         await using var workspace = await OpenAsync(directory);
 
         var file = Path.Combine(directory.Root, "notes.txt");
-        await File.WriteAllTextAsync(file, "contents");
+        await File.WriteAllTextAsync(file, "contents", TestContext.Current.CancellationToken);
 
-        var first = await workspace.OpenFileAsync(file);
-        var second = await workspace.OpenFileAsync(file);
+        var first = await workspace.OpenFileAsync(file, TestContext.Current.CancellationToken);
+        var second = await workspace.OpenFileAsync(file, TestContext.Current.CancellationToken);
 
         Assert.NotNull(first);
         Assert.Same(first, second);
@@ -396,10 +396,10 @@ public class WorkspaceTests
 
         await using (var workspace = await OpenAsync(directory))
         {
-            await workspace.ShutdownAsync();
+            await workspace.ShutdownAsync(TestContext.Current.CancellationToken);
         }
 
-        var index = await File.ReadAllTextAsync(directory.Paths.SessionFile);
+        var index = await File.ReadAllTextAsync(directory.Paths.SessionFile, TestContext.Current.CancellationToken);
 
         Assert.Contains("\"cleanShutdown\": true", index, StringComparison.Ordinal);
     });

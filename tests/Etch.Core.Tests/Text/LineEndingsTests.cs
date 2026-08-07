@@ -112,7 +112,7 @@ public class LineEndingsTests
     [InlineData(LineEndingStyle.Crlf, "\r\n", "CRLF")]
     [InlineData(LineEndingStyle.Lf, "\n", "LF")]
     [InlineData(LineEndingStyle.Cr, "\r", "CR")]
-    [InlineData(LineEndingStyle.None, "", "—")]
+    [InlineData(LineEndingStyle.None, "", "-")]
     public void Styles_render_as_literals_and_labels(LineEndingStyle style, string literal, string label)
     {
         Assert.Equal(literal, LineEndings.ToLiteral(style));

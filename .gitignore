@@ -5,12 +5,17 @@
 [Ll]ogs/
 artifacts/
 publish/
+## Where iscc writes Etch-Setup.exe (installer/Etch.iss OutputDir).
+dist/
 *.binlog
 
 ## Visual Studio / Rider / VS Code
 .vs/
 .idea/
 *.user
+## Visual Studio publish profiles: PublishDir is a machine-specific absolute path,
+## and the canonical publish command lives in the README instead.
+**/Properties/PublishProfiles/
 *.suo
 *.userosscache
 *.sln.docstates

@@ -67,4 +67,7 @@ public enum EtchCommandId
 
     /// <summary>Apply the transform the buffer suggests, without opening anything.</summary>
     ApplySuggested,
+
+    /// <summary>Open the settings panel.</summary>
+    OpenSettings,
 }

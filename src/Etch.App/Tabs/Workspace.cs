@@ -44,8 +44,23 @@ internal sealed class Workspace : IAsyncDisposable
     private readonly BufferStore _buffers;
     private readonly SessionStore _sessions;
     private readonly JournalWriter _journal;
-    private readonly WorkspaceOptions _options;
     private readonly TimeProvider _time;
+
+    /// <summary>
+    /// The knobs this workspace runs with.
+    /// </summary>
+    /// <remarks>
+    /// Not readonly, because the settings panel can change two of them while Etch is
+    /// running. Both are read at the point of use rather than captured — retention on
+    /// every close, the size policy on every open — so replacing this record is enough
+    /// to change the behaviour, and no tab has to be reloaded for it to take effect.
+    /// <para>
+    /// The journal's own options are the exception and stay fixed for the life of the
+    /// process: they are baked into <see cref="JournalWriter"/> at construction, and
+    /// nothing in the settings panel offers to change them.
+    /// </para>
+    /// </remarks>
+    private WorkspaceOptions _options;
 
     private readonly ObservableCollection<BufferTab> _tabs = [];
     private readonly List<BufferId> _reopenHistory = [];
@@ -253,6 +268,139 @@ internal sealed class Workspace : IAsyncDisposable
         return new Workspace(paths, options ?? WorkspaceOptions.Default, timeProvider ?? TimeProvider.System);
     }
 
+    /// <summary>
+    /// Adopts settings the user changed while Etch was running.
+    /// </summary>
+    /// <param name="settings">Already sanitised by <see cref="EtchSettings.Sanitised"/>.</param>
+    /// <remarks>
+    /// <para>
+    /// Only the two settings this layer actually reads. The typeface belongs to the
+    /// editor control and the associations belong to the registry; neither has any
+    /// business travelling through the workspace to reach the thing that owns it.
+    /// </para>
+    /// <para>
+    /// The size policy is rebuilt rather than mutated, and it applies to documents opened
+    /// from here on. Re-evaluating the tabs already open would mean revoking journaling
+    /// from a buffer the user has been typing into on the strength of a number they just
+    /// changed — so a tab keeps the capabilities it was opened with until it is reopened,
+    /// which is both simpler and the safer direction to be wrong in.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// The thresholds are not strictly ascending. <see cref="EtchSettings.Sanitised"/>
+    /// guarantees they are, so reaching this means an unsanitised value was passed and
+    /// the right answer is to fail loudly rather than to construct a policy nobody chose.
+    /// </exception>
+    public void ApplySettings(EtchSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+
+        _options = _options with
+        {
+            Retention = settings.TrashRetentionDays == 0
+                ? RetentionPolicy.DeleteImmediately
+                : new RetentionPolicy(TimeSpan.FromDays(settings.TrashRetentionDays)),
+            SizePolicy = new DocumentSizePolicy(
+                settings.ReducedThresholdBytes,
+                settings.PlainTextThresholdBytes,
+                settings.HardCeilingBytes),
+        };
+    }
+
+    /// <summary>
+    /// Deletes everything Etch has stored, and empties the window.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The "wipe all scratch data" command. <see cref="BufferStore.WipeAll"/> has existed
+    /// since M1 and had no caller until now.
+    /// </para>
+    /// <para>
+    /// <b>The order is the whole of the correctness here, and there are two writers to
+    /// shut out, not one.</b> Pending journal batches are dropped first and waited for,
+    /// because a batch already taken by the writer would otherwise complete <em>after</em>
+    /// the delete and put the text the user asked to destroy back on disk. The session
+    /// index is the second: it is written by its own fire-and-forget loop, and a snapshot
+    /// taken before the wipe would republish <c>session.json</c> — which holds every
+    /// buffer's id and its <em>user-authored tab title</em> — over the file that had just
+    /// been deleted. Both are dealt with before a single file is unlinked.
+    /// </para>
+    /// <para>
+    /// Then every tab is detached — without trashing it, which is the one place in Etch
+    /// where closing a tab is destructive, and it is destructive because that is precisely
+    /// what was asked for. Only then are the files unlinked, and a fresh empty tab created
+    /// so the user is left with somewhere to type rather than an empty, disabled editor.
+    /// </para>
+    /// </remarks>
+    public async Task<WipeResult> WipeAllAsync(CancellationToken cancellationToken = default)
+    {
+        // Before anything is deleted. See the remarks: this is what makes "nothing is in
+        // flight" true rather than likely.
+        _ = await _journal.DiscardAllAsync(cancellationToken).ConfigureAwait(true);
+
+        foreach (var tab in _tabs.ToArray())
+        {
+            Unsubscribe(tab);
+
+            // So that a tab which was suppressed does not leave a stale entry behind
+            // pointing at a buffer that is about to stop existing.
+            _journal.Discard(tab.Id);
+        }
+
+        SetActive(null);
+        _tabs.Clear();
+
+        // Nothing on these lists survives the files they refer to, and both hold buffer
+        // identifiers and titles.
+        _reopenHistory.Clear();
+        _closedRecords.Clear();
+
+        var result = await WipeStorageAsync(cancellationToken).ConfigureAwait(true);
+
+        // Left with somewhere to type rather than an empty, disabled editor. NewScratch
+        // activates the tab and requests the index save itself, so the file that lands
+        // describes what the user is actually looking at rather than the empty moment
+        // between the wipe and this line.
+        _ = NewScratch();
+
+        return result;
+    }
+
+    /// <summary>
+    /// Deletes the files, with the index writer shut out for the duration.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The gate is the same one every index write takes, so holding it here means no
+    /// snapshot can publish while the delete is running. Advancing
+    /// <see cref="_publishedIndexRevision"/> under it then disposes of the queued ones:
+    /// <see cref="WriteIndexAsync"/> already discards any snapshot whose revision is not
+    /// newer than the published mark, so bumping the mark past every revision handed out
+    /// so far invalidates all of them at once. That mechanism was built for shutdown; a
+    /// wipe wants exactly the same guarantee.
+    /// </para>
+    /// <para>
+    /// <c>++_indexRevision</c> rather than reading it: a snapshot captured on this same
+    /// turn, before the wipe began, holds the current value, and the mark has to be
+    /// strictly above it for the <c>&lt;=</c> test to reject it.
+    /// </para>
+    /// </remarks>
+    private async Task<WipeResult> WipeStorageAsync(CancellationToken cancellationToken)
+    {
+        await _indexGate.WaitAsync(cancellationToken).ConfigureAwait(true);
+
+        try
+        {
+            _publishedIndexRevision = ++_indexRevision;
+
+            return _buffers.WipeAll();
+        }
+        finally
+        {
+            _indexGate.Release();
+        }
+    }
+
     /// <summary>Creates and activates a new empty scratch tab.</summary>
     public BufferTab NewScratch()
     {
@@ -319,9 +467,16 @@ internal sealed class Workspace : IAsyncDisposable
 
         DocumentLoadResult result;
 
+        // Captured, not read at each use. The settings panel can change the thresholds
+        // mid-load — Ctrl+, works while a large file is being read — and a document
+        // loaded under a 100 MB ceiling that was then evaluated against a 10 MB one would
+        // be refused after it was already in memory. A tab keeps the policy it was opened
+        // with, which is what ApplySettings promises.
+        var sizePolicy = _options.SizePolicy;
+
         try
         {
-            result = await DocumentLoader.LoadAsync(path, _options.SizePolicy, cancellationToken)
+            result = await DocumentLoader.LoadAsync(path, sizePolicy, cancellationToken)
                 .ConfigureAwait(true);
         }
         catch (OperationCanceledException)
@@ -370,7 +525,7 @@ internal sealed class Workspace : IAsyncDisposable
 
         if (loaded.WasTruncated)
         {
-            Announce($"{tab.Title} was truncated at the size ceiling — auto-save is off so the rest of the file is not at risk.");
+            Announce($"{tab.Title} was truncated at the size ceiling - auto-save is off so the rest of the file is not at risk.");
         }
         else if (loaded.Capabilities.Notice is { } notice)
         {
@@ -439,6 +594,10 @@ internal sealed class Workspace : IAsyncDisposable
 
         StoredBuffer? stored = null;
 
+        // Captured before the await, for the reason given in OpenFileAsync: the settings
+        // panel can change the thresholds while this read is in flight.
+        var sizePolicy = _options.SizePolicy;
+
         try
         {
             stored = await _buffers.ReadAsync(tab.Id, cancellationToken).ConfigureAwait(true);
@@ -455,7 +614,7 @@ internal sealed class Workspace : IAsyncDisposable
 
         tab.Hydrate(
             stored?.Text ?? string.Empty,
-            _options.SizePolicy.Evaluate(stored?.SizeInBytes ?? 0),
+            sizePolicy.Evaluate(stored?.SizeInBytes ?? 0),
             stored?.WasTruncated ?? false,
             stored?.RecoveredFromBackup ?? false);
 
@@ -467,7 +626,7 @@ internal sealed class Workspace : IAsyncDisposable
 
         if (tab.RecoveredFromBackup)
         {
-            Announce($"{tab.Title} was recovered from its previous revision — the last few seconds of edits may be missing.");
+            Announce($"{tab.Title} was recovered from its previous revision - the last few seconds of edits may be missing.");
         }
         else if (tab.WasTruncated)
         {
@@ -495,6 +654,12 @@ internal sealed class Workspace : IAsyncDisposable
             return;
         }
 
+        // Captured before the flush, for the reason given in OpenFileAsync. The close the
+        // user asked for is the one they were looking at when they pressed Ctrl+W, and
+        // retention changing underneath it would decide whether their text goes to the
+        // trash or straight to deletion.
+        var retention = _options.Retention;
+
         // Written before it is moved, or the last few seconds of typing go to the
         // trash without ever having reached the file being trashed.
         await FlushAsync(cancellationToken).ConfigureAwait(true);
@@ -517,7 +682,7 @@ internal sealed class Workspace : IAsyncDisposable
         }
         else
         {
-            recoverable = _buffers.Trash(tab.Id, _options.Retention, _time.GetUtcNow());
+            recoverable = _buffers.Trash(tab.Id, retention, _time.GetUtcNow());
         }
 
         _tabs.RemoveAt(index);
@@ -748,7 +913,7 @@ internal sealed class Workspace : IAsyncDisposable
         if (ephemeral)
         {
             _buffers.DeleteLive(tab.Id);
-            Announce($"{tab.Title} is ephemeral — nothing in it will be written to disk, including on exit.");
+            Announce($"{tab.Title} is ephemeral - nothing in it will be written to disk, including on exit.");
         }
         else
         {
@@ -881,7 +1046,7 @@ internal sealed class Workspace : IAsyncDisposable
         {
             DiskPresence.Present => $"{tab.Title} has changed on disk since Etch opened it. Ctrl+S again to overwrite it.",
             DiskPresence.Missing => $"{tab.Title} no longer exists on disk. Ctrl+S again to write it out again.",
-            _ => $"{tab.Title} could not be read — it may be open in another program. Ctrl+S again to write over it.",
+            _ => $"{tab.Title} could not be read - it may be open in another program. Ctrl+S again to write over it.",
         });
 
         return false;
@@ -1279,7 +1444,7 @@ internal sealed class Workspace : IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
-            DiagnosticLog.Write("Etch — the final flush ran out of time; some recent edits may not have been written.");
+            DiagnosticLog.Write("Etch - the final flush ran out of time; some recent edits may not have been written.");
         }
         catch (Exception ex)
         {
@@ -1351,7 +1516,7 @@ internal sealed class Workspace : IAsyncDisposable
         }
         else
         {
-            DiagnosticLog.Write("Etch — a session index write was still running at shutdown and was left to finish on its own.");
+            DiagnosticLog.Write("Etch - a session index write was still running at shutdown and was left to finish on its own.");
         }
     }
 

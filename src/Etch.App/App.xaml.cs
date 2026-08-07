@@ -3,6 +3,7 @@ using System.Windows.Threading;
 using Etch.App.Diagnostics;
 using Etch.App.Startup;
 using Etch.App.Tabs;
+using Etch.Persistence.Settings;
 using Etch.Persistence.Storage;
 using Wpf.Ui.Appearance;
 
@@ -19,6 +20,7 @@ public partial class App : Application
     private readonly LaunchMode.Edit _mode;
     private readonly EtchPaths _paths;
     private readonly InstanceChannel _channel;
+    private readonly SettingsStore _settings;
 
     private Workspace? _workspace;
     private EtchWindow? _window;
@@ -31,6 +33,7 @@ public partial class App : Application
         _mode = mode ?? throw new ArgumentNullException(nameof(mode));
         _paths = paths ?? throw new ArgumentNullException(nameof(paths));
         _channel = channel ?? throw new ArgumentNullException(nameof(channel));
+        _settings = new SettingsStore(_paths);
 
         DispatcherUnhandledException += OnDispatcherUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
@@ -67,7 +70,11 @@ public partial class App : Application
         _workspace = Workspace.Create(_paths);
         StartupTimeline.Mark("workspace-created");
 
-        _window = new EtchWindow(_workspace, _mode.FileToOpen);
+        // Constructed, not read. The file is read in CompleteStartup alongside the
+        // session, because the plan's order is render then hydrate and a settings read
+        // in front of the first frame would be exactly the kind of small disk cost the
+        // startup budget is spent avoiding.
+        _window = new EtchWindow(_workspace, _settings, _mode.FileToOpen);
         _window.OnClosingStarted(_channel.StopAccepting);
         StartupTimeline.Mark("window-constructed");
 
@@ -140,6 +147,13 @@ public partial class App : Application
     /// </remarks>
     private async void CompleteStartup()
     {
+        // Before the restore, and that ordering is load-bearing rather than tidy: the
+        // restore evaluates every buffer against the workspace's size policy, and the
+        // size thresholds are one of the things the settings file configures. Reading it
+        // afterwards would mean the first session after a threshold change was still
+        // judged by the old one.
+        await LoadSettingsAsync().ConfigureAwait(true);
+
         if (_workspace is { } workspace)
         {
             try
@@ -167,6 +181,35 @@ public partial class App : Application
         _window?.OnStartupCompleted(report);
 
         _channel.SetHandler(OnInstanceRequest);
+    }
+
+    /// <summary>
+    /// Reads the settings file and hands the result to the window.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="SettingsStore.LoadAsync"/> is contracted never to throw, and the catch
+    /// here is not a hedge against that being wrong so much as against this method
+    /// growing a second statement later. Losing the settings costs the user their
+    /// preferences for one session; it must never cost them the editor.
+    /// </remarks>
+    private async Task LoadSettingsAsync()
+    {
+        if (_window is not { } window)
+        {
+            return;
+        }
+
+        try
+        {
+            var loaded = await _settings.LoadAsync().ConfigureAwait(true);
+
+            window.ApplyStartupSettings(loaded);
+            StartupTimeline.Mark("settings-loaded");
+        }
+        catch (Exception ex)
+        {
+            DiagnosticLog.WriteFailure("settings-load", ex);
+        }
     }
 
     /// <summary>
@@ -280,7 +323,7 @@ public partial class App : Application
             $"Etch hit an unrecoverable error and has to close.\n\n{exception.Message}\n\n"
             + (flushed
                 ? "Your open tabs were written to disk first."
-                : "Etch could not finish writing your tabs to disk — the last few seconds of typing may be missing.")
+                : "Etch could not finish writing your tabs to disk - the last few seconds of typing may be missing.")
             + $"\n\nDetails were written to:\n{DiagnosticLog.LogDirectory}",
             "Etch",
             MessageBoxButton.OK,

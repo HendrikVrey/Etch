@@ -104,7 +104,7 @@ internal sealed class IsoToEpoch : ITransform
             : moment.ToUnixTimeSeconds();
 
         var units = hasSubSeconds ? "milliseconds" : "seconds";
-        var assumed = HasZone(trimmed) ? string.Empty : " — no zone given, read as UTC";
+        var assumed = HasZone(trimmed) ? string.Empty : " - no zone given, read as UTC";
 
         return TransformResult.Ok(
             value.ToString(CultureInfo.InvariantCulture),

@@ -121,6 +121,12 @@ internal static class KeyMap
             // The two keys the product is an argument for.
             { new Shortcut(Key.P, CtrlShift), new(EtchCommandId.OpenPalette) },
             { new Shortcut(Key.Return, Ctrl), new(EtchCommandId.ApplySuggested) },
+
+            // Settings. Key.OemComma alone is correct on every layout, not just this
+            // author's: Windows defines VK_OEM_COMMA as "the ',' key" for any country or
+            // region, so the layout that puts the comma somewhere else — AZERTY, where it
+            // is under QWERTY's M — still reports it here.
+            { new Shortcut(Key.OemComma, Ctrl), new(EtchCommandId.OpenSettings) },
         };
 
         // Ctrl+1..9, from both the number row and the numeric keypad. Built in a loop

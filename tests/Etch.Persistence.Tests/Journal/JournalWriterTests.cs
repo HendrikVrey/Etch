@@ -33,7 +33,7 @@ public class JournalWriterTests
 
         await WaitUntilAsync(() => workspace.Buffers.Exists(id));
 
-        var stored = await workspace.Buffers.ReadAsync(id);
+        var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
         Assert.Equal("typed and forgotten", stored!.Value.Text);
     }
 
@@ -50,7 +50,7 @@ public class JournalWriterTests
         journal.Start();
         journal.Enqueue(id, "still typing");
 
-        await Task.Delay(200);
+        await Task.Delay(200, TestContext.Current.CancellationToken);
 
         Assert.False(workspace.Buffers.Exists(id));
         Assert.Equal(1, journal.PendingCount);
@@ -71,9 +71,9 @@ public class JournalWriterTests
         }
 
         await WaitUntilAsync(() => workspace.Buffers.Exists(id));
-        await journal.FlushAsync();
+        await journal.FlushAsync(TestContext.Current.CancellationToken);
 
-        var stored = await workspace.Buffers.ReadAsync(id);
+        var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
 
         Assert.Equal("revision 499", stored!.Value.Text);
         // Filtered to live buffers: a retained ".prev" generation appears alongside
@@ -95,9 +95,9 @@ public class JournalWriterTests
         journal.Start();
         journal.Enqueue(id, "flush me now");
 
-        await journal.FlushAsync();
+        await journal.FlushAsync(TestContext.Current.CancellationToken);
 
-        var stored = await workspace.Buffers.ReadAsync(id);
+        var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
         Assert.Equal("flush me now", stored!.Value.Text);
         Assert.Equal(0, journal.PendingCount);
     }
@@ -110,7 +110,7 @@ public class JournalWriterTests
         await using var journal = new JournalWriter(workspace.Buffers, Fast);
         journal.Start();
 
-        await journal.FlushAsync();
+        await journal.FlushAsync(TestContext.Current.CancellationToken);
 
         Assert.Empty(Directory.GetFiles(workspace.Paths.BuffersDirectory));
     }
@@ -129,11 +129,11 @@ public class JournalWriterTests
             journal.Enqueue(id, $"buffer {index}");
         }
 
-        await journal.FlushAsync();
+        await journal.FlushAsync(TestContext.Current.CancellationToken);
 
         for (var i = 0; i < ids.Length; i++)
         {
-            var stored = await workspace.Buffers.ReadAsync(ids[i]);
+            var stored = await workspace.Buffers.ReadAsync(ids[i], TestContext.Current.CancellationToken);
             Assert.Equal($"buffer {i}", stored!.Value.Text);
         }
     }
@@ -154,7 +154,7 @@ public class JournalWriterTests
         journal.Enqueue(id, "about to be closed");
         journal.Discard(id);
 
-        await journal.FlushAsync();
+        await journal.FlushAsync(TestContext.Current.CancellationToken);
 
         Assert.False(workspace.Buffers.Exists(id));
     }
@@ -175,7 +175,7 @@ public class JournalWriterTests
 
         await journal.DisposeAsync();
 
-        var stored = await workspace.Buffers.ReadAsync(id);
+        var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
         Assert.Equal("typed a moment before closing", stored!.Value.Text);
     }
 
@@ -213,7 +213,7 @@ public class JournalWriterTests
         await using var journal = new JournalWriter(workspace.Buffers, Fast);
 
         journal.Enqueue(id, "written without a loop");
-        await journal.FlushAsync();
+        await journal.FlushAsync(TestContext.Current.CancellationToken);
 
         Assert.True(workspace.Buffers.Exists(id));
     }
@@ -266,7 +266,7 @@ public class JournalWriterTests
 
         await WaitUntilAsync(() => workspace.Buffers.Exists(id));
 
-        var stored = await workspace.Buffers.ReadAsync(id);
+        var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
         Assert.Equal("must survive the outage", stored!.Value.Text);
     }
 
@@ -286,7 +286,7 @@ public class JournalWriterTests
         Directory.Delete(workspace.Paths.BuffersDirectory, recursive: true);
         journal.Enqueue(id, "resilient");
 
-        await Task.Delay(200);
+        await Task.Delay(200, TestContext.Current.CancellationToken);
         Directory.CreateDirectory(workspace.Paths.BuffersDirectory);
 
         await WaitUntilAsync(() => workspace.Buffers.Exists(id));
@@ -304,12 +304,12 @@ public class JournalWriterTests
         for (var i = 0; i < 50; i++)
         {
             journal.Enqueue(id, $"revision {i}");
-            await Task.Delay(5);
+            await Task.Delay(5, TestContext.Current.CancellationToken);
         }
 
-        await journal.FlushAsync();
+        await journal.FlushAsync(TestContext.Current.CancellationToken);
 
-        var stored = await workspace.Buffers.ReadAsync(id);
+        var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
         Assert.Equal("revision 49", stored!.Value.Text);
     }
 
@@ -386,11 +386,11 @@ public class JournalWriterTests
         var written = ids.Count(workspace.Buffers.Exists);
         Assert.Equal(ids.Length, written + journal.PendingCount);
 
-        await journal.FlushAsync();
+        await journal.FlushAsync(TestContext.Current.CancellationToken);
 
         foreach (var id in ids)
         {
-            var stored = await workspace.Buffers.ReadAsync(id);
+            var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
             Assert.Equal($"contents of {id}", stored!.Value.Text);
         }
     }
@@ -413,7 +413,7 @@ public class JournalWriterTests
 
         foreach (var id in ids)
         {
-            var stored = await workspace.Buffers.ReadAsync(id);
+            var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
             Assert.NotNull(stored);
             Assert.Equal($"contents of {id}", stored!.Value.Text);
         }
@@ -434,8 +434,8 @@ public class JournalWriterTests
         journal.Enqueue(id, "closing right about now");
         journal.Discard(id);
 
-        await journal.FlushAsync();
-        await Task.Delay(200);
+        await journal.FlushAsync(TestContext.Current.CancellationToken);
+        await Task.Delay(200, TestContext.Current.CancellationToken);
 
         Assert.False(workspace.Buffers.Exists(id));
     }
@@ -458,7 +458,7 @@ public class JournalWriterTests
         journal.Enqueue(id, "not yet on disk");
         Assert.True(journal.HasUnsavedWork);
 
-        await journal.FlushAsync();
+        await journal.FlushAsync(TestContext.Current.CancellationToken);
         Assert.False(journal.HasUnsavedWork);
     }
 
@@ -473,10 +473,10 @@ public class JournalWriterTests
 
         journal.Enqueue(id, "a pasted credential");
 
-        Assert.Equal(1, await journal.DiscardAllAsync());
+        Assert.Equal(1, await journal.DiscardAllAsync(TestContext.Current.CancellationToken));
 
         workspace.Buffers.WipeAll();
-        await Task.Delay(300);
+        await Task.Delay(300, TestContext.Current.CancellationToken);
 
         Assert.False(workspace.Buffers.Exists(id));
     }
@@ -492,7 +492,7 @@ public class JournalWriterTests
                 return;
             }
 
-            await Task.Delay(10);
+            await Task.Delay(10, TestContext.Current.CancellationToken);
         }
 
         Assert.Fail($"Condition was still false after {Patience.TotalSeconds:0} seconds.");

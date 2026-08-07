@@ -74,7 +74,7 @@ public sealed record BufferRecord
         else if (filePath is not null)
         {
             throw new ArgumentException(
-                "A scratch buffer must not carry a file path — it is what stops an implicit write-through.",
+                "A scratch buffer must not carry a file path - it is what stops an implicit write-through.",
                 nameof(filePath));
         }
 

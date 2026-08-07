@@ -163,7 +163,7 @@ internal static class StartupTimeline
     {
         var report = new StringBuilder(1024);
 
-        report.AppendLine("Etch — startup timeline");
+        report.AppendLine("Etch - startup timeline");
         report.AppendLine(CultureInfo.InvariantCulture, $"  captured   {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}");
         report.AppendLine(CultureInfo.InvariantCulture, $"  runtime    {RuntimeInformation.FrameworkDescription}");
         report.AppendLine(CultureInfo.InvariantCulture, $"  platform   {RuntimeInformation.RuntimeIdentifier}  ({RuntimeInformation.ProcessArchitecture})");
@@ -199,8 +199,8 @@ internal static class StartupTimeline
 
         var headroom = Budget - total;
         var verdict = headroom >= TimeSpan.Zero
-            ? $"PASS — {Ms(headroom)} under budget"
-            : $"FAIL — {Ms(headroom.Negate())} over budget";
+            ? $"PASS - {Ms(headroom)} under budget"
+            : $"FAIL - {Ms(headroom.Negate())} over budget";
 
         report.AppendLine(CultureInfo.InvariantCulture, $"  budget     {Ms(Budget)}   {verdict}");
         report.AppendLine(CultureInfo.InvariantCulture, $"  working set{Environment.WorkingSet / (1024.0 * 1024.0),11:0.0} MB");
@@ -221,7 +221,7 @@ internal static class StartupTimeline
         report.AppendLine(CultureInfo.InvariantCulture,
             $"             ~20 ms of budget is not a decision. Measurement overhead of {Ms(_measurementOverhead)}");
         report.AppendLine(CultureInfo.InvariantCulture,
-            $"             is excluded — an ordinary launch does not pay it.");
+            $"             is excluded - an ordinary launch does not pay it.");
 
         return report.ToString();
     }

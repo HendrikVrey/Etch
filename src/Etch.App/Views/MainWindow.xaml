@@ -22,11 +22,12 @@
         <views:BooleanLabelConverter x:Key="BooleanLabel" />
 
         <!--
-            The small glyph buttons in the strip: a tab's close button and the new-tab
-            button. No border, no fill until hovered, so the strip reads as a strip
-            rather than as a row of buttons.
+            The small glyph buttons: a tab's close button, the new-tab button, the
+            settings panel's close button and the status bar's settings gear. No border,
+            no fill until hovered, so a strip reads as a strip and the status bar stays a
+            status bar rather than becoming a row of buttons.
         -->
-        <Style x:Key="StripGlyphButtonStyle" TargetType="Button">
+        <Style x:Key="GlyphButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Padding" Value="0" />
@@ -190,8 +191,8 @@
                                     VerticalAlignment="Center"
                                     Command="{Binding CloseTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                     CommandParameter="{Binding}"
-                                    Style="{StaticResource StripGlyphButtonStyle}"
-                                    ToolTip="Close — Ctrl+W. Reopen with Ctrl+Shift+T."
+                                    Style="{StaticResource GlyphButtonStyle}"
+                                    ToolTip="Close - Ctrl+W. Reopen with Ctrl+Shift+T."
                                     Visibility="Hidden">
                                     <TextBlock
                                         FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
@@ -362,6 +363,7 @@
                         </ItemsControl>
                     </ScrollViewer>
 
+                    <!--  The only button in the title bar. Settings is a gear in the status bar.  -->
                     <Button
                         Grid.Column="1"
                         Width="28"
@@ -369,8 +371,8 @@
                         Margin="6,0,0,3"
                         VerticalAlignment="Bottom"
                         Command="{Binding NewTabCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                        Style="{StaticResource StripGlyphButtonStyle}"
-                        ToolTip="New tab — Ctrl+T">
+                        Style="{StaticResource GlyphButtonStyle}"
+                        ToolTip="New tab - Ctrl+T">
                         <TextBlock
                             FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
                             FontSize="11"
@@ -499,13 +501,14 @@
 
         <Border
             Grid.Row="3"
-            Padding="14,5"
+            Padding="14,4,10,4"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
             BorderThickness="0,1,0,0">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
                 <StackPanel
@@ -538,6 +541,32 @@
                     FontSize="12"
                     Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                     TextTrimming="CharacterEllipsis" />
+
+                <!--
+                    The only pointer route to the settings panel. It lives at the far
+                    right of the status bar rather than in the title bar because that is
+                    where an editor's settings are looked for, and because the title bar
+                    is the tab strip's and should stay that way.
+
+                    The negative vertical margin is deliberate: the button is 22px and the
+                    12pt status text row is shorter, so without it the bar grows by a few
+                    pixels the moment the gear is added. Shrinking the glyph instead would
+                    make it illegible at 100% DPI.
+                -->
+                <Button
+                    Grid.Column="2"
+                    Width="22"
+                    Height="22"
+                    Margin="10,-2,0,-2"
+                    VerticalAlignment="Center"
+                    Command="{Binding OpenSettingsCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                    Style="{StaticResource GlyphButtonStyle}"
+                    ToolTip="Settings - Ctrl+,">
+                    <TextBlock
+                        FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                        FontSize="12"
+                        Text="&#xE713;" />
+                </Button>
             </Grid>
         </Border>
 
@@ -636,6 +665,290 @@
                         Margin="14,4,14,8"
                         FontSize="12"
                         Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!--
+            Settings, on Ctrl+,. An overlay rather than a window, for the same reasons
+            the palette is one: the plan bans modals, and a second window would move
+            focus off the editor. Collapsed until it is asked for, so it costs a
+            template and nothing else — the same bargain the palette and the find bar
+            make.
+
+            Every control in here is wired to something that reads it. See
+            MainWindow.Settings.cs; that was the acceptance criterion for the panel.
+        -->
+        <Grid
+            x:Name="SettingsOverlay"
+            Grid.Row="0"
+            Grid.RowSpan="4"
+            Panel.ZIndex="9"
+            Visibility="Collapsed">
+
+            <Rectangle Fill="#66000000" MouseLeftButtonDown="OnSettingsBackdropClicked" />
+
+            <Border
+                Width="560"
+                MaxHeight="600"
+                Margin="0,64,0,0"
+                VerticalAlignment="Top"
+                Background="{DynamicResource ApplicationBackgroundBrush}"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="18,14,14,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock
+                            Grid.Column="0"
+                            VerticalAlignment="Center"
+                            FontSize="16"
+                            FontWeight="SemiBold"
+                            Text="Settings" />
+
+                        <Button
+                            Grid.Column="1"
+                            Width="28"
+                            Height="28"
+                            Click="OnSettingsCloseClicked"
+                            Style="{StaticResource GlyphButtonStyle}"
+                            ToolTip="Close - Esc">
+                            <TextBlock
+                                FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                FontSize="10"
+                                Text="&#xE711;" />
+                        </Button>
+                    </Grid>
+
+                    <ScrollViewer
+                        Grid.Row="1"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="18,0,18,12">
+
+                            <!--  Storage  -->
+                            <TextBlock
+                                Margin="0,4,0,6"
+                                FontWeight="SemiBold"
+                                Text="Storage" />
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock
+                                    Width="210"
+                                    VerticalAlignment="Center"
+                                    Text="Keep closed tabs for" />
+                                <TextBox
+                                    x:Name="RetentionInput"
+                                    Width="70"
+                                    VerticalContentAlignment="Center"
+                                    TextChanged="OnSettingTextChanged" />
+                                <TextBlock
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Text="days" />
+                            </StackPanel>
+
+                            <TextBlock
+                                Margin="0,4,0,0"
+                                FontSize="11"
+                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                Text="Zero deletes a tab's text the moment you close it, so Ctrl+Shift+T cannot bring it back."
+                                TextWrapping="Wrap" />
+
+                            <!--  Editor  -->
+                            <TextBlock
+                                Margin="0,18,0,6"
+                                FontWeight="SemiBold"
+                                Text="Editor" />
+
+                            <CheckBox
+                                x:Name="LigatureToggle"
+                                Checked="OnSettingToggled"
+                                Content="Font ligatures (Cascadia Code)"
+                                Unchecked="OnSettingToggled" />
+
+                            <!--  Large files  -->
+                            <TextBlock
+                                Margin="0,18,0,6"
+                                FontWeight="SemiBold"
+                                Text="Large files" />
+
+                            <TextBlock
+                                Margin="0,0,0,8"
+                                FontSize="11"
+                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                Text="Etch turns features off as a file gets bigger, so a large one still opens quickly. These apply to files opened from now on."
+                                TextWrapping="Wrap" />
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock
+                                    Width="210"
+                                    VerticalAlignment="Center"
+                                    Text="Folding off above" />
+                                <TextBox
+                                    x:Name="ReducedThresholdInput"
+                                    Width="70"
+                                    VerticalContentAlignment="Center"
+                                    TextChanged="OnSettingTextChanged" />
+                                <TextBlock
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Text="MB" />
+                            </StackPanel>
+
+                            <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+                                <TextBlock
+                                    Width="210"
+                                    VerticalAlignment="Center"
+                                    Text="Highlighting and auto-save off above" />
+                                <TextBox
+                                    x:Name="PlainTextThresholdInput"
+                                    Width="70"
+                                    VerticalContentAlignment="Center"
+                                    TextChanged="OnSettingTextChanged" />
+                                <TextBlock
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Text="MB" />
+                            </StackPanel>
+
+                            <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
+                                <TextBlock
+                                    Width="210"
+                                    VerticalAlignment="Center"
+                                    Text="Refuse to open above" />
+                                <TextBox
+                                    x:Name="HardCeilingInput"
+                                    Width="70"
+                                    VerticalContentAlignment="Center"
+                                    TextChanged="OnSettingTextChanged" />
+                                <TextBlock
+                                    Margin="8,0,0,0"
+                                    VerticalAlignment="Center"
+                                    Text="MB" />
+                            </StackPanel>
+
+                            <TextBlock
+                                x:Name="SettingsValidation"
+                                Margin="0,8,0,0"
+                                FontSize="11"
+                                Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                                TextWrapping="Wrap" />
+
+                            <!--  File associations  -->
+                            <TextBlock
+                                Margin="0,18,0,6"
+                                FontWeight="SemiBold"
+                                Text="Open these with Etch" />
+
+                            <TextBlock
+                                Margin="0,0,0,8"
+                                FontSize="11"
+                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                Text="The installer asks about these; this is where you change your mind. Per-user only - nothing is changed for other accounts on this PC. If Windows already has a default for one of these, Etch is added to its &quot;Open with&quot; list instead and you finish the change in Settings → Apps → Default apps."
+                                TextWrapping="Wrap" />
+
+                            <!--
+                                Tag carries the extension each box governs, which is what
+                                the handler reads. The three are spelled out rather than
+                                generated from FileAssociations.Associable so that the
+                                labels can be written as prose; a test walks that list and
+                                asserts each entry has a label of its own.
+                            -->
+                            <StackPanel x:Name="AssociationList">
+                                <CheckBox
+                                    Checked="OnAssociationChanged"
+                                    Content="Text files (.txt)"
+                                    Tag=".txt"
+                                    Unchecked="OnAssociationChanged" />
+                                <CheckBox
+                                    Margin="0,4,0,0"
+                                    Checked="OnAssociationChanged"
+                                    Content="JSON files (.json)"
+                                    Tag=".json"
+                                    Unchecked="OnAssociationChanged" />
+                                <CheckBox
+                                    Margin="0,4,0,0"
+                                    Checked="OnAssociationChanged"
+                                    Content="Log files (.log)"
+                                    Tag=".log"
+                                    Unchecked="OnAssociationChanged" />
+                            </StackPanel>
+
+                            <!--  Right-click menu  -->
+                            <TextBlock
+                                Margin="0,18,0,6"
+                                FontWeight="SemiBold"
+                                Text="Right-click menu" />
+
+                            <TextBlock
+                                Margin="0,0,0,8"
+                                FontSize="11"
+                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                Text="Adds Etch to the menu you get when you right-click a file in Explorer, whatever its type. On Windows 11 it appears under &quot;Show more options&quot;."
+                                TextWrapping="Wrap" />
+
+                            <!--
+                                Deliberately NOT inside AssociationList. That panel is walked
+                                by AssociationCheckBoxes(), and every box in it is filled in
+                                from FileAssociations.IsHonoured(Tag as string) - so a fourth
+                                child with no extension Tag would silently read as unchecked
+                                for ever. This one is a shell verb rather than an extension,
+                                so it has its own handler and its own place in the tree.
+                            -->
+                            <CheckBox
+                                x:Name="OpenWithVerbCheckBox"
+                                Checked="OnOpenWithVerbChanged"
+                                Content="Show &quot;Open with Etch&quot; when you right-click any file"
+                                Unchecked="OnOpenWithVerbChanged" />
+
+                            <!--  Privacy  -->
+                            <TextBlock
+                                Margin="0,18,0,6"
+                                FontWeight="SemiBold"
+                                Text="Privacy" />
+
+                            <TextBlock
+                                Margin="0,0,0,8"
+                                FontSize="11"
+                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                Text="Etch stores every tab as plain text in your user profile. Nothing leaves this machine, but anything pasted into a tab is on disk until it is wiped."
+                                TextWrapping="Wrap" />
+
+                            <Button
+                                x:Name="WipeButton"
+                                HorizontalAlignment="Left"
+                                Padding="12,5"
+                                Click="OnWipeClicked"
+                                Content="Wipe all scratch data" />
+
+                            <TextBlock
+                                x:Name="WipeWarning"
+                                Margin="0,8,0,0"
+                                FontSize="11"
+                                Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <TextBlock
+                        x:Name="SettingsNotice"
+                        Grid.Row="2"
+                        Margin="18,0,18,12"
+                        FontSize="11"
+                        Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                        TextWrapping="Wrap" />
                 </Grid>
             </Border>
         </Grid>

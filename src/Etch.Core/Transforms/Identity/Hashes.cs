@@ -73,7 +73,7 @@ internal sealed class HashMd5 : HashTransform
     public override string Id => "hash.md5";
 
     /// <inheritdoc />
-    public override string Name => "MD5 (legacy — not for security)";
+    public override string Name => "MD5 (legacy - not for security)";
 
     /// <inheritdoc />
     public override IReadOnlyList<string> Aliases { get; } = ["md5", "hash", "checksum", "digest"];
@@ -88,7 +88,7 @@ internal sealed class HashMd5 : HashTransform
             "already have, because the world is full of MD5 checksums that need comparing. " +
             "Refusing to compute one would not make those go away, it would just mean " +
             "reaching for a website to paste the text into. The transform is named " +
-            "\"MD5 (legacy — not for security)\" in the palette so the caveat travels with it.")]
+            "\"MD5 (legacy - not for security)\" in the palette so the caveat travels with it.")]
     protected override byte[] ComputeHash(byte[] bytes) => MD5.HashData(bytes);
 }
 
@@ -103,7 +103,7 @@ internal sealed class HashSha1 : HashTransform
     public override string Id => "hash.sha1";
 
     /// <inheritdoc />
-    public override string Name => "SHA-1 (legacy — not for security)";
+    public override string Name => "SHA-1 (legacy - not for security)";
 
     /// <inheritdoc />
     public override IReadOnlyList<string> Aliases { get; } = ["sha1", "hash", "checksum", "digest", "git"];

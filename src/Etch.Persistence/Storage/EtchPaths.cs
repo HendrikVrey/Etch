@@ -16,6 +16,7 @@ public sealed class EtchPaths
     private const string BuffersFolder = "buffers";
     private const string TrashFolder = "trash";
     private const string SessionFileName = "session.json";
+    private const string SettingsFileName = "settings.json";
     private const string LockFileName = ".lock";
     private const string QuarantinePrefix = "session.quarantined-";
 
@@ -37,6 +38,7 @@ public sealed class EtchPaths
         BuffersDirectory = Path.Combine(Root, BuffersFolder);
         TrashDirectory = Path.Combine(Root, TrashFolder);
         SessionFile = Path.Combine(Root, SessionFileName);
+        SettingsFile = Path.Combine(Root, SettingsFileName);
         LockFile = Path.Combine(Root, LockFileName);
     }
 
@@ -51,6 +53,20 @@ public sealed class EtchPaths
 
     /// <summary>The session index.</summary>
     public string SessionFile { get; }
+
+    /// <summary>
+    /// The user's settings.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately <b>not</b> removed by <see cref="BufferStore.WipeAll"/>. Everything
+    /// else under this root is buffer text or a description of it — the things somebody
+    /// wiping their scratch data is trying to get rid of — whereas this file holds only
+    /// preferences, contains no path and no fragment of any buffer, and losing it would
+    /// be a surprise rather than a relief. It is also the file that records a retention
+    /// window of zero, which is a choice a privacy-minded user would have to make twice
+    /// if a wipe reset it.
+    /// </remarks>
+    public string SettingsFile { get; }
 
     /// <summary>
     /// The file whose exclusive handle marks this data directory as owned by a

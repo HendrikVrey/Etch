@@ -250,7 +250,7 @@ internal static class Program
         Console.Error.WriteLine("Etch is already running but is not responding.");
 
         _ = MessageBox.Show(
-            "Etch is already running but is not responding, so this window cannot open — "
+            "Etch is already running but is not responding, so this window cannot open - "
             + "two copies sharing one set of notes would overwrite each other.\n\n"
             + "Close the other window, or end the Etch process, and try again.\n\n"
             + $"Holder: {InstanceLock.DescribeHolder(paths)}",

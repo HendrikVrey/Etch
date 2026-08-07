@@ -65,14 +65,17 @@ internal sealed class ValidateJson : ITransform
                     MaxDepth = MaxDepth,
                 });
 
-            return TransformResult.Reported($"Valid JSON — {Describe(document.RootElement)}.");
+            return TransformResult.Reported($"Valid JSON - {Describe(document.RootElement)}.");
         }
         catch (Exception ex) when (ex is JsonException or ArgumentException)
         {
             // Same two exception types as JsonRewriter, for the same reason: Parse(string)
             // transcodes to UTF-8 before parsing, so a lone surrogate raises
             // ArgumentException rather than JsonException.
-            return TransformResult.Failed($"Not valid JSON — {ex.Message}");
+            //
+            // This is the transform whose whole job is saying where the document stops
+            // being JSON, so it is the one the offset matters most for.
+            return JsonFailure.Describe("Not valid JSON", ex, input.Text);
         }
     }
 

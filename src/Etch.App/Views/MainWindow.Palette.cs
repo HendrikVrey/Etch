@@ -418,6 +418,15 @@ public partial class MainWindow
             if (!result.Success)
             {
                 ShowMessage(result.Error ?? $"{transform.Name} could not be applied.", null);
+
+                // Only when the buffer is still the one that was parsed. The offset
+                // describes text as it was when the transform read it, and an edit since
+                // then makes it a number about a document that no longer exists.
+                if (result.ErrorOffset is { } errorOffset && !IsStale(document, version))
+                {
+                    MoveCaretToFailure(document, start + errorOffset);
+                }
+
                 return;
             }
 
@@ -470,6 +479,38 @@ public partial class MainWindow
         {
             _transformInFlight = false;
         }
+    }
+
+    /// <summary>
+    /// Puts the caret where a transform said its input stopped making sense.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// This is what makes "where it failed" worth carrying as a number rather than as
+    /// more prose in the message. The parsers already say "line 4, position 12" — but on
+    /// a minified payload, which is most of what gets pasted into a scratchpad, the whole
+    /// document is line one and that sentence tells nobody anything.
+    /// </para>
+    /// <para>
+    /// The caret is moved and the line brought into view; nothing is selected. A selection
+    /// would change what the next transform runs against, so a failed transform would
+    /// silently narrow the input to the second attempt — which is the opposite of helpful
+    /// when the second attempt is the user trying the same thing again after a fix.
+    /// </para>
+    /// <para>
+    /// Clamped rather than trusted. The offset came from a parser working on a copy of
+    /// the text, and <c>Editor.CaretOffset</c> throws if it is past the end of the
+    /// document.
+    /// </para>
+    /// </remarks>
+    private void MoveCaretToFailure(TextDocument document, int offset)
+    {
+        Editor.CaretOffset = Math.Clamp(offset, 0, document.TextLength);
+
+        // Scrolls only if it is not already on screen, which is the behaviour wanted
+        // here: a failure a few lines down should not jerk the viewport around.
+        Editor.TextArea.Caret.BringCaretToView();
+        Editor.Focus();
     }
 
     /// <summary>True when the document has changed since <paramref name="version"/>.</summary>

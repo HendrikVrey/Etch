@@ -42,7 +42,7 @@ public sealed class RetentionPolicy
             throw new ArgumentOutOfRangeException(
                 nameof(retention),
                 retention,
-                "Retention cannot be negative — a buffer cannot expire before it is closed.");
+                "Retention cannot be negative - a buffer cannot expire before it is closed.");
         }
 
         Retention = retention;

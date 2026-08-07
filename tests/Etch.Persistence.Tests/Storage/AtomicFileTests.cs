@@ -12,9 +12,9 @@ public class AtomicFileTests
         using var workspace = TemporaryWorkspace.Create();
         var path = Path.Combine(workspace.Root, "new.txt");
 
-        await AtomicFile.WriteAllTextAsync(path, "hello");
+        await AtomicFile.WriteAllTextAsync(path, "hello", cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal("hello", await File.ReadAllTextAsync(path));
+        Assert.Equal("hello", await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -23,12 +23,12 @@ public class AtomicFileTests
         using var workspace = TemporaryWorkspace.Create();
         var path = Path.Combine(workspace.Root, "existing.txt");
 
-        await File.WriteAllTextAsync(path, "old contents that are much longer than the new ones");
-        await AtomicFile.WriteAllTextAsync(path, "new");
+        await File.WriteAllTextAsync(path, "old contents that are much longer than the new ones", TestContext.Current.CancellationToken);
+        await AtomicFile.WriteAllTextAsync(path, "new", cancellationToken: TestContext.Current.CancellationToken);
 
         // Not merely "starts with": a truncating write that failed to shorten the
         // file would leave the tail of the old contents behind.
-        Assert.Equal("new", await File.ReadAllTextAsync(path));
+        Assert.Equal("new", await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -37,9 +37,9 @@ public class AtomicFileTests
         using var workspace = TemporaryWorkspace.Create();
         var path = Path.Combine(workspace.Root, "encoding.txt");
 
-        await AtomicFile.WriteAllTextAsync(path, "héllo — ünïcode ✓");
+        await AtomicFile.WriteAllTextAsync(path, "héllo — ünïcode ✓", cancellationToken: TestContext.Current.CancellationToken);
 
-        var bytes = await File.ReadAllBytesAsync(path);
+        var bytes = await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken);
 
         Assert.False(bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF);
         Assert.Equal("héllo — ünïcode ✓", Encoding.UTF8.GetString(bytes));
@@ -51,10 +51,10 @@ public class AtomicFileTests
         using var workspace = TemporaryWorkspace.Create();
         var path = Path.Combine(workspace.Root, "empty.txt");
 
-        await File.WriteAllTextAsync(path, "not empty");
-        await AtomicFile.WriteAllTextAsync(path, string.Empty);
+        await File.WriteAllTextAsync(path, "not empty", TestContext.Current.CancellationToken);
+        await AtomicFile.WriteAllTextAsync(path, string.Empty, cancellationToken: TestContext.Current.CancellationToken);
 
-        Assert.Equal(string.Empty, await File.ReadAllTextAsync(path));
+        Assert.Equal(string.Empty, await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class AtomicFileTests
         using var workspace = TemporaryWorkspace.Create();
         var path = Path.Combine(workspace.Root, "clean.txt");
 
-        await AtomicFile.WriteAllTextAsync(path, "contents");
+        await AtomicFile.WriteAllTextAsync(path, "contents", cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Empty(Directory.GetFiles(workspace.Root, "*.tmp"));
         Assert.Single(Directory.GetFiles(workspace.Root));
@@ -77,7 +77,7 @@ public class AtomicFileTests
         using var workspace = TemporaryWorkspace.Create();
         var path = Path.Combine(workspace.Root, "survivor.txt");
 
-        await File.WriteAllTextAsync(path, "original");
+        await File.WriteAllTextAsync(path, "original", TestContext.Current.CancellationToken);
 
         using var cancelled = new CancellationTokenSource();
         await cancelled.CancelAsync();
@@ -85,7 +85,7 @@ public class AtomicFileTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => AtomicFile.WriteAllTextAsync(path, "replacement", backupPath: null, cancelled.Token));
 
-        Assert.Equal("original", await File.ReadAllTextAsync(path));
+        Assert.Equal("original", await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
         Assert.Empty(Directory.GetFiles(workspace.Root, "*.tmp"));
     }
 
@@ -95,7 +95,7 @@ public class AtomicFileTests
         using var workspace = TemporaryWorkspace.Create();
         var path = Path.Combine(workspace.Root, "absent", "file.txt");
 
-        await Assert.ThrowsAnyAsync<IOException>(() => AtomicFile.WriteAllTextAsync(path, "contents"));
+        await Assert.ThrowsAnyAsync<IOException>(() => AtomicFile.WriteAllTextAsync(path, "contents", cancellationToken: TestContext.Current.CancellationToken));
 
         Assert.False(File.Exists(path));
     }
@@ -113,10 +113,10 @@ public class AtomicFileTests
         var second = new string('b', 200_000);
 
         await Task.WhenAll(
-            AtomicFile.WriteAllTextAsync(path, first),
-            AtomicFile.WriteAllTextAsync(path, second));
+            AtomicFile.WriteAllTextAsync(path, first, cancellationToken: TestContext.Current.CancellationToken),
+            AtomicFile.WriteAllTextAsync(path, second, cancellationToken: TestContext.Current.CancellationToken));
 
-        var written = await File.ReadAllTextAsync(path);
+        var written = await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken);
 
         Assert.True(
             written == first || written == second,
@@ -157,7 +157,7 @@ public class AtomicFileTests
     {
         // ThrowsAny, not Throws: a null path raises ArgumentNullException, which is a
         // subclass, and the exact-type overload would fail on it.
-        await Assert.ThrowsAnyAsync<ArgumentException>(() => AtomicFile.WriteAllTextAsync(path!, "contents"));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => AtomicFile.WriteAllTextAsync(path!, "contents", cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -166,6 +166,6 @@ public class AtomicFileTests
         using var workspace = TemporaryWorkspace.Create();
 
         await Assert.ThrowsAsync<ArgumentNullException>(
-            () => AtomicFile.WriteAllTextAsync(Path.Combine(workspace.Root, "x.txt"), null!));
+            () => AtomicFile.WriteAllTextAsync(Path.Combine(workspace.Root, "x.txt"), null!, cancellationToken: TestContext.Current.CancellationToken));
     }
 }

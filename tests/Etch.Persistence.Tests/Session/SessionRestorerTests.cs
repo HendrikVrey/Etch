@@ -173,13 +173,14 @@ public class SessionRestorerTests
         var kept = BufferId.New();
         var orphan = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(kept, "indexed text");
-        await workspace.Buffers.WriteAsync(orphan, "text the index never heard about");
+        await workspace.Buffers.WriteAsync(kept, "indexed text", TestContext.Current.CancellationToken);
+        await workspace.Buffers.WriteAsync(orphan, "text the index never heard about", TestContext.Current.CancellationToken);
         await workspace.Sessions.SaveAsync(
-            new SessionSnapshot(SessionSnapshot.CurrentVersion, CleanShutdown: false, kept, [Record(kept, "Kept")]));
+            new SessionSnapshot(SessionSnapshot.CurrentVersion, CleanShutdown: false, kept, [Record(kept, "Kept")]),
+            TestContext.Current.CancellationToken);
 
         var restorer = new SessionRestorer(workspace.Buffers, workspace.Sessions);
-        var restored = await restorer.RestoreAsync(RetentionPolicy.Default, Now);
+        var restored = await restorer.RestoreAsync(RetentionPolicy.Default, Now, TestContext.Current.CancellationToken);
 
         Assert.Equal(SessionLoadStatus.Loaded, restored.IndexStatus);
         Assert.True(restored.WasUncleanShutdown);
@@ -197,12 +198,12 @@ public class SessionRestorerTests
         var first = BufferId.New();
         var second = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(first, "important note");
-        await workspace.Buffers.WriteAsync(second, "another one");
-        await File.WriteAllTextAsync(workspace.Paths.SessionFile, "}}} not json {{{");
+        await workspace.Buffers.WriteAsync(first, "important note", TestContext.Current.CancellationToken);
+        await workspace.Buffers.WriteAsync(second, "another one", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(workspace.Paths.SessionFile, "}}} not json {{{", TestContext.Current.CancellationToken);
 
         var restorer = new SessionRestorer(workspace.Buffers, workspace.Sessions);
-        var restored = await restorer.RestoreAsync(RetentionPolicy.Default, Now);
+        var restored = await restorer.RestoreAsync(RetentionPolicy.Default, Now, TestContext.Current.CancellationToken);
 
         Assert.Equal(SessionLoadStatus.Unreadable, restored.IndexStatus);
         Assert.Equal(2, restored.Buffers.Count);
@@ -211,7 +212,7 @@ public class SessionRestorerTests
 
         foreach (var buffer in restored.Buffers)
         {
-            Assert.NotNull(await workspace.Buffers.ReadAsync(buffer.Id));
+            Assert.NotNull(await workspace.Buffers.ReadAsync(buffer.Id, TestContext.Current.CancellationToken));
         }
     }
 
@@ -221,15 +222,16 @@ public class SessionRestorerTests
         using var workspace = TemporaryWorkspace.Create();
         var expired = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(expired, "long gone");
+        await workspace.Buffers.WriteAsync(expired, "long gone", TestContext.Current.CancellationToken);
         workspace.Buffers.Trash(expired, RetentionPolicy.Default, Now.AddDays(-30));
 
         await File.WriteAllTextAsync(
             Path.Combine(workspace.Paths.BuffersDirectory, "abcd.txt.11112222.tmp"),
-            "half a write");
+            "half a write",
+            TestContext.Current.CancellationToken);
 
         var restorer = new SessionRestorer(workspace.Buffers, workspace.Sessions);
-        var restored = await restorer.RestoreAsync(RetentionPolicy.Default, Now);
+        var restored = await restorer.RestoreAsync(RetentionPolicy.Default, Now, TestContext.Current.CancellationToken);
 
         Assert.Equal(1, restored.PrunedFromTrash);
         Assert.Equal(1, restored.SweptTemporaryFiles);
@@ -242,7 +244,7 @@ public class SessionRestorerTests
         using var workspace = TemporaryWorkspace.CreateUninitialised();
 
         var restorer = new SessionRestorer(workspace.Buffers, workspace.Sessions);
-        var restored = await restorer.RestoreAsync(RetentionPolicy.Default, Now);
+        var restored = await restorer.RestoreAsync(RetentionPolicy.Default, Now, TestContext.Current.CancellationToken);
 
         Assert.Equal(SessionLoadStatus.Missing, restored.IndexStatus);
         Assert.Empty(restored.Buffers);

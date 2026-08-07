@@ -333,7 +333,7 @@ public partial class MainWindow
                 // Doing the first hundred thousand and stopping would leave the buffer in
                 // a state nobody asked for and no single Ctrl+Z would obviously describe.
                 // Refusing is the honest answer.
-                SetFindStatus($"More than {TextFinder.MaxMatches:N0} matches — narrow the pattern first");
+                SetFindStatus($"More than {TextFinder.MaxMatches:N0} matches - narrow the pattern first");
                 return;
             }
 
@@ -557,7 +557,7 @@ public partial class MainWindow
 
         if (ReferenceEquals(tab, _workspace.Active))
         {
-            Title = $"{tab.Title} — Etch";
+            Title = $"{tab.Title} - Etch";
         }
 
         _ = Editor.Focus();

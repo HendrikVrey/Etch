@@ -46,13 +46,13 @@ internal sealed class DecodeJwt : ITransform
         if (!Jwt.TryParse(input.Text, out var token))
         {
             return TransformResult.Failed(
-                "That is not a JWT — a token is three dot-separated parts whose first two decode to JSON.");
+                "That is not a JWT - a token is three dot-separated parts whose first two decode to JSON.");
         }
 
         var newLine = input.Options.NewLine;
         var builder = new StringBuilder(input.Text.Length * 2);
 
-        builder.Append("// SIGNATURE NOT VERIFIED — these values are only decoded, not trusted.").Append(newLine);
+        builder.Append("// SIGNATURE NOT VERIFIED - these values are only decoded, not trusted.").Append(newLine);
         builder.Append(CultureInfo.InvariantCulture, $"// Algorithm: {token.Algorithm}").Append(newLine);
         builder.Append(newLine);
         builder.Append("// Header").Append(newLine);

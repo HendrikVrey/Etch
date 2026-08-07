@@ -92,6 +92,88 @@ public class SuggestionTests
     }
 
     [Fact]
+    public void The_menu_never_offers_more_rows_than_it_asked_for()
+    {
+        // The editor's right-click menu asks for four. A registry that grew a fifth JSON
+        // transform must not quietly grow the menu with it.
+        var json = new DetectionResult(FormatId.Json, DetectionConfidence.Certain);
+        var all = PaletteRanking.SuggestedTop(json, count: int.MaxValue);
+
+        // Stated rather than assumed, so a shrunken registry fails with the reason rather
+        // than with an off-by-one further down.
+        Assert.True(all.Count >= 2, $"JSON has {all.Count} ready transforms; this test needs two.");
+
+        Assert.Equal(2, PaletteRanking.SuggestedTop(json, count: 2).Count);
+        Assert.Equal(all.Take(2), PaletteRanking.SuggestedTop(json, count: 2));
+        Assert.True(PaletteRanking.SuggestedTop(json, count: 4).Count <= 4);
+        Assert.Empty(PaletteRanking.SuggestedTop(json, count: 0));
+        Assert.Empty(PaletteRanking.SuggestedTop(json, count: -1));
+    }
+
+    [Fact]
+    public void The_menu_offers_only_transforms_that_apply_to_what_is_in_the_buffer()
+    {
+        // The green marker means "this is ready for what you have". A row that does not
+        // apply would be a green dot that is not true, in the one place the user is
+        // reading the dots rather than the names.
+        foreach (var format in Enum.GetValues<FormatId>())
+        {
+            var detection = new DetectionResult(format, DetectionConfidence.Certain);
+
+            foreach (var transform in PaletteRanking.SuggestedTop(detection))
+            {
+                Assert.True(
+                    transform.IsAvailable(detection),
+                    $"{transform.Id} was offered for {format} but does not apply to it.");
+            }
+        }
+    }
+
+    [Fact]
+    public void Nothing_is_offered_for_text_that_was_not_recognised()
+    {
+        // Empty, not null: the menu shows an explanatory row in this case and a null would
+        // make that path a NullReferenceException instead.
+        Assert.Empty(PaletteRanking.SuggestedTop(DetectionResult.PlainText));
+    }
+
+    [Fact]
+    public void The_first_row_is_the_one_Ctrl_Enter_would_run()
+    {
+        // The contract the menu's "Ctrl+Enter" gesture text depends on. If these two ever
+        // disagree, the menu is showing the shortcut against a row the shortcut does not
+        // run, which is worse than showing no shortcut at all.
+        // Exercised with and without a recency list, because recency is what reorders the
+        // leading run and therefore the only thing that could separate the two answers.
+        var recencies = new IReadOnlyList<string>?[]
+        {
+            null,
+            new[] { "json.minify" },
+            new[] { "base64.encode" },
+        };
+
+        foreach (var format in Enum.GetValues<FormatId>())
+        {
+            var detection = new DetectionResult(format, DetectionConfidence.Certain);
+
+            foreach (var recent in recencies)
+            {
+                var suggested = PaletteRanking.Suggested(detection, recent);
+                var top = PaletteRanking.SuggestedTop(detection, recent);
+
+                if (suggested is null)
+                {
+                    Assert.Empty(top);
+                    continue;
+                }
+
+                Assert.NotEmpty(top);
+                Assert.Same(suggested, top[0]);
+            }
+        }
+    }
+
+    [Fact]
     public void No_two_transforms_claim_the_same_format_at_the_same_top_precedence()
     {
         // The condition under which the suggested action falls back to alphabetical order,

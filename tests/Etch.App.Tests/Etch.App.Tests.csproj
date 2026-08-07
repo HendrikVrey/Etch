@@ -29,6 +29,12 @@
       from rather than inherit it by accident.
     -->
     <ProjectReference Include="..\..\src\Etch.Persistence\Etch.Persistence.csproj" />
+    <!--
+      And Etch.Core, for the same reason: SettingsThresholdTests names
+      DocumentSizePolicy to prove that anything the settings panel accepts can actually
+      build one.
+    -->
+    <ProjectReference Include="..\..\src\Etch.Core\Etch.Core.csproj" />
   </ItemGroup>
 
 </Project>

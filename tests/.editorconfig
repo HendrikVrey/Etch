@@ -17,15 +17,16 @@
 # nothing at all.
 dotnet_diagnostic.CA1707.severity = none
 
-# xUnit1051 — pass TestContext.Current.CancellationToken to methods that accept one.
+# xUnit1051 was switched off here between 2026-08-01 and 2026-08-06 and is now back on at
+# its default severity, so there is no entry for it.
 #
-# DEFERRED, NOT DISMISSED. 155 hits, and the rule is right: without the token a hung test
-# cannot be cancelled by the runner, which matters here because the persistence suite does
-# real file I/O with retries and semaphores. It is switched off for one specific reason —
-# the fix is 155 call-site edits to a suite that has never been run end to end, and making
-# them now would mean that when the suite is first run, a failure could equally be an
-# untested transform or an edit made blind, with no way to tell which.
+# The deferral said to turn it back on once the suite was green and then work through the
+# call sites in one pass, which is what happened: 185 of them now pass
+# TestContext.Current.CancellationToken. Two sites deliberately pass a different token —
+# AtomicFileTests and JournalWriterTests each have one that hands in an already-cancelled
+# source, because cancellation is the behaviour under test — and the rule is satisfied by
+# those too, since what it asks for is a token rather than that particular token.
 #
-# Turn this back on once the suite is green, then work through the 155 in one pass. Tracked
-# in the M3 list in Linda/Etch.md §0. (Deferred 2026-08-01.)
-dotnet_diagnostic.xUnit1051.severity = none
+# Left as a note rather than deleted: the next person to find a test hanging in CI should
+# know that the runner *can* cancel these, so a hang is a deadlock in the code under test
+# and not a missing token.

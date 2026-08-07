@@ -180,7 +180,7 @@ public static class LineEndings
         LineEndingStyle.Crlf => "CRLF",
         LineEndingStyle.Lf => "LF",
         LineEndingStyle.Cr => "CR",
-        LineEndingStyle.None => "—",
+        LineEndingStyle.None => "-",
         _ => throw new ArgumentOutOfRangeException(nameof(style), style, "Unknown line ending style."),
     };
 }

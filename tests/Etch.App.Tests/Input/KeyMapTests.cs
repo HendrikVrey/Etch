@@ -48,6 +48,8 @@ public class KeyMapTests
     // The palette.
     [InlineData(Key.P, CtrlShift, EtchCommandId.OpenPalette)]
     [InlineData(Key.Return, Ctrl, EtchCommandId.ApplySuggested)]
+    // Settings.
+    [InlineData(Key.OemComma, Ctrl, EtchCommandId.OpenSettings)]
     public void The_documented_chords_resolve_to_the_documented_commands(
         Key key,
         ModifierKeys modifiers,
@@ -189,7 +191,7 @@ public class KeyMapTests
         // KeyMap builds through Dictionary.Add, which throws on a duplicate, so simply
         // touching the table proves no entry was shadowed by a later one. Asserting the
         // count as well makes an accidental deletion visible rather than merely quiet.
-        Assert.Equal(16 + (KeyMap.DirectTabCount * 2), KeyMap.Bindings.Count);
+        Assert.Equal(17 + (KeyMap.DirectTabCount * 2), KeyMap.Bindings.Count);
 
         // Two entries, one command: P and Ctrl+P.
         Assert.Equal(2, KeyMap.ChordBindings.Count);

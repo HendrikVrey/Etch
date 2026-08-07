@@ -69,7 +69,11 @@ internal sealed class EscapeJsonString : ITransform
             // this filter also catches the writer's length ceiling and its state faults, and
             // telling someone their 200 MB paste contains an unpaired surrogate would send
             // them looking for something that is not there.
-            return TransformResult.Failed($"This text could not be written as a JSON string — {ex.Message}");
+            //
+            // Through JsonFailure for one shape of failure message across the JSON
+            // transforms. Neither exception type here carries a position, so there is no
+            // offset to report and none is invented.
+            return JsonFailure.Describe("This text could not be written as a JSON string", ex, input.Text);
         }
 
         return TransformResult.Ok(Encoding.UTF8.GetString(buffer.WrittenSpan));
@@ -142,7 +146,23 @@ internal sealed class UnescapeJsonString : ITransform
         }
         catch (Exception ex) when (ex is JsonException or ArgumentException)
         {
-            return TransformResult.Failed($"Not a valid JSON string — {ex.Message}");
+            // The parser saw `literal`, which is not what the user is looking at: leading
+            // whitespace was trimmed off the front, and a quotation mark may have been
+            // added to it. Both have to come back out of the offset or the caret lands a
+            // character or two away from the problem — close enough to look deliberate
+            // and wrong enough to send someone hunting.
+            //
+            // Trailing whitespace needs no such correction: it is only ever after
+            // everything the parser could have failed on.
+            var leadingWhitespace = input.Text.Length - input.Text.TrimStart().Length;
+            var addedQuote = alreadyQuoted ? 0 : 1;
+
+            return JsonFailure.Describe(
+                "Not a valid JSON string",
+                ex,
+                literal,
+                shift: leadingWhitespace - addedQuote,
+                limit: input.Text.Length);
         }
     }
 }

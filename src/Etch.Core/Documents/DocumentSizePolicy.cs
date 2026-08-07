@@ -77,7 +77,7 @@ public sealed class DocumentSizePolicy
                 Folding: false,
                 DetectOnEdit: false,
                 Journaling: false,
-                Notice: $"Plain-text mode — {Describe(sizeInBytes)} file, highlighting and auto-save off.");
+                Notice: $"Plain-text mode - {Describe(sizeInBytes)} file, highlighting and auto-save off.");
         }
 
         if (sizeInBytes > ReducedThreshold)
@@ -89,7 +89,7 @@ public sealed class DocumentSizePolicy
                 Folding: false,
                 DetectOnEdit: false,
                 Journaling: true,
-                Notice: $"Large file ({Describe(sizeInBytes)}) — folding off.");
+                Notice: $"Large file ({Describe(sizeInBytes)}) - folding off.");
         }
 
         return new DocumentCapabilities(

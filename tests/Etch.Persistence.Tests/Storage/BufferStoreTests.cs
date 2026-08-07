@@ -14,8 +14,8 @@ public class BufferStoreTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "scratch contents");
-        var stored = await workspace.Buffers.ReadAsync(id);
+        await workspace.Buffers.WriteAsync(id, "scratch contents", TestContext.Current.CancellationToken);
+        var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
 
         Assert.NotNull(stored);
         Assert.Equal("scratch contents", stored!.Value.Text);
@@ -29,7 +29,7 @@ public class BufferStoreTests
         // must not be an exception path.
         using var workspace = TemporaryWorkspace.Create();
 
-        Assert.Null(await workspace.Buffers.ReadAsync(BufferId.New()));
+        Assert.Null(await workspace.Buffers.ReadAsync(BufferId.New(), TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -39,8 +39,8 @@ public class BufferStoreTests
         var id = BufferId.New();
         const string Text = "crlf\r\nlf\nemoji 🜃\ttab\ttrailing   ";
 
-        await workspace.Buffers.WriteAsync(id, Text);
-        var stored = await workspace.Buffers.ReadAsync(id);
+        await workspace.Buffers.WriteAsync(id, Text, TestContext.Current.CancellationToken);
+        var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
 
         Assert.Equal(Text, stored!.Value.Text);
     }
@@ -55,8 +55,8 @@ public class BufferStoreTests
         var id = BufferId.New();
         const string Text = "﻿this begins with a real U+FEFF";
 
-        await workspace.Buffers.WriteAsync(id, Text);
-        var stored = await workspace.Buffers.ReadAsync(id);
+        await workspace.Buffers.WriteAsync(id, Text, TestContext.Current.CancellationToken);
+        var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
 
         Assert.Equal(Text, stored!.Value.Text);
     }
@@ -68,14 +68,14 @@ public class BufferStoreTests
         var first = BufferId.New();
         var second = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(first, "one");
-        await workspace.Buffers.WriteAsync(second, "two");
+        await workspace.Buffers.WriteAsync(first, "one", TestContext.Current.CancellationToken);
+        await workspace.Buffers.WriteAsync(second, "two", TestContext.Current.CancellationToken);
 
         // Things Etch did not write must be invisible to it: the enumeration feeds a
         // sweep that deletes, and a delete primitive pointed at arbitrary files is
         // how a scratchpad becomes a liability.
-        await File.WriteAllTextAsync(Path.Combine(workspace.Paths.BuffersDirectory, "notes.txt"), "not mine");
-        await File.WriteAllTextAsync(Path.Combine(workspace.Paths.BuffersDirectory, "readme.md"), "not mine");
+        await File.WriteAllTextAsync(Path.Combine(workspace.Paths.BuffersDirectory, "notes.txt"), "not mine", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(workspace.Paths.BuffersDirectory, "readme.md"), "not mine", TestContext.Current.CancellationToken);
 
         var live = workspace.Buffers.EnumerateLive();
 
@@ -95,11 +95,12 @@ public class BufferStoreTests
         var real = BufferId.New();
         var stem = real.ToString();
 
-        await workspace.Buffers.WriteAsync(real, "the genuine article");
-        await File.WriteAllTextAsync(Path.Combine(workspace.Paths.BuffersDirectory, $" {stem}.txt"), "impostor");
+        await workspace.Buffers.WriteAsync(real, "the genuine article", TestContext.Current.CancellationToken);
+        await File.WriteAllTextAsync(Path.Combine(workspace.Paths.BuffersDirectory, $" {stem}.txt"), "impostor", TestContext.Current.CancellationToken);
         await File.WriteAllTextAsync(
             Path.Combine(workspace.Paths.BuffersDirectory, $"{stem.ToUpperInvariant()}.txt"),
-            "impostor");
+            "impostor",
+            TestContext.Current.CancellationToken);
 
         var live = workspace.Buffers.EnumerateLive();
 
@@ -114,12 +115,12 @@ public class BufferStoreTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "closed by accident");
+        await workspace.Buffers.WriteAsync(id, "closed by accident", TestContext.Current.CancellationToken);
 
         Assert.True(workspace.Buffers.Trash(id, RetentionPolicy.Default, Now));
         Assert.False(workspace.Buffers.Exists(id));
 
-        var trashed = await workspace.Buffers.ReadTrashedAsync(id);
+        var trashed = await workspace.Buffers.ReadTrashedAsync(id, TestContext.Current.CancellationToken);
 
         Assert.Equal("closed by accident", trashed!.Value.Text);
     }
@@ -134,13 +135,13 @@ public class BufferStoreTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "a reference note I have kept for weeks");
+        await workspace.Buffers.WriteAsync(id, "a reference note I have kept for weeks", TestContext.Current.CancellationToken);
         File.SetLastWriteTimeUtc(workspace.Paths.BufferFile(id), Now.AddDays(-30).UtcDateTime);
 
         workspace.Buffers.Trash(id, RetentionPolicy.Default, Now);
 
         Assert.Equal(0, workspace.Buffers.PruneTrash(RetentionPolicy.Default, Now));
-        Assert.NotNull(await workspace.Buffers.ReadTrashedAsync(id));
+        Assert.NotNull(await workspace.Buffers.ReadTrashedAsync(id, TestContext.Current.CancellationToken));
 
         // And it still expires on schedule, counted from the close.
         Assert.Equal(1, workspace.Buffers.PruneTrash(RetentionPolicy.Default, Now.AddDays(8)));
@@ -152,13 +153,13 @@ public class BufferStoreTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "reopen me");
+        await workspace.Buffers.WriteAsync(id, "reopen me", TestContext.Current.CancellationToken);
         workspace.Buffers.Trash(id, RetentionPolicy.Default, Now);
 
         Assert.True(workspace.Buffers.Restore(id));
         Assert.True(workspace.Buffers.Exists(id));
 
-        var stored = await workspace.Buffers.ReadAsync(id);
+        var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
         Assert.Equal("reopen me", stored!.Value.Text);
     }
 
@@ -170,13 +171,13 @@ public class BufferStoreTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "trashed version");
+        await workspace.Buffers.WriteAsync(id, "trashed version", TestContext.Current.CancellationToken);
         workspace.Buffers.Trash(id, RetentionPolicy.Default, Now);
-        await workspace.Buffers.WriteAsync(id, "live version");
+        await workspace.Buffers.WriteAsync(id, "live version", TestContext.Current.CancellationToken);
 
         Assert.False(workspace.Buffers.Restore(id));
 
-        var stored = await workspace.Buffers.ReadAsync(id);
+        var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
         Assert.Equal("live version", stored!.Value.Text);
     }
 
@@ -186,12 +187,12 @@ public class BufferStoreTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "secret token");
+        await workspace.Buffers.WriteAsync(id, "secret token", TestContext.Current.CancellationToken);
 
         // False, so the UI does not offer a reopen that would do nothing.
         Assert.False(workspace.Buffers.Trash(id, RetentionPolicy.DeleteImmediately, Now));
         Assert.False(workspace.Buffers.Exists(id));
-        Assert.Null(await workspace.Buffers.ReadTrashedAsync(id));
+        Assert.Null(await workspace.Buffers.ReadTrashedAsync(id, TestContext.Current.CancellationToken));
         Assert.Empty(workspace.Buffers.EnumerateTrash());
     }
 
@@ -210,8 +211,8 @@ public class BufferStoreTests
         var stale = BufferId.New();
         var fresh = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(stale, "old");
-        await workspace.Buffers.WriteAsync(fresh, "recent");
+        await workspace.Buffers.WriteAsync(stale, "old", TestContext.Current.CancellationToken);
+        await workspace.Buffers.WriteAsync(fresh, "recent", TestContext.Current.CancellationToken);
 
         workspace.Buffers.Trash(stale, RetentionPolicy.Default, Now.AddDays(-30));
         workspace.Buffers.Trash(fresh, RetentionPolicy.Default, Now.AddHours(-1));
@@ -219,8 +220,8 @@ public class BufferStoreTests
         var pruned = workspace.Buffers.PruneTrash(RetentionPolicy.Default, Now);
 
         Assert.Equal(1, pruned);
-        Assert.Null(await workspace.Buffers.ReadTrashedAsync(stale));
-        Assert.NotNull(await workspace.Buffers.ReadTrashedAsync(fresh));
+        Assert.Null(await workspace.Buffers.ReadTrashedAsync(stale, TestContext.Current.CancellationToken));
+        Assert.NotNull(await workspace.Buffers.ReadTrashedAsync(fresh, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -229,7 +230,7 @@ public class BufferStoreTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(id, "written by a write that lost a race");
+        await workspace.Buffers.WriteAsync(id, "written by a write that lost a race", TestContext.Current.CancellationToken);
 
         Assert.True(workspace.Buffers.DeleteLive(id));
         Assert.False(workspace.Buffers.Exists(id));
@@ -246,13 +247,14 @@ public class BufferStoreTests
         var live = BufferId.New();
         var trashed = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(live, "live");
-        await workspace.Buffers.WriteAsync(trashed, "trashed");
+        await workspace.Buffers.WriteAsync(live, "live", TestContext.Current.CancellationToken);
+        await workspace.Buffers.WriteAsync(trashed, "trashed", TestContext.Current.CancellationToken);
         workspace.Buffers.Trash(trashed, RetentionPolicy.Default, Now);
-        await File.WriteAllTextAsync(workspace.Paths.SessionFile, "{}");
+        await File.WriteAllTextAsync(workspace.Paths.SessionFile, "{}", TestContext.Current.CancellationToken);
         await File.WriteAllTextAsync(
             workspace.Paths.QuarantinedSessionFile(Now, "abcd"),
-            "{ an older index nothing else ever deletes }");
+            "{ an older index nothing else ever deletes }",
+            TestContext.Current.CancellationToken);
 
         var result = workspace.Buffers.WipeAll();
 
@@ -298,8 +300,8 @@ public class BufferStoreTests
         var older = BufferId.New();
         var newer = BufferId.New();
 
-        await workspace.Buffers.WriteAsync(older, "older");
-        await workspace.Buffers.WriteAsync(newer, "newer");
+        await workspace.Buffers.WriteAsync(older, "older", TestContext.Current.CancellationToken);
+        await workspace.Buffers.WriteAsync(newer, "newer", TestContext.Current.CancellationToken);
 
         workspace.Buffers.Trash(older, RetentionPolicy.Default, Now.AddHours(-3));
         workspace.Buffers.Trash(newer, RetentionPolicy.Default, Now.AddHours(-1));
@@ -321,17 +323,17 @@ public class BufferStoreTests
 
         for (var i = 0; i < 20; i++)
         {
-            await workspace.Buffers.WriteAsync(id, $"revision {i}");
+            await workspace.Buffers.WriteAsync(id, $"revision {i}", TestContext.Current.CancellationToken);
         }
 
         Assert.Equal(2, Directory.GetFiles(workspace.Paths.BuffersDirectory).Length);
         Assert.True(File.Exists(workspace.Paths.BufferBackupFile(id)));
 
-        var stored = await workspace.Buffers.ReadAsync(id);
+        var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
         Assert.Equal("revision 19", stored!.Value.Text);
         Assert.False(stored.Value.RecoveredFromBackup);
 
-        Assert.Equal("revision 18", await File.ReadAllTextAsync(workspace.Paths.BufferBackupFile(id)));
+        Assert.Equal("revision 18", await File.ReadAllTextAsync(workspace.Paths.BufferBackupFile(id), TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -344,14 +346,14 @@ public class BufferStoreTests
         var id = BufferId.New();
         var path = workspace.Paths.BufferFile(id);
 
-        await workspace.Buffers.WriteAsync(id, "first revision");
+        await workspace.Buffers.WriteAsync(id, "first revision", TestContext.Current.CancellationToken);
 
         using (new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
         {
-            await workspace.Buffers.WriteAsync(id, "second revision");
+            await workspace.Buffers.WriteAsync(id, "second revision", TestContext.Current.CancellationToken);
         }
 
-        var stored = await workspace.Buffers.ReadAsync(id);
+        var stored = await workspace.Buffers.ReadAsync(id, TestContext.Current.CancellationToken);
         Assert.Equal("second revision", stored!.Value.Text);
     }
 }

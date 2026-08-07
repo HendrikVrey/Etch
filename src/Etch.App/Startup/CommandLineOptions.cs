@@ -53,7 +53,7 @@ internal sealed record CommandLineOptions(LaunchMode Mode)
 {
     /// <summary>Usage text, printed for <c>--help</c> and for parse failures.</summary>
     public const string Usage = """
-        Etch — a fast, editor-first developer scratchpad.
+        Etch - a fast, editor-first developer scratchpad.
 
         Usage:
           Etch [file]                      Open a file.

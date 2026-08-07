@@ -1,4 +1,4 @@
-# M0 — measurement protocol
+# M0 - measurement protocol
 
 M0 is a go/no-go gate. The decision is: **can WPF hold the §4 budgets?** If it
 cannot, the stack gets rethought before anything is built on top of it. That only
@@ -26,13 +26,13 @@ belongs with M1, when there is a buffer worth pasting into.
 
 ### How precise are these numbers?
 
-Not as precise as the report's two decimal places suggest. The largest slice —
-`process start → managed Main` — is derived from `Process.StartTime`, which the
+Not as precise as the report's two decimal places suggest. The largest slice -
+`process start → managed Main` - is derived from `Process.StartTime`, which the
 kernel records on a system-clock tick, nominally every 15.625 ms. Everything after
 managed entry is `Stopwatch`-accurate.
 
 So treat the total as **±16 ms**. A run at 240 ms and a run at 260 ms are the same
-result. Anything inside roughly 20 ms of the budget is not a decision — it is a
+result. Anything inside roughly 20 ms of the budget is not a decision - it is a
 prompt to reduce the noise (close things, plug in, more runs) and measure again.
 
 ## Before measuring
@@ -63,7 +63,7 @@ Ten runs, discarding the first:
 Close the window between runs. Then read
 `%LOCALAPPDATA%\Etch\diag\etch-<date>.log` and take the **median** and the
 **p95** of the `= window interactive` line. The plan's budget is p95, warm file
-cache — the median is only there to show how noisy the machine is.
+cache - the median is only there to show how noisy the machine is.
 
 The report separates three things, and which one is over budget determines what
 to do about it:
@@ -75,7 +75,7 @@ to do about it:
 | `window-constructed` → `interactive` | Window layout, AvalonEdit construction, first render | Simplify the visual tree; check the status bar is not forcing layout twice. |
 
 `jit` is the tell for ReadyToRun. A large compiled-method count on an R2R build
-means the pre-compiled code is being rejected — usually a RID mismatch or a
+means the pre-compiled code is being rejected - usually a RID mismatch or a
 framework version the R2R images were not built against.
 
 ### Truly cold
@@ -99,10 +99,10 @@ degradation tier.
 The log splits the load into three numbers, because they are fixed in completely
 different ways:
 
-- **read** — off the UI thread. Bounded by disk and decoding. The UI stays live.
-- **constructed** — UI thread. Rope build plus the property assignments. This is
+- **read** - off the UI thread. Bounded by disk and decoding. The UI stays live.
+- **constructed** - UI thread. Rope build plus the property assignments. This is
   cheap and not the interesting number.
-- **first frame** — UI thread, measured through to the first idle *after* the
+- **first frame** - UI thread, measured through to the first idle *after* the
   render pass. Includes AvalonEdit's first layout and line-number margin sizing.
   **This is the number that decides whether AvalonEdit is viable at 50 MB.**
 
@@ -116,7 +116,7 @@ AvalonEdit's overhead; wildly above means a second copy is being held.
 At `--size 120` the file should be refused outright, with an explanation in the
 status bar and no partial load. Etch also re-checks the size against the handle it
 actually opened, so a file that grows past the ceiling mid-read is truncated rather
-than allowed to exhaust memory — if that happens the status bar says **TRUNCATED**
+than allowed to exhaust memory - if that happens the status bar says **TRUNCATED**
 in as many words.
 
 ## Idle CPU
@@ -124,7 +124,7 @@ in as many words.
 Launch, wait for the startup message in the status bar to clear (a one-shot timer
 is live until it does, by design), then leave the window focused and untouched for
 60 seconds and watch it in Task Manager. Anything other than a flat 0% after that
-means a timer is running that should not be. Repeat unfocused — a background poll
+means a timer is running that should not be. Repeat unfocused - a background poll
 is just as disqualifying.
 
 ## Recording the outcome

@@ -25,7 +25,7 @@ public class SessionStoreTests
     {
         using var workspace = TemporaryWorkspace.Create();
 
-        var result = await workspace.Sessions.LoadAsync();
+        var result = await workspace.Sessions.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SessionLoadStatus.Missing, result.Status);
         Assert.Empty(result.Session.Buffers);
@@ -44,8 +44,8 @@ public class SessionStoreTests
             ActiveBufferId: active,
             Buffers: [Scratch("First", active), Scratch("Second")]);
 
-        await workspace.Sessions.SaveAsync(session);
-        var result = await workspace.Sessions.LoadAsync();
+        await workspace.Sessions.SaveAsync(session, TestContext.Current.CancellationToken);
+        var result = await workspace.Sessions.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SessionLoadStatus.Loaded, result.Status);
         Assert.Equal(2, result.Session.Buffers.Count);
@@ -72,9 +72,10 @@ public class SessionStoreTests
             lastModifiedUtc: Now);
 
         await workspace.Sessions.SaveAsync(
-            new SessionSnapshot(SessionSnapshot.CurrentVersion, true, record.Id, [record]));
+            new SessionSnapshot(SessionSnapshot.CurrentVersion, true, record.Id, [record]),
+            TestContext.Current.CancellationToken);
 
-        var loaded = (await workspace.Sessions.LoadAsync()).Session.Buffers[0];
+        var loaded = (await workspace.Sessions.LoadAsync(TestContext.Current.CancellationToken)).Session.Buffers[0];
 
         // The kind is what stops an implicit write-through to somebody's real file,
         // so it has to survive persistence exactly.
@@ -92,9 +93,10 @@ public class SessionStoreTests
         using var workspace = TemporaryWorkspace.Create();
 
         await workspace.Sessions.SaveAsync(
-            new SessionSnapshot(SessionSnapshot.CurrentVersion, true, null, [Scratch()]));
+            new SessionSnapshot(SessionSnapshot.CurrentVersion, true, null, [Scratch()]),
+            TestContext.Current.CancellationToken);
 
-        var json = await File.ReadAllTextAsync(workspace.Paths.SessionFile);
+        var json = await File.ReadAllTextAsync(workspace.Paths.SessionFile, TestContext.Current.CancellationToken);
 
         Assert.Contains("\"Scratch\"", json, StringComparison.Ordinal);
         Assert.Contains("cleanShutdown", json, StringComparison.Ordinal);
@@ -113,9 +115,10 @@ public class SessionStoreTests
         using var workspace = TemporaryWorkspace.Create();
 
         await workspace.Sessions.SaveAsync(
-            new SessionSnapshot(SessionSnapshot.CurrentVersion, CleanShutdown: false, null, [Scratch()]));
+            new SessionSnapshot(SessionSnapshot.CurrentVersion, CleanShutdown: false, null, [Scratch()]),
+            TestContext.Current.CancellationToken);
 
-        var result = await workspace.Sessions.LoadAsync();
+        var result = await workspace.Sessions.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SessionLoadStatus.Loaded, result.Status);
         Assert.False(result.Session.CleanShutdown);
@@ -127,9 +130,9 @@ public class SessionStoreTests
     {
         using var workspace = TemporaryWorkspace.Create();
 
-        await File.WriteAllTextAsync(workspace.Paths.SessionFile, "{ this is not json");
+        await File.WriteAllTextAsync(workspace.Paths.SessionFile, "{ this is not json", TestContext.Current.CancellationToken);
 
-        var result = await workspace.Sessions.LoadAsync();
+        var result = await workspace.Sessions.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SessionLoadStatus.Unreadable, result.Status);
         Assert.Empty(result.Session.Buffers);
@@ -148,9 +151,9 @@ public class SessionStoreTests
         // own writes cannot produce it.
         using var workspace = TemporaryWorkspace.Create();
 
-        await File.WriteAllTextAsync(workspace.Paths.SessionFile, string.Empty);
+        await File.WriteAllTextAsync(workspace.Paths.SessionFile, string.Empty, TestContext.Current.CancellationToken);
 
-        var result = await workspace.Sessions.LoadAsync();
+        var result = await workspace.Sessions.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SessionLoadStatus.Unreadable, result.Status);
         Assert.Single(Directory.GetFiles(workspace.Root, "session.quarantined-*.json"));
@@ -173,9 +176,10 @@ public class SessionStoreTests
               "activeBufferId": null,
               "buffers": []
             }
-            """);
+            """,
+            TestContext.Current.CancellationToken);
 
-        var result = await workspace.Sessions.LoadAsync();
+        var result = await workspace.Sessions.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SessionLoadStatus.FromFutureVersion, result.Status);
         Assert.Contains("newer version", result.Notice!, StringComparison.OrdinalIgnoreCase);
@@ -198,9 +202,9 @@ public class SessionStoreTests
         // user found and deleted a file they had never heard of.
         using var workspace = TemporaryWorkspace.Create();
 
-        await File.WriteAllTextAsync(workspace.Paths.SessionFile, """{ "version": 1 }""");
+        await File.WriteAllTextAsync(workspace.Paths.SessionFile, """{ "version": 1 }""", TestContext.Current.CancellationToken);
 
-        var result = await workspace.Sessions.LoadAsync();
+        var result = await workspace.Sessions.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Empty(result.Session.Buffers);
         Assert.Null(result.Session.ResolveActive());
@@ -213,9 +217,10 @@ public class SessionStoreTests
 
         await File.WriteAllTextAsync(
             workspace.Paths.SessionFile,
-            """{ "version": 1, "cleanShutdown": true, "activeBufferId": null, "buffers": null }""");
+            """{ "version": 1, "cleanShutdown": true, "activeBufferId": null, "buffers": null }""",
+            TestContext.Current.CancellationToken);
 
-        var result = await workspace.Sessions.LoadAsync();
+        var result = await workspace.Sessions.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Empty(result.Session.Buffers);
     }
@@ -249,9 +254,10 @@ public class SessionStoreTests
                 }
               ]
             }
-            """);
+            """,
+            TestContext.Current.CancellationToken);
 
-        var result = await workspace.Sessions.LoadAsync();
+        var result = await workspace.Sessions.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SessionLoadStatus.Unreadable, result.Status);
         Assert.Empty(result.Session.Buffers);
@@ -286,9 +292,10 @@ public class SessionStoreTests
                 }
               ]
             }
-            """);
+            """,
+            TestContext.Current.CancellationToken);
 
-        var result = await workspace.Sessions.LoadAsync();
+        var result = await workspace.Sessions.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SessionLoadStatus.Unreadable, result.Status);
         Assert.Empty(result.Session.Buffers);
@@ -302,13 +309,15 @@ public class SessionStoreTests
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
-        await workspace.Sessions.SaveAsync(new SessionSnapshot(
-            SessionSnapshot.CurrentVersion,
-            true,
-            id,
-            [Scratch("First", id), Scratch("Duplicate", id)]));
+        await workspace.Sessions.SaveAsync(
+            new SessionSnapshot(
+                SessionSnapshot.CurrentVersion,
+                true,
+                id,
+                [Scratch("First", id), Scratch("Duplicate", id)]),
+            TestContext.Current.CancellationToken);
 
-        var result = await workspace.Sessions.LoadAsync();
+        var result = await workspace.Sessions.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Single(result.Session.Buffers);
         Assert.Equal("First", result.Session.Buffers[0].Title);
@@ -319,13 +328,15 @@ public class SessionStoreTests
     {
         using var workspace = TemporaryWorkspace.Create();
 
-        await workspace.Sessions.SaveAsync(new SessionSnapshot(
-            SessionSnapshot.CurrentVersion,
-            true,
-            ActiveBufferId: BufferId.New(),
-            Buffers: [Scratch()]));
+        await workspace.Sessions.SaveAsync(
+            new SessionSnapshot(
+                SessionSnapshot.CurrentVersion,
+                true,
+                ActiveBufferId: BufferId.New(),
+                Buffers: [Scratch()]),
+            TestContext.Current.CancellationToken);
 
-        var result = await workspace.Sessions.LoadAsync();
+        var result = await workspace.Sessions.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Null(result.Session.ActiveBufferId);
         Assert.NotNull(result.Session.ResolveActive());
@@ -336,9 +347,9 @@ public class SessionStoreTests
     {
         using var workspace = TemporaryWorkspace.Create();
 
-        await workspace.Sessions.SaveAsync(new SessionSnapshot(0, true, null, []));
+        await workspace.Sessions.SaveAsync(new SessionSnapshot(0, true, null, []), TestContext.Current.CancellationToken);
 
-        var result = await workspace.Sessions.LoadAsync();
+        var result = await workspace.Sessions.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SessionSnapshot.CurrentVersion, result.Session.Version);
     }
@@ -348,7 +359,7 @@ public class SessionStoreTests
     {
         using var workspace = TemporaryWorkspace.CreateUninitialised();
 
-        await workspace.Sessions.SaveAsync(SessionSnapshot.Empty);
+        await workspace.Sessions.SaveAsync(SessionSnapshot.Empty, TestContext.Current.CancellationToken);
 
         Assert.True(File.Exists(workspace.Paths.SessionFile));
     }

@@ -25,7 +25,7 @@ public class TabOrderTests
     private static async Task<Workspace> OpenAsync(TemporaryDataDirectory directory)
     {
         var workspace = Workspace.Create(directory.Paths);
-        await workspace.RestoreAsync();
+        await workspace.RestoreAsync(TestContext.Current.CancellationToken);
 
         return workspace;
     }
@@ -163,7 +163,7 @@ public class TabOrderTests
             first.SetPinned(tabs[2], pinned: true);
             Assert.Equal("cab", Order(first));
 
-            await first.ShutdownAsync();
+            await first.ShutdownAsync(TestContext.Current.CancellationToken);
         }
 
         await using var second = await OpenAsync(directory);

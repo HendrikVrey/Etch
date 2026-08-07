@@ -10,6 +10,7 @@ using Etch.App.Tabs;
 using Etch.Core.Documents;
 using Etch.Core.Text;
 using Etch.Persistence.Model;
+using Etch.Persistence.Settings;
 using ICSharpCode.AvalonEdit.Document;
 using Microsoft.Win32;
 using Wpf.Ui.Appearance;
@@ -82,6 +83,7 @@ public partial class MainWindow : FluentWindow
     private static readonly TimeSpan SessionEndTimeout = TimeSpan.FromSeconds(3);
 
     private readonly Workspace _workspace;
+    private readonly SettingsStore _settingsStore;
     private readonly string? _fileToOpen;
     private readonly EditorTheme _editorTheme;
     private readonly EditorSyntax _syntax;
@@ -97,9 +99,10 @@ public partial class MainWindow : FluentWindow
     private bool _shutdownComplete;
     private Action? _closing;
 
-    internal MainWindow(Workspace workspace, string? fileToOpen)
+    internal MainWindow(Workspace workspace, SettingsStore settingsStore, string? fileToOpen)
     {
         _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
+        _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
         _fileToOpen = fileToOpen;
 
         NewTabCommand = new RelayCommand(() => _ = _workspace.NewScratch());
@@ -125,6 +128,7 @@ public partial class MainWindow : FluentWindow
         // through Etch.App.Input.KeyMap when they are pressed — but the tab strip and the
         // palette's row list still do.
         InitialisePalette();
+        InitialiseSettings();
 
         InitializeComponent();
 
@@ -138,6 +142,11 @@ public partial class MainWindow : FluentWindow
         // still parses no grammars at all. See EditorSyntax for why that matters and for
         // what a Debug build does differently.
         _syntax = new EditorSyntax(Editor, EditorTheme.IsDark);
+
+        // After InitializeComponent as well: the menu hangs off Editor.TextArea, which
+        // does not exist until the template has been applied. See MainWindow.ContextMenu.cs
+        // for why it is the TextArea and not the TextEditor.
+        InitialiseContextMenu();
 
         _workspace.Notice += OnWorkspaceNotice;
         _workspace.ActiveChanged += OnActiveChanged;
@@ -213,7 +222,7 @@ public partial class MainWindow : FluentWindow
         {
             var summary = string.Create(
                 CultureInfo.InvariantCulture,
-                $"Startup {value.Total.TotalMilliseconds:0} ms — {(value.WithinBudget ? "within" : "OVER")} the {StartupTimeline.Budget.TotalMilliseconds:0} ms budget");
+                $"Startup {value.Total.TotalMilliseconds:0} ms - {(value.WithinBudget ? "within" : "OVER")} the {StartupTimeline.Budget.TotalMilliseconds:0} ms budget");
 
             ShowMessage(summary, StartupResultDuration);
 
@@ -228,6 +237,11 @@ public partial class MainWindow : FluentWindow
         {
             Run(OpenAsync(path));
         }
+
+        // Last, so it is the message left on screen. A complaint about the settings file
+        // is worth more than a timing number, and it is the only one of the two the user
+        // can act on.
+        ShowPendingSettingsNotice();
     }
 
     /// <summary>Opens a file at the request of a second launch of Etch.</summary>
@@ -370,7 +384,7 @@ public partial class MainWindow : FluentWindow
             // unwritten seconds.
             if (!work.Wait(SessionEndTimeout))
             {
-                DiagnosticLog.Write("Etch — the session-end flush timed out; some recent edits may not have been written.");
+                DiagnosticLog.Write("Etch - the session-end flush timed out; some recent edits may not have been written.");
             }
         }
         catch (Exception ex)
@@ -381,6 +395,12 @@ public partial class MainWindow : FluentWindow
 
     private async Task ShutdownThenCloseAsync()
     {
+        // Before the workspace flush and awaited, unlike everywhere else this is called
+        // from. A settings change made in the last few hundred milliseconds is still
+        // sitting behind the debounce, and a preference that survived only until the user
+        // quit would be the one bug a panel with no OK button cannot afford.
+        await FlushPendingSettingsSaveAsync().ConfigureAwait(true);
+
         try
         {
             CaptureViewState();
@@ -414,6 +434,7 @@ public partial class MainWindow : FluentWindow
 
         Editor.TextArea.Caret.PositionChanged -= OnCaretPositionChanged;
         Editor.TextChanged -= OnEditorTextChanged;
+        Editor.TextArea.ContextMenuOpening -= OnEditorContextMenuOpening;
 
         // Deliberately not SystemThemeWatcher.UnWatch: it throws InvalidOperationException
         // for a window that is no longer loaded, which is exactly what this one is by the
@@ -435,6 +456,15 @@ public partial class MainWindow : FluentWindow
 
         _foldingTimer?.Stop();
         _foldingTimer = null;
+
+        // Stopped only. The flush that matters happens in ShutdownThenCloseAsync, where
+        // it can be awaited — starting a write here, after Close has been called, would
+        // hand a task to a dispatcher that is about to stop pumping.
+        _settingsSaveTimer?.Stop();
+        _settingsSaveTimer = null;
+
+        _wipeTimer?.Stop();
+        _wipeTimer = null;
 
         StopCounting();
         _countTimer = null;
@@ -560,7 +590,7 @@ public partial class MainWindow : FluentWindow
             Editor.CaretOffset = Math.Clamp(tab.CaretOffset, 0, document.TextLength);
             RestoreScrollPosition(Math.Clamp(tab.FirstVisibleLine, 1, document.LineCount));
 
-            Title = $"{tab.Title} — Etch";
+            Title = $"{tab.Title} - Etch";
         }
         finally
         {
@@ -948,9 +978,9 @@ public partial class MainWindow : FluentWindow
 
         SetText(SaveStatus, tab switch
         {
-            { IsEphemeral: true } => "Ephemeral — not saved",
-            { WasTruncated: true } => "Partly loaded — not saved",
-            { Capabilities.Journaling: false } => "Large file — not auto-saved",
+            { IsEphemeral: true } => "Ephemeral - not saved",
+            { WasTruncated: true } => "Partly loaded - not saved",
+            { Capabilities.Journaling: false } => "Large file - not auto-saved",
             _ => _workspace.HasUnsavedWork ? "Saving…" : "Saved",
         });
     }

@@ -68,10 +68,9 @@ internal static class JsonRewriter
             // is contracted to report bad input by returning a failure, and pasted text
             // is exactly where a stray surrogate comes from.
             //
-            // The framework's message already names the line and position, which is the
-            // actionable part. Passed through rather than replaced with something tidier
-            // and less useful.
-            return TransformResult.Failed($"Not valid JSON — {ex.Message}");
+            // JsonFailure keeps the framework's message, which already names the line and
+            // position, and adds the offset the editor needs to put the caret there.
+            return JsonFailure.Describe("Not valid JSON", ex, text);
         }
 
         using (document)

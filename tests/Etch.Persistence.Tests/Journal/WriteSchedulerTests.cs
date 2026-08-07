@@ -511,7 +511,7 @@ public class WriteSchedulerTests
         // actually finished — which was discarded. So a drainer that hung was reported as
         // missing writes, thirty seconds later, pointing at the wrong component entirely.
         // WaitAsync throws TimeoutException instead, which names what went wrong.
-        await drainer.WaitAsync(TimeSpan.FromSeconds(30));
+        await drainer.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);
 
         // Coalescing means the count is not deterministic, but the final text for
         // every buffer must have been observed and nothing may be left behind.
