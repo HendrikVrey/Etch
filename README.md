@@ -321,25 +321,6 @@ precisely the wrong thing to do to the person most likely to have chosen it.
 
 ---
 
-## Not yet verified
-
-Kept here rather than buried in an issue tracker, because a README that only lists
-strengths is not describing the software.
-
-1. **Etch has never been measured.** The startup gate was answered by judgement rather
-   than by running `--diag`, so there is no baseline and no published number. The protocol
-   is in [`docs/M0-measurement.md`](docs/M0-measurement.md), and running it is a condition
-   of the first tag. Any performance claim on this page is design intent, not a
-   measurement.
-2. **AvalonEdit at 50 MB is unverified** - still the risk the whole spike was built to
-   answer.
-3. **Idle CPU and idle working set** have never been checked against their budgets.
-4. A tab restored from a previous session has no on-disk witness, so a file changed while
-   Etch was **closed** is not caught by the overwrite guard. Changes made while it is
-   running are.
-
----
-
 ## Build it yourself
 
 ```powershell
