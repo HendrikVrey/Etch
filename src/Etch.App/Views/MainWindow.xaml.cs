@@ -607,6 +607,13 @@ public partial class MainWindow : FluentWindow
             {
                 RefreshFindMatches();
             }
+
+            // In the finally so that every exit path above reaches it, including the one
+            // that binds a tab whose text has not been read yet: a tab still hydrating is
+            // exactly the case where the strip is most likely to be showing the wrong part
+            // of itself, because it is usually a tab that has only just been created.
+            // Reads _bound, which was assigned above, rather than taking an argument.
+            ScrollActiveTabIntoView();
         }
     }
 
@@ -972,9 +979,15 @@ public partial class MainWindow : FluentWindow
     {
         if (_bound is not { } tab)
         {
+            // The separator goes with it. Save status now sits second in the row rather
+            // than last, so an empty one would leave a dangling "·" in the middle of the
+            // status bar rather than at the end of it.
+            SaveGroup.Visibility = Visibility.Collapsed;
             SetText(SaveStatus, string.Empty);
             return;
         }
+
+        SaveGroup.Visibility = Visibility.Visible;
 
         SetText(SaveStatus, tab switch
         {

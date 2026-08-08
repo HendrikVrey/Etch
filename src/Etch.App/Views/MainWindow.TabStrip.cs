@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Etch.App.Tabs;
 
 namespace Etch.App.Views;
@@ -34,6 +35,16 @@ public partial class MainWindow
 
     /// <summary>True once the pointer has moved far enough to mean a drag rather than a click.</summary>
     private bool _dragging;
+
+    /// <summary>
+    /// True while a request to scroll the tab in front into view is sitting on the
+    /// dispatcher queue.
+    /// </summary>
+    /// <remarks>
+    /// Exists to keep exactly one outstanding. See
+    /// <see cref="ScrollActiveTabIntoView"/> for why more than one froze the application.
+    /// </remarks>
+    private bool _tabScrollQueued;
 
     /// <summary>
     /// Records a possible drag when a tab is pressed.
@@ -207,6 +218,137 @@ public partial class MainWindow
 
         TabScroller.ScrollToHorizontalOffset(TabScroller.HorizontalOffset - e.Delta);
         e.Handled = true;
+    }
+
+    /// <summary>
+    /// Keeps the tab in front on screen as the strip's own width changes.
+    /// </summary>
+    /// <remarks>
+    /// The strip is bounded to a share of the window's width, so dragging the window
+    /// narrower takes tabs off the right-hand edge — and the one in front is as likely to
+    /// be among them as any other. Without this, scrolling on activation alone would hold
+    /// only until the window was next resized, which is the gesture that provokes the
+    /// problem in the first place. Adding and removing tabs changes this width too, so the
+    /// same handler covers a strip that has just grown past its ceiling.
+    /// </remarks>
+    private void OnTabStripViewportChanged(object sender, SizeChangedEventArgs e) =>
+        ScrollActiveTabIntoView();
+
+    /// <summary>
+    /// Asks, once, for the strip to be scrolled to the tab in front.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The strip is bounded to the window's width less an allowance for the caption
+    /// buttons, so at the window's own 480 px minimum it holds two tabs of the minimum
+    /// width and fewer than two of the maximum. Every route that changes the active tab
+    /// can therefore put a tab in front that is scrolled past the edge — Ctrl+Tab,
+    /// Ctrl+1..9, reopening a closed tab, a file handed over by a second instance, and
+    /// above all Ctrl+T, which appends at the end and so lands off-screen exactly when
+    /// the strip is already full. The editor changes under a strip that does not move,
+    /// which reads as the shortcut having done nothing at all.
+    /// </para>
+    /// <para>
+    /// Deferred to <see cref="DispatcherPriority.Loaded"/> because a tab activated in the
+    /// same dispatcher turn it was created in has no container yet — the items control
+    /// generates one on the next layout pass — and asking a container that does not exist
+    /// to be shown fails silently, which is the failure this is here to remove rather
+    /// than to reproduce one layer down.
+    /// </para>
+    /// <para>
+    /// <b>At most one request may be outstanding, and that is not a tidiness measure.</b>
+    /// <see cref="DispatcherPriority.Loaded"/> is priority 6 and <c>Input</c> is 5, so
+    /// Loaded operations are serviced <em>before</em> pending input. Resizing the window
+    /// raises <c>SizeChanged</c> on every layout pass — dozens of times across one drag
+    /// of the window edge — and queueing one operation per pass built a backlog that ran
+    /// ahead of the user's own wheel and click events, so the whole application stopped
+    /// responding until it drained. Dropping the duplicate is exact rather than
+    /// approximate, because the pending operation reads the tab in front when it runs
+    /// rather than carrying one from when it was queued.
+    /// </para>
+    /// </remarks>
+    private void ScrollActiveTabIntoView()
+    {
+        // Not while a tab is being dragged. The gesture is working in the strip's own
+        // coordinates, so scrolling underneath the pointer would move the tabs out from
+        // under the hand rearranging them — and the dragged tab is on screen by
+        // construction, because the user has just pressed on it.
+        if (_bound is null || _dragging || _tabScrollQueued)
+        {
+            return;
+        }
+
+        _tabScrollQueued = true;
+
+        _ = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(ShowActiveTab));
+    }
+
+    /// <summary>
+    /// Scrolls the strip the shortest distance that puts the tab in front on screen.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Doing nothing when the tab is already on screen is most of the cost of this
+    /// feature rather than an optimisation on top of it: this runs on every bind and on
+    /// every change of the strip's width, and the overwhelming majority of those find a
+    /// tab that is already visible.
+    /// </para>
+    /// <para>
+    /// <see cref="ScrollViewer.ScrollToHorizontalOffset"/> rather than
+    /// <see cref="FrameworkElement.BringIntoView()"/>. The latter raises a routed event
+    /// that walks the tree looking for a scroll viewer and hands it a rectangle to
+    /// resolve against its own layout — far more work than this needs, and it was part of
+    /// what made the backlog above expensive enough to notice. Setting the offset is a
+    /// property assignment and an arrange invalidation, which is exactly what the wheel
+    /// handler above has always done. The arithmetic it costs is two comparisons, and
+    /// they are the same two the visibility test needs anyway.
+    /// </para>
+    /// <para>
+    /// Everything here is in the strip's own content coordinates — the space
+    /// <see cref="TryLocate"/> works in, and the space a scroll offset is expressed in.
+    /// A container's position in it does not change when the viewport scrolls, which is
+    /// what makes reading it here safe.
+    /// </para>
+    /// </remarks>
+    private void ShowActiveTab()
+    {
+        // First, so that a fault below cannot leave the flag set and silence every later
+        // request for the life of the window.
+        _tabScrollQueued = false;
+
+        if (_bound is not { } tab || _dragging)
+        {
+            return;
+        }
+
+        // Nothing is off-screen, so nothing can need showing. Also guards the very first
+        // layout pass, where the viewport has no width yet and the arithmetic below would
+        // scroll to an offset derived from zero.
+        if (TabScroller.ScrollableWidth <= 0 || TabScroller.ViewportWidth <= 0)
+        {
+            return;
+        }
+
+        if (TabStrip.ItemContainerGenerator.ContainerFromItem(tab) is not FrameworkElement container
+            || !container.IsVisible)
+        {
+            return;
+        }
+
+        var left = container.TransformToAncestor(TabStrip).Transform(default).X;
+        var right = left + container.ActualWidth;
+        var viewportLeft = TabScroller.HorizontalOffset;
+        var viewportRight = viewportLeft + TabScroller.ViewportWidth;
+
+        if (left >= viewportLeft && right <= viewportRight)
+        {
+            return;
+        }
+
+        // Past the left edge wins when a tab is somehow wider than the viewport, because
+        // the start of a caption is worth more than the end of one.
+        TabScroller.ScrollToHorizontalOffset(
+            left < viewportLeft ? left : right - TabScroller.ViewportWidth);
     }
 
     private void OnPinTabClicked(object sender, RoutedEventArgs e)

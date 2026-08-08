@@ -338,6 +338,7 @@
                         MaxWidth="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource WidthAllowance}, ConverterParameter=230}"
                         HorizontalScrollBarVisibility="Hidden"
                         PreviewMouseWheel="OnTabStripMouseWheel"
+                        SizeChanged="OnTabStripViewportChanged"
                         VerticalScrollBarVisibility="Disabled">
                         <ItemsControl
                             x:Name="TabStrip"
@@ -504,24 +505,112 @@
             Padding="14,4,10,4"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
             BorderThickness="0,1,0,0">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+            <!--
+                A DockPanel rather than a grid, and the declaration order below is the
+                whole point of choosing one.
 
+                The grid this replaced put the status items in an Auto column, and WPF
+                never compresses an Auto column. So below roughly 600 px the group simply
+                ran past the settings gear — an Auto column of its own, placed after it —
+                and pushed the gear off the right-hand edge of the window, while the
+                transient message in the star column between them collapsed to nothing.
+                Both are load-bearing: the gear is the only pointer route to the settings
+                panel, and the message is where "That did not work", the Ctrl+K hint and
+                every workspace notice appear. Worse, the width the group wanted changed
+                with the tab — the format chip alone is about 62 px for "Plain text" and
+                twice that for "URL-encoded (sampled)" — so the whole bar shifted and the
+                gear came and went as tabs were switched.
+
+                A DockPanel measures and arranges its children in declaration order, and a
+                Dock.Right child is placed from the panel's right edge at its own desired
+                width. So the gear is on screen at every width the window can be dragged
+                to, and the message gets what it asks for next. The status items are the
+                fill child: they take whatever is left and are clipped to it.
+
+                That the fill child's arranged width does not depend on its own content is
+                what makes this stable rather than merely better — nothing in the group can
+                feed back into the width it was given, so there is no arrangement here that
+                can oscillate.
+            -->
+            <DockPanel LastChildFill="True">
+                <!--
+                    The only pointer route to the settings panel. It lives at the far
+                    right of the status bar rather than in the title bar because that is
+                    where an editor's settings are looked for, and because the title bar
+                    is the tab strip's and should stay that way.
+
+                    First in the panel because Dock.Right children claim the right-hand
+                    edge in order, so being first is what guarantees it is never displaced.
+
+                    The negative vertical margin is deliberate: the button is 22px and the
+                    12pt status text row is shorter, so without it the bar grows by a few
+                    pixels the moment the gear is added. Shrinking the glyph instead would
+                    make it illegible at 100% DPI.
+                -->
+                <Button
+                    Width="22"
+                    Height="22"
+                    Margin="10,-2,0,-2"
+                    VerticalAlignment="Center"
+                    Command="{Binding OpenSettingsCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                    DockPanel.Dock="Right"
+                    Style="{StaticResource GlyphButtonStyle}"
+                    ToolTip="Settings - Ctrl+,">
+                    <TextBlock
+                        FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                        FontSize="12"
+                        Text="&#xE713;" />
+                </Button>
+
+                <!--
+                    Second, so a message outranks the status items but never the gear. The
+                    cap is what stops a long one — a file-system error carries the path —
+                    from taking the whole bar on a narrow window; past it the ellipsis says
+                    there is more, and the full text is in the diagnostic log.
+                -->
+                <TextBlock
+                    x:Name="TransientMessage"
+                    MaxWidth="280"
+                    DockPanel.Dock="Right"
+                    FontSize="12"
+                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                    TextTrimming="CharacterEllipsis" />
+
+                <!--
+                    The fill child, clipped to what is left over.
+
+                    The order is a priority order, because clipping takes from the right:
+                    what the buffer is, whether it is being saved, where the caret is, how
+                    big it is, and then the two that are worth knowing once and rarely
+                    looked at again. Save status was last here and so was the first thing
+                    to disappear on a narrow window, which is the worst possible choice in
+                    an editor whose entire premise is that you never think about saving —
+                    an ephemeral tab would have shown no warning at all.
+                -->
                 <StackPanel
-                    Grid.Column="0"
+                    x:Name="StatusItems"
+                    ClipToBounds="True"
                     Orientation="Horizontal"
                     TextBlock.FontSize="12"
                     TextBlock.Foreground="{DynamicResource TextFillColorSecondaryBrush}">
-                    <!-- Detection lands in M2. Static until then, so the layout is proven now. -->
                     <TextBlock
                         x:Name="FormatChip"
                         FontWeight="SemiBold"
                         Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                         Text="Plain text" />
+
+                    <!--
+                        Grouped with its separator so that the two are hidden together when
+                        no tab is bound. Left ungrouped, closing the last tab would leave a
+                        separator floating between the chip and the caret with nothing after
+                        it — which the old layout did, at the end of the row where it was
+                        merely untidy rather than in the middle where it looks broken.
+                    -->
+                    <StackPanel x:Name="SaveGroup" Orientation="Horizontal">
+                        <TextBlock Margin="10,0" Text="·" />
+                        <TextBlock x:Name="SaveStatus" Text="Saved" />
+                    </StackPanel>
+
                     <TextBlock Margin="10,0" Text="·" />
                     <TextBlock x:Name="CaretStatus" Text="Ln 1, Col 1" />
                     <TextBlock Margin="10,0" Text="·" />
@@ -530,44 +619,8 @@
                     <TextBlock x:Name="LineEndingStatus" Text="CRLF" />
                     <TextBlock Margin="10,0" Text="·" />
                     <TextBlock x:Name="EncodingStatus" Text="UTF-8" />
-                    <TextBlock Margin="10,0" Text="·" />
-                    <TextBlock x:Name="SaveStatus" Text="Saved" />
                 </StackPanel>
-
-                <TextBlock
-                    x:Name="TransientMessage"
-                    Grid.Column="1"
-                    HorizontalAlignment="Right"
-                    FontSize="12"
-                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                    TextTrimming="CharacterEllipsis" />
-
-                <!--
-                    The only pointer route to the settings panel. It lives at the far
-                    right of the status bar rather than in the title bar because that is
-                    where an editor's settings are looked for, and because the title bar
-                    is the tab strip's and should stay that way.
-
-                    The negative vertical margin is deliberate: the button is 22px and the
-                    12pt status text row is shorter, so without it the bar grows by a few
-                    pixels the moment the gear is added. Shrinking the glyph instead would
-                    make it illegible at 100% DPI.
-                -->
-                <Button
-                    Grid.Column="2"
-                    Width="22"
-                    Height="22"
-                    Margin="10,-2,0,-2"
-                    VerticalAlignment="Center"
-                    Command="{Binding OpenSettingsCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                    Style="{StaticResource GlyphButtonStyle}"
-                    ToolTip="Settings - Ctrl+,">
-                    <TextBlock
-                        FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                        FontSize="12"
-                        Text="&#xE713;" />
-                </Button>
-            </Grid>
+            </DockPanel>
         </Border>
 
         <!--
