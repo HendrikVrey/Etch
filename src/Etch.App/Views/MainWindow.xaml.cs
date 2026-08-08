@@ -612,7 +612,8 @@ public partial class MainWindow : FluentWindow
             // that binds a tab whose text has not been read yet: a tab still hydrating is
             // exactly the case where the strip is most likely to be showing the wrong part
             // of itself, because it is usually a tab that has only just been created.
-            ScrollActiveTabIntoView(tab);
+            // Reads _bound, which was assigned above, rather than taking an argument.
+            ScrollActiveTabIntoView();
         }
     }
 
