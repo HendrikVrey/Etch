@@ -35,13 +35,14 @@ Then it does the other thing you actually wanted. Paste a JWT and it says *JWT*.
 that one left off. Base64 → JSON → sorted keys is three keystrokes and no round trip
 through a website you had to trust with the payload.
 
-<!-- SCREENSHOTS: replace the placeholder below before tagging v1.
-     1. Dark mode, a JSON file open, tab strip in the title bar, format chip visible.
-     2. The command palette open over a buffer, showing the ranked list.
-     3. Light mode, two tabs, one pinned and one ephemeral (caution dot).
-     Capture at 1x on a 1920x1080 display, window ~1200x800, no personal paths on screen. -->
+<p align="center">
+  <img src="docs/screenshots/editor-json-dark.png" alt="Etch with a JSON buffer open: tab strip in the title bar, folding markers in the gutter, and a status bar reading JSON, caret position, character and line counts, encoding, and Saving…" width="900">
+</p>
 
-<p align="center"><i>Screenshots go here before the first tag.</i></p>
+<p align="center">
+  <sub>A scratch tab holding JSON. The strip lives in the title bar; the status bar names
+  what the buffer was detected as, and says <i>Saving…</i> because it always is.</sub>
+</p>
 
 ---
 
@@ -135,6 +136,16 @@ the same green dot the palette uses, above the ordinary cut, copy, paste and sel
 Right-clicking does not move the caret, so a row acts on exactly what `Ctrl+Enter` would
 have acted on at that moment.
 
+<p align="center">
+  <img src="docs/screenshots/transform-context-menu.png" alt="The editor right-click menu over a minified JSON buffer, listing Cut, Copy, Paste and Select all above four green-dotted JSON transforms and an All transforms row" width="900">
+</p>
+
+<p align="center">
+  <sub>Right-click on a minified JSON buffer. The green-dotted rows are the ones that
+  apply to what is actually in the buffer; the chord is shown on whichever one
+  <code>Ctrl+Enter</code> would run.</sub>
+</p>
+
 ### …and `Ctrl+Shift+P` does the other 42
 
 The full v1 catalogue, fuzzy-searchable and ranked against what is actually in the
@@ -174,6 +185,16 @@ Brace folding for the C family and JSON; XML and HTML fold as markup.
 The 10 MiB tier is the one worth knowing: above it Etch stops journaling, so the promise
 at the top of this page no longer holds - and the status bar says so plainly rather than
 quietly dropping it.
+
+<p align="center">
+  <img src="docs/screenshots/find-sampled.png" alt="Etch's find bar open at the bottom of the window with a match count, over a large JSON document whose status bar reads JSON (sampled)" width="900">
+</p>
+
+<p align="center">
+  <sub><code>Ctrl+F</code> with a live match count, and the <i>(sampled)</i> chip in the
+  status bar - the document was large enough that detection read only its first 64 KB, and
+  it says so rather than claiming the whole file.</sub>
+</p>
 
 ---
 
