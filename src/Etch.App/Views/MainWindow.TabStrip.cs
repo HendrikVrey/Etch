@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Etch.App.Tabs;
 
 namespace Etch.App.Views;
@@ -207,6 +208,84 @@ public partial class MainWindow
 
         TabScroller.ScrollToHorizontalOffset(TabScroller.HorizontalOffset - e.Delta);
         e.Handled = true;
+    }
+
+    /// <summary>
+    /// Keeps the tab in front on screen as the strip's own width changes.
+    /// </summary>
+    /// <remarks>
+    /// The strip is bounded to a share of the window's width, so dragging the window
+    /// narrower takes tabs off the right-hand edge — and the one in front is as likely to
+    /// be among them as any other. Without this, scrolling on activation alone would hold
+    /// only until the window was next resized, which is the gesture that provokes the
+    /// problem in the first place. Adding and removing tabs changes this width too, so the
+    /// same handler covers a strip that has just grown past its ceiling.
+    /// </remarks>
+    private void OnTabStripViewportChanged(object sender, SizeChangedEventArgs e) =>
+        ScrollActiveTabIntoView(_bound);
+
+    /// <summary>
+    /// Scrolls the strip so that the tab in front is on screen.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The strip is bounded to the window's width less an allowance for the caption
+    /// buttons, so at the window's own 480 px minimum it holds two tabs of the minimum
+    /// width and fewer than two of the maximum. Every route that changes the active tab
+    /// can therefore put a tab in front that is scrolled past the edge — Ctrl+Tab,
+    /// Ctrl+1..9, reopening a closed tab, a file handed over by a second instance, and
+    /// above all Ctrl+T, which appends at the end and so lands off-screen exactly when
+    /// the strip is already full. The editor changes under a strip that does not move,
+    /// which reads as the shortcut having done nothing at all.
+    /// </para>
+    /// <para>
+    /// <see cref="FrameworkElement.BringIntoView()"/> rather than arithmetic on the
+    /// scroll offset: it asks the scroll viewer for the <em>minimum</em> movement that
+    /// makes the element visible, so a tab that is already fully on screen does not move
+    /// the strip at all, and one that is half off is brought just far enough. Computing
+    /// an offset here would mean restating the viewport arithmetic the scroll viewer
+    /// already owns, and getting it subtly wrong at the two ends.
+    /// </para>
+    /// <para>
+    /// Deferred to <see cref="DispatcherPriority.Loaded"/> because a tab activated in the
+    /// same dispatcher turn it was created in has no container yet — the items control
+    /// generates one on the next layout pass — and asking a container that does not exist
+    /// to bring itself into view fails silently, which is the failure this method is here
+    /// to remove rather than to reproduce one layer down.
+    /// </para>
+    /// </remarks>
+    private void ScrollActiveTabIntoView(BufferTab? tab)
+    {
+        if (tab is null)
+        {
+            return;
+        }
+
+        // Not while a tab is being dragged. The gesture is working in the strip's own
+        // coordinates, so scrolling underneath the pointer would move the tabs out from
+        // under the hand rearranging them — and the dragged tab is on screen by
+        // construction, because the user has just pressed on it.
+        if (_dragging)
+        {
+            return;
+        }
+
+        _ = Dispatcher.BeginInvoke(
+            DispatcherPriority.Loaded,
+            () =>
+            {
+                // The tab in front can have changed again between the two, in which case
+                // this request belongs to a tab that is no longer the one to show.
+                if (!ReferenceEquals(_bound, tab))
+                {
+                    return;
+                }
+
+                if (TabStrip.ItemContainerGenerator.ContainerFromItem(tab) is FrameworkElement container)
+                {
+                    container.BringIntoView();
+                }
+            });
     }
 
     private void OnPinTabClicked(object sender, RoutedEventArgs e)
