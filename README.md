@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="assets/etch-256.png" alt="" width="112">
+  <img src="assets/etch-256.png" alt="Etch logo" width="112">
 </p>
 
 <h1 align="center">Etch</h1>
 
 <p align="center">
-  <b>A developer scratchpad for Windows that knows what you just pasted.</b>
+  <b>A fast Notepad replacement for Windows that knows what you just pasted.</b>
 </p>
 
 <p align="center">
