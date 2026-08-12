@@ -841,14 +841,14 @@
                                 Margin="0,0,0,8"
                                 FontSize="11"
                                 Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                Text="Etch turns features off as a file gets bigger, so a large one still opens quickly. These apply to files opened from now on."
+                                Text="Etch turns features off as a file gets bigger, so a large one still opens quickly."
                                 TextWrapping="Wrap" />
 
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock
                                     Width="210"
                                     VerticalAlignment="Center"
-                                    Text="Folding off above" />
+                                    Text="Folding above" />
                                 <TextBox
                                     x:Name="ReducedThresholdInput"
                                     Width="70"
@@ -864,7 +864,7 @@
                                 <TextBlock
                                     Width="210"
                                     VerticalAlignment="Center"
-                                    Text="Highlighting and auto-save off above" />
+                                    Text="Highlighting,  auto-save above" />
                                 <TextBox
                                     x:Name="PlainTextThresholdInput"
                                     Width="70"
@@ -903,13 +903,12 @@
                             <TextBlock
                                 Margin="0,18,0,6"
                                 FontWeight="SemiBold"
-                                Text="Open these with Etch" />
+                                Text="Open with Etch" />
 
                             <TextBlock
                                 Margin="0,0,0,8"
                                 FontSize="11"
                                 Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                Text="The installer asks about these; this is where you change your mind. Per-user only - nothing is changed for other accounts on this PC. If Windows already has a default for one of these, Etch is added to its &quot;Open with&quot; list instead and you finish the change in Settings → Apps → Default apps."
                                 TextWrapping="Wrap" />
 
                             <!--
@@ -945,21 +944,6 @@
                                 FontWeight="SemiBold"
                                 Text="Right-click menu" />
 
-                            <TextBlock
-                                Margin="0,0,0,8"
-                                FontSize="11"
-                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                Text="Adds Etch to the menu you get when you right-click a file in Explorer, whatever its type. On Windows 11 it appears under &quot;Show more options&quot;."
-                                TextWrapping="Wrap" />
-
-                            <!--
-                                Deliberately NOT inside AssociationList. That panel is walked
-                                by AssociationCheckBoxes(), and every box in it is filled in
-                                from FileAssociations.IsHonoured(Tag as string) - so a fourth
-                                child with no extension Tag would silently read as unchecked
-                                for ever. This one is a shell verb rather than an extension,
-                                so it has its own handler and its own place in the tree.
-                            -->
                             <CheckBox
                                 x:Name="OpenWithVerbCheckBox"
                                 Checked="OnOpenWithVerbChanged"
