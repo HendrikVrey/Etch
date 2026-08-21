@@ -31,6 +31,16 @@
     <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
 
+  <PropertyGroup Label="Packaging">
+    <!--
+      Nothing in this repository is a library for anyone else except Etch.Core, which
+      turns this back on for itself. Off by default so that `dotnet pack Etch.slnx`
+      produces exactly one package instead of also trying to pack a WPF application
+      and three test projects.
+    -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
   <PropertyGroup Label="Runtime">
     <!--
       Globalization-invariant mode must stay OFF. It silently breaks culture

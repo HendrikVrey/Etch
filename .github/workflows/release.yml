@@ -47,6 +47,10 @@ on:
 
 permissions:
   contents: write
+  # Etch.Core is pushed to this account's GitHub Packages NuGet feed on every run,
+  # so that Sling can consume the transform engine as a versioned package. The feed
+  # is private on purpose - see docs/packaging.md.
+  packages: write
 
 # Two merges in quick succession must not race to replace the same release. The
 # older run is cancelled rather than queued: its output would be stale the moment
@@ -147,6 +151,40 @@ jobs:
         run: |
           dotnet build Etch.slnx -c Release
           dotnet test Etch.slnx -c Release --no-build
+
+      # Etch.Core is a library before it is part of an application: Sling runs the
+      # same transform chain over HTTP response bodies and consumes it as a package.
+      # Packing here rather than in a workflow of its own keeps one rule - a package
+      # exists only for a build that passed the suite above.
+      #
+      # THE FEED IS PRIVATE AND MUST STAY THAT WAY. LICENCE section 3(b) forbids
+      # making any part of the Software available to a third party, which is exactly
+      # what a package on nuget.org would do. GitHub's NuGet registry has granular
+      # permissions, so this package's visibility is its own and does not follow this
+      # repository's - but note that making a package public is a ONE-WAY DOOR in
+      # GitHub Packages. docs/packaging.md has the full reasoning.
+      #
+      # Deliberately NOT --no-build. Packing a previously-built assembly while
+      # overriding -p:Version produces a package whose nuspec and whose DLL disagree
+      # about what version they are, which is the kind of discrepancy that is only
+      # ever discovered while debugging something else. Rebuilding one small
+      # dependency-free project costs seconds.
+      - name: Pack Etch.Core
+        run: >
+          dotnet pack src/Etch.Core/Etch.Core.csproj
+          -c Release
+          -p:Version=${{ steps.channel.outputs.version }}
+          -o packages
+
+      # --skip-duplicate, because a package version in GitHub Packages is immutable.
+      # Re-running a tagged release would otherwise fail the whole job on a push of a
+      # version that is already there and identical.
+      - name: Push Etch.Core to GitHub Packages
+        run: >
+          dotnet nuget push "packages/*.nupkg"
+          --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+          --api-key ${{ secrets.GITHUB_TOKEN }}
+          --skip-duplicate
 
       # Self-contained, single-file, ReadyToRun. Compression and trimming are off,
       # each for a reason written down in Etch.App.csproj - compression costs
