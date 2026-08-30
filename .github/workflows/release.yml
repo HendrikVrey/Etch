@@ -127,15 +127,21 @@ jobs:
           # Validate the WHOLE version, not just the numeric part below.
           #
           # $version is interpolated into `run:` script bodies in several steps further
-          # down, and a ${{ }} expression is string-pasted before any shell sees it — the
+          # down, and a workflow expression is string-pasted before any shell sees it: the
           # exact hazard the `env: INPUT_VERSION` above exists to avoid, reintroduced by
           # every downstream use. Checking only the numeric prefix leaves everything after
           # the first '-' unconstrained, so `1.0.0-x"; <command>; "` passes and reaches
           # pwsh in a job holding contents:write and packages:write.
           #
+          # DO NOT write an empty expression here to name the syntax. GitHub parses
+          # expression delimiters everywhere in the file, comments inside a run: block
+          # included, and an empty one is a parse error that rejects the WHOLE workflow:
+          # the run appears named after the file path, with zero jobs and no annotation
+          # that says why. That is what happened on 0da1296.
+          #
           # This is the one place the value is decided, so it is the one place worth
           # guarding. The pattern admits a semver prerelease and build metadata and nothing
-          # else — no quotes, no semicolons, no whitespace and, importantly, no newline,
+          # else: no quotes, no semicolons, no whitespace and, importantly, no newline,
           # which would otherwise be a GITHUB_OUTPUT injection in its own right.
           if ($version -notmatch '^\d+(\.\d+){1,3}(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$') {
             throw "Refusing to build version '$version': it is not a plain semantic version."
