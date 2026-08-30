@@ -202,12 +202,28 @@ jobs:
       # --skip-duplicate, because a package version in GitHub Packages is immutable.
       # Re-running a tagged release would otherwise fail the whole job on a push of a
       # version that is already there and identical.
+      #
+      # The package is enumerated rather than passed as "packages/*.nupkg". Handing that
+      # glob to `dotnet nuget push` on the Windows runner failed with
+      # `File does not exist (packages/*.nupkg)` on run 8, in the step immediately after
+      # `dotnet pack` reported `Successfully created package
+      # packages\Etch.Core.1.0.1-dev.8.nupkg` - so the file was there and the pattern was
+      # what could not find it. Resolving it here means the failure, if there ever is one
+      # again, names which of the two things went wrong.
       - name: Push Etch.Core to GitHub Packages
-        run: >
-          dotnet nuget push "packages/*.nupkg"
-          --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
-          --api-key ${{ secrets.GITHUB_TOKEN }}
-          --skip-duplicate
+        shell: pwsh
+        run: |
+          $packages = Get-ChildItem packages -Filter *.nupkg -ErrorAction SilentlyContinue
+          if (-not $packages) { throw 'dotnet pack produced no .nupkg to push.' }
+
+          foreach ($package in $packages) {
+            Write-Host "Pushing $($package.Name)"
+            dotnet nuget push $package.FullName `
+              --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json `
+              --api-key ${{ secrets.GITHUB_TOKEN }} `
+              --skip-duplicate
+            if ($LASTEXITCODE -ne 0) { throw "Could not push $($package.Name)." }
+          }
 
       # Self-contained, single-file, ReadyToRun. Compression and trimming are off,
       # each for a reason written down in Etch.App.csproj - compression costs
