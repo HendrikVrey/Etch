@@ -81,7 +81,7 @@ internal sealed class EncodeHtmlEntities : ITransform
                     break;
 
                 // &#39; rather than &apos;. The named form is XML, and HTML 4 does not
-                // define it — Internet Explorer's refusal to render it is why every
+                // define it: Internet Explorer's refusal to render it is why every
                 // encoder in the world emits the numeric form instead.
                 case '\'':
                     builder.Append("&#39;");
@@ -105,7 +105,7 @@ internal sealed class EncodeHtmlEntities : ITransform
 /// Decoding delegates to <see cref="WebUtility.HtmlDecode(string)"/> where encoding does
 /// not, and the asymmetry is the point. Encoding has to make a judgement about how much to
 /// escape; decoding has only one right answer, and that answer includes the whole named
-/// entity table — <c>&amp;nbsp;</c>, <c>&amp;mdash;</c>, <c>&amp;hellip;</c> and some two
+/// entity table: <c>&amp;nbsp;</c>, <c>&amp;mdash;</c>, <c>&amp;hellip;</c> and some two
 /// thousand others that arrive in text scraped off a page. Reimplementing that table would
 /// be several hundred lines that could only be worse than the framework's.
 /// </para>

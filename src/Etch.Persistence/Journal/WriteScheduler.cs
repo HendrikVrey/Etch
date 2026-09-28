@@ -16,7 +16,7 @@ namespace Etch.Persistence.Journal;
 /// </para>
 /// <para>
 /// Coalescing is the other half of the job. A buffer with ten unwritten edits is one
-/// pending write holding the newest text, not ten queued writes — so a burst of
+/// pending write holding the newest text, not ten queued writes, so a burst of
 /// typing costs the disk exactly as much as a single change.
 /// </para>
 /// <para>
@@ -47,7 +47,7 @@ public sealed class WriteScheduler
     /// </summary>
     /// <remarks>
     /// Distinct from <see cref="_discarded"/>, and the distinction is load-bearing.
-    /// A discarded buffer has been closed, and recording it again revives it —
+    /// A discarded buffer has been closed, and recording it again revives it,
     /// which is correct, because reopening a closed tab should start saving it
     /// again. A suppressed buffer is one that must never reach the disk while the
     /// suppression stands, no matter how many edits arrive: a tab the user marked
@@ -68,7 +68,7 @@ public sealed class WriteScheduler
     /// <remarks>
     /// Counts only what has not yet been handed to the writer. A batch that is
     /// mid-flight has already left the scheduler, so this reaching zero does not mean
-    /// everything is on disk — <c>JournalWriter.HasUnsavedWork</c> is the question
+    /// everything is on disk: <c>JournalWriter.HasUnsavedWork</c> is the question
     /// worth asking if a "saved" indicator is ever built.
     /// </remarks>
     public int PendingCount
@@ -84,7 +84,7 @@ public sealed class WriteScheduler
 
     /// <summary>Records that <paramref name="id"/> now reads <paramref name="text"/>.</summary>
     /// <remarks>
-    /// The eager overload, for callers that already hold the text — restores, tests,
+    /// The eager overload, for callers that already hold the text: restores, tests,
     /// and anything that is not on the keystroke path. Editors should prefer the
     /// <see cref="BufferContent"/> overload and hand over a snapshot instead.
     /// </remarks>
@@ -100,7 +100,7 @@ public sealed class WriteScheduler
     /// <remarks>
     /// Replaces any earlier unwritten content for the same buffer. The deadline for
     /// the hard latency ceiling is kept from the *first* unwritten change, not reset
-    /// by this one — resetting it is what would let continuous typing postpone the
+    /// by this one: resetting it is what would let continuous typing postpone the
     /// write indefinitely, which is the exact failure the ceiling exists to prevent.
     /// <para>
     /// A suppressed buffer is dropped here and reports nothing, because there is no
@@ -124,7 +124,7 @@ public sealed class WriteScheduler
                 return;
             }
 
-            // Recording makes the buffer live again — a reopened tab, or a new buffer
+            // Recording makes the buffer live again: a reopened tab, or a new buffer
             // that reused the id. Leaving it in the discard set would silently drop
             // every subsequent write to it.
             _discarded.Remove(id);
@@ -212,19 +212,19 @@ public sealed class WriteScheduler
     /// </para>
     /// <para>
     /// So when there is nothing pending here and no batch is in anybody's hand, no id can
-    /// be asked about and every entry in the set is unreachable — one
+    /// be asked about and every entry in the set is unreachable, one
     /// <see cref="BufferId"/> of dead weight per tab closed since the process started.
     /// </para>
     /// <para>
     /// The scheduler can only see the first half of that. A batch that has already been
     /// taken is, from here, indistinguishable from no batch at all, so the caller must
-    /// hold whatever lock it takes batches under before calling this — see
+    /// hold whatever lock it takes batches under before calling this: see
     /// <c>JournalWriter.PruneDiscardsAsync</c>, which holds the write gate. Calling it
     /// without that is unsound however empty this looks.
     /// </para>
     /// <para>
     /// <b>Suppressions are deliberately not cleared.</b> A suppressed buffer can be
-    /// live — an ephemeral tab the user still has open — and dropping its entry would
+    /// live, an ephemeral tab the user still has open, and dropping its entry would
     /// resume writing to disk the one buffer that was promised never to reach it. The
     /// two sets answer different questions and are pruned on different conditions.
     /// </para>
@@ -239,7 +239,7 @@ public sealed class WriteScheduler
                 return 0;
             }
 
-            // A suppression outlives its buffer the same way a discard does — and by a
+            // A suppression outlives its buffer the same way a discard does, and by a
             // quieter route, because SetSuppressed(id, false) is the only other thing
             // that removes one and a closed ephemeral tab never calls it. Dropped here
             // rather than in Discard: an id that is still discarded at this point was
@@ -264,7 +264,7 @@ public sealed class WriteScheduler
     /// </summary>
     /// <remarks>
     /// Reopening a closed tab moves its text out of the trash and back to live storage
-    /// without recording anything — nothing has been typed yet. Until something is, the
+    /// without recording anything, nothing has been typed yet. Until something is, the
     /// buffer is still in the discard set, and a write taken before the close that
     /// completes in that window would see it as discarded and delete the file that was
     /// just restored. The trash copy has already been moved, not copied, so that loss is
@@ -298,7 +298,7 @@ public sealed class WriteScheduler
     /// </summary>
     /// <remarks>
     /// <see cref="TimeSpan.Zero"/> means something is due now. A null return is what
-    /// lets the journal loop sleep indefinitely rather than tick — which is how the
+    /// lets the journal loop sleep indefinitely rather than tick, which is how the
     /// plan's 0% idle CPU target is actually met, rather than approximated.
     /// </remarks>
     public TimeSpan? TimeUntilNextDue(DateTimeOffset now)
@@ -412,7 +412,7 @@ public sealed class WriteScheduler
     /// The original first-changed timestamp travels on <see cref="PendingWrite"/> and
     /// is restored here, so a retry stays inside the latency ceiling it was already
     /// running against instead of being granted a fresh one. Without that, a buffer
-    /// that fails repeatedly would have its ceiling pushed back indefinitely — the
+    /// that fails repeatedly would have its ceiling pushed back indefinitely: the
     /// same starvation the ceiling exists to prevent, arriving by a different route.
     /// </para>
     /// <para>
@@ -463,7 +463,7 @@ public sealed class WriteScheduler
 
     private TimeSpan WaitFor(Entry entry, DateTimeOffset now)
     {
-        // Quiet for long enough, or unwritten for too long — whichever comes first.
+        // Quiet for long enough, or unwritten for too long: whichever comes first.
         var debounceDue = entry.LastChangedAt + _options.DebounceInterval;
         var latencyDue = entry.FirstChangedAt + _options.MaxLatency;
         var due = debounceDue < latencyDue ? debounceDue : latencyDue;
@@ -479,7 +479,7 @@ public sealed class WriteScheduler
 /// <param name="Id">The buffer.</param>
 /// <param name="Content">
 /// Its full contents as of the last edit, materialised by the writer rather than by
-/// the editor — see <see cref="BufferContent"/> for why that indirection exists.
+/// the editor, see <see cref="BufferContent"/> for why that indirection exists.
 /// </param>
 /// <param name="FirstChangedAt">
 /// When the oldest unwritten edit in this content was made. Carried through the write
@@ -492,7 +492,7 @@ public readonly record struct PendingWrite(BufferId Id, BufferContent Content, D
     /// </summary>
     /// <remarks>
     /// A method, not a property, because for a deferred snapshot this walks the whole
-    /// document and allocates it. Call it once and keep the result — a call site that
+    /// document and allocates it. Call it once and keep the result: a call site that
     /// reads like a field access is exactly how that ends up inside a loop.
     /// </remarks>
     public string ReadText() => Content.ReadText();

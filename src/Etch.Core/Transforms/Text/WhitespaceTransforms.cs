@@ -56,7 +56,7 @@ internal sealed class TrimTrailingWhitespace : LineTransform
 /// <remarks>
 /// <para>
 /// <b>Within a line, never across lines.</b> Collapsing the whole buffer into one paragraph
-/// is a different operation with a different name — "join lines" — and quietly doing it here
+/// is a different operation with a different name, "join lines", and quietly doing it here
 /// would make this transform unusable on anything structured.
 /// </para>
 /// <para>
@@ -112,7 +112,7 @@ internal sealed class CollapseWhitespace : LineTransform
             if (char.IsWhiteSpace(character))
             {
                 // Recorded rather than written, so a run at the end of the line is never
-                // emitted at all — which is what makes the trailing case fall out of the
+                // emitted at all, which is what makes the trailing case fall out of the
                 // same loop instead of needing a TrimEnd afterwards. The guard on Length
                 // does the same for a run at the start.
                 pendingSpace = builder.Length > 0;
@@ -138,15 +138,15 @@ internal sealed class CollapseWhitespace : LineTransform
 /// <remarks>
 /// <para>
 /// <b>Leading whitespace only, and the same is true of its inverse.</b> A tab in the middle
-/// of a line is almost always a column separator — pasted TSV, a Markdown table, aligned
-/// constants — and rewriting those as spaces destroys the alignment the tabs existed to
+/// of a line is almost always a column separator (pasted TSV, a Markdown table, aligned
+/// constants) and rewriting those as spaces destroys the alignment the tabs existed to
 /// create. Restricting both transforms to indentation is also what makes them genuine
 /// inverses of one another.
 /// </para>
 /// <para>
 /// Tabs are expanded to the <em>next tab stop</em> rather than to a fixed number of spaces.
 /// Those are the same thing only when the indentation is tabs alone; on a line that mixes
-/// them — which is the line that motivated running this in the first place — a fixed
+/// them, which is the line that motivated running this in the first place, a fixed
 /// substitution moves the text and tab-stop expansion leaves it exactly where it appeared.
 /// </para>
 /// </remarks>
@@ -231,7 +231,7 @@ internal sealed class TabsToSpaces : LineTransform
 /// </summary>
 /// <remarks>
 /// Whole indents only: a run of <c>IndentSize</c> spaces becomes one tab and any remainder
-/// stays as spaces. That is what keeps continuation lines aligned — code indented two levels
+/// stays as spaces. That is what keeps continuation lines aligned: code indented two levels
 /// and then aligned three further characters for a wrapped argument keeps those three
 /// characters as spaces, which is the only way the alignment survives a different tab width.
 /// </remarks>
@@ -294,7 +294,7 @@ internal sealed class SpacesToTabs : LineTransform
             if (line[i] == '\t')
             {
                 // A tab ends whatever partial run of spaces preceded it. Those spaces
-                // cannot be folded into it — they are before it, not part of it.
+                // cannot be folded into it: they are before it, not part of it.
                 builder.Append(' ', spaces).Append('\t');
                 spaces = 0;
                 continue;
@@ -371,7 +371,7 @@ internal sealed class Indent : LineTransform
 /// The inverse of <see cref="Indent"/>, and asymmetric where it has to be: it removes one
 /// leading tab, or up to <c>IndentSize</c> leading spaces. <em>Up to</em>, because a line
 /// indented by three spaces in a four-space document should end up at the margin rather than
-/// being refused — a dedent that skips the lines that do not fit its arithmetic leaves the
+/// being refused: a dedent that skips the lines that do not fit its arithmetic leaves the
 /// block more crooked than it found it.
 /// </para>
 /// <para>
@@ -448,8 +448,8 @@ internal static class Indentation
     /// <remarks>
     /// <para>
     /// Only space and tab, not <c>char.IsWhiteSpace</c>. A non-breaking space at the start of
-    /// a line is content that arrived from a web page, and converting it to indentation —
-    /// which is what the tab/space transforms would then do to it — changes what the text
+    /// a line is content that arrived from a web page, and converting it to indentation,
+    /// which is what the tab/space transforms would then do to it, changes what the text
     /// says.
     /// </para>
     /// <para>

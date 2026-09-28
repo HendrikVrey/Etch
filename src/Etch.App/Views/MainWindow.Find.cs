@@ -15,7 +15,7 @@ namespace Etch.App.Views;
 /// <remarks>
 /// <para>
 /// AvalonEdit ships a search panel and Etch does not use it. Two reasons, both
-/// material: it has no replace at all — the upstream control is find-only — so half
+/// material: it has no replace at all, the upstream control is find-only, so half
 /// of this would have had to be built regardless; and its default template is styled
 /// for its own host, which in a Mica-backed Fluent window looks like a control from a
 /// different application. One bar that does both, styled with everything else, beats
@@ -23,8 +23,8 @@ namespace Etch.App.Views;
 /// </para>
 /// <para>
 /// The matching itself lives in <see cref="TextFinder"/> in <c>Etch.Core</c>, where
-/// the awkward cases — an empty regex match, overlapping candidates, a replacement
-/// containing the pattern — are unit tests instead of things to find by clicking.
+/// the awkward cases (an empty regex match, overlapping candidates, a replacement
+/// containing the pattern) are unit tests instead of things to find by clicking.
 /// </para>
 /// </remarks>
 public partial class MainWindow
@@ -34,7 +34,7 @@ public partial class MainWindow
     /// </summary>
     /// <remarks>
     /// Counting matches walks the whole document, and the find bar stays open while
-    /// editing continues — so on a large buffer a live count would run a full scan
+    /// editing continues, so on a large buffer a live count would run a full scan
     /// between every keypress and the frame that should follow it. Past this size the
     /// count is simply not shown; finding still works, because that only ever scans as
     /// far as the next match.
@@ -46,7 +46,7 @@ public partial class MainWindow
     /// </summary>
     /// <remarks>
     /// Well above the largest document that is still journaled, and far below the plain
-    /// text ceiling — where materialising the buffer as a string would allocate a couple
+    /// text ceiling, where materialising the buffer as a string would allocate a couple
     /// of hundred megabytes on the UI thread for a single press of Enter.
     /// </remarks>
     private const int MaxSearchableLength = 16 * 1024 * 1024;
@@ -63,7 +63,7 @@ public partial class MainWindow
     /// </summary>
     /// <remarks>
     /// Counting means materialising the document and scanning it, and the find bar stays
-    /// open while editing continues — so doing it inline would put a full scan between
+    /// open while editing continues, so doing it inline would put a full scan between
     /// every keypress and the frame that should follow it, which is the one budget in the
     /// plan expressed as an absolute. One-shot, and it stops itself, so idle CPU is
     /// unaffected.
@@ -155,7 +155,7 @@ public partial class MainWindow
             return;
         }
 
-        // Created on first use, one-shot, and it stops itself — the same pattern as the
+        // Created on first use, one-shot, and it stops itself: the same pattern as the
         // status-bar message timer, for the same reason.
         _countTimer ??= CreateCountTimer();
 
@@ -271,7 +271,7 @@ public partial class MainWindow
         try
         {
             // Only replace when the current selection *is* a match. Otherwise Replace
-            // behaves as Find — which is what every editor does, and it stops the button
+            // behaves as Find, which is what every editor does, and it stops the button
             // from silently overwriting whatever happened to be selected.
             var atSelection = _search.FindNext(text, Editor.SelectionStart);
 
@@ -305,7 +305,7 @@ public partial class MainWindow
     /// <remarks>
     /// Applied back to front, deliberately. Replacing forwards shifts the offsets of
     /// every match after the one just written, so each subsequent replacement lands a
-    /// little further off — the classic way this operation corrupts a buffer. Working
+    /// little further off: the classic way this operation corrupts a buffer. Working
     /// backwards leaves the offsets ahead of the cursor untouched.
     /// <para>
     /// Wrapped in a single update so the whole operation is one Ctrl+Z. A thousand
@@ -431,7 +431,7 @@ public partial class MainWindow
     /// <remarks>
     /// <c>Document.Text</c> walks the whole rope and allocates the buffer as a string. At
     /// the plan's hard ceiling that is a couple of hundred megabytes on the UI thread,
-    /// against a 120 MB working-set budget — per press of Enter. Refusing is worse than
+    /// against a 120 MB working-set budget: per press of Enter. Refusing is worse than
     /// searching and better than an out-of-memory crash; a snapshot-based search that
     /// streams belongs with M2, where the document-version cache it needs will exist.
     /// </remarks>
@@ -463,7 +463,7 @@ public partial class MainWindow
     /// Bound to <c>IsVisibleChanged</c> rather than <c>Loaded</c>, and never
     /// unsubscribed. <c>Loaded</c> fires once per container, while the box is still
     /// collapsed, so a self-unsubscribing hook there works for the first F2 on a tab and
-    /// silently does nothing for the second — leaving a visible box with no focus, which
+    /// silently does nothing for the second: leaving a visible box with no focus, which
     /// never raises <c>LostKeyboardFocus</c> and so can be neither committed nor
     /// dismissed. The tab would be stuck in rename mode.
     /// </remarks>

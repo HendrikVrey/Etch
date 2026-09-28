@@ -9,7 +9,7 @@ namespace Etch.Core.Tests.Text;
 /// <remarks>
 /// <see cref="CrlfViewTests"/> pins the mapping arithmetic; these pin the thing the user
 /// experiences, which is a different question. Every buffer here uses CRLF endings on
-/// purpose — the rest of the suite is LF-only, which is why a whole class of defects in
+/// purpose: the rest of the suite is LF-only, which is why a whole class of defects in
 /// this area was invisible to it.
 /// </remarks>
 public class TextFinderCrlfTests
@@ -48,7 +48,7 @@ public class TextFinderCrlfTests
         // uses to tidy a file also converted it to LF.
         //
         // The buffer ends in text rather than in a newline on purpose. \s matches \n, so
-        // at the very end of a buffer \s+$ genuinely does consume the final terminator —
+        // at the very end of a buffer \s+$ genuinely does consume the final terminator,
         // that is .NET being greedy where there is no following line, not the defect under
         // test, and a buffer ending in a blank line would be asserting the wrong thing.
         const string Text = "alpha   \r\nbeta\t\r\ngamma";
@@ -126,7 +126,7 @@ public class TextFinderCrlfTests
         // about the parser rather than a gap. Outside RegexOptions.ECMAScript, a backslash
         // followed by 1-9 is read as a backreference: .NET scans the whole decimal run and
         // throws "reference to undefined group number" when no such group exists. So \15
-        // is not an octal carriage return in any pattern that compiles — it is either a
+        // is not an octal carriage return in any pattern that compiles: it is either a
         // backreference or a parse error. NeedsCarriageReturns still treats it as a
         // carriage return, deliberately, because over-reporting costs only the
         // normalisation; there is simply no valid pattern with which to assert it.
@@ -143,7 +143,7 @@ public class TextFinderCrlfTests
     [InlineData(@"(a)\1")]
     public void A_pattern_that_does_not_name_one_searches_the_normalised_view(string pattern)
     {
-        // \010 is a backspace, not a carriage return — the octal escape is greedy, and a
+        // \010 is a backspace, not a carriage return: the octal escape is greedy, and a
         // leading zero is what makes it an octal escape at all. \1 is a backreference to a
         // group that exists, which the conservative octal test must not mistake for U+000D.
         Assert.True(Regex(pattern).SearchesNormalisedText);
@@ -153,7 +153,7 @@ public class TextFinderCrlfTests
     public void An_expansion_of_the_whole_match_keeps_the_line_ending_it_replaces()
     {
         // $& expanded from the normalised view is an LF-only copy of the match, and
-        // splicing it over the original span converts that terminator — the original
+        // splicing it over the original span converts that terminator: the original
         // defect, arriving through the replacement syntax instead of the search.
         var search = Regex(".*\n");
         var match = search.FindAll(Crlf)[0];
@@ -203,7 +203,7 @@ public class TextFinderCrlfTests
         Assert.Equal("$z", search.Expand(Crlf, match, "$z"));
         Assert.Equal("${nope}", search.Expand(Crlf, match, "${nope}"));
 
-        // One group, so $12 is group 1 followed by a literal 2 — .NET reads digits
+        // One group, so $12 is group 1 followed by a literal 2 .NET reads digits
         // greedily and then backs off until the number names a group.
         Assert.Equal("beta2", search.Expand(Crlf, match, "$12"));
     }

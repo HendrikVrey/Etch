@@ -26,7 +26,7 @@ internal static class CommandLineParser
     /// <remarks>
     /// Main scans for this before parsing, because the startup clock has to start
     /// before anything else runs. Whether diagnostics are on is then owned solely by
-    /// <see cref="Diagnostics.StartupTimeline.Enabled"/> — the parsed options do not
+    /// <see cref="Diagnostics.StartupTimeline.Enabled"/>: the parsed options do not
     /// carry a second copy, so the two cannot disagree.
     /// </remarks>
     public const string DiagnosticsFlag = "--diag";
@@ -138,7 +138,7 @@ internal static class CommandLineParser
                         return false;
                     }
 
-                    // Existence is deliberately not checked here — the open path
+                    // Existence is deliberately not checked here: the open path
                     // reports a missing file with better context, and checking twice
                     // only adds a time-of-check/time-of-use gap.
                     if (!TryResolvePath(arg, out fileToOpen, out error))

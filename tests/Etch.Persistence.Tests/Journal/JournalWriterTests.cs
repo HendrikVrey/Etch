@@ -8,7 +8,7 @@ namespace Etch.Persistence.Tests.Journal;
 /// <summary>
 /// Integration tests for the loop that drives the scheduler. The timing logic itself
 /// is proved in <see cref="WriteSchedulerTests"/> without any clock at all; what is
-/// left to check here is that the loop wakes, writes, retries and shuts down —
+/// left to check here is that the loop wakes, writes, retries and shuts down,
 /// which does need a real one.
 /// </summary>
 public class JournalWriterTests

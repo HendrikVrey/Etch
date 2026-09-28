@@ -73,7 +73,7 @@ public class EtchSettingsTests
     [InlineData(10, 2, 100)]
     [InlineData(2, 100, 10)]
     [InlineData(100, 10, 2)]
-    // Equal, which DocumentSizePolicy also rejects — its bounds are strict.
+    // Equal, which DocumentSizePolicy also rejects: its bounds are strict.
     [InlineData(2, 2, 100)]
     [InlineData(2, 10, 10)]
     public void Thresholds_that_do_not_ascend_are_replaced_as_a_set(long reduced, long plainText, long ceiling)

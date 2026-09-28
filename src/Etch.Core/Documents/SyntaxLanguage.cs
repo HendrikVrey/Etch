@@ -13,8 +13,8 @@ namespace Etch.Core.Documents;
 /// <para>
 /// The set is drawn from the grammars AvalonEdit already ships, since <c>Etch.Core</c>
 /// takes no package reference and therefore cannot see them. That is a slightly odd
-/// coupling to state out loud — an enum in the pure layer whose membership is decided by
-/// a library it cannot reference — but the alternative is worse: a language named here
+/// coupling to state out loud, an enum in the pure layer whose membership is decided by
+/// a library it cannot reference, but the alternative is worse: a language named here
 /// with no grammar behind it produces a document that reports itself as C# and renders as
 /// plain text, and nothing in the type system would catch it.
 /// </para>

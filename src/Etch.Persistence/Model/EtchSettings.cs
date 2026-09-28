@@ -11,7 +11,7 @@ namespace Etch.Persistence.Model;
 /// </param>
 /// <param name="TrashRetentionDays">
 /// How long a closed tab stays recoverable, in days. Zero deletes on close, which is a
-/// privacy affordance rather than an edge case — the README offers it as one.
+/// privacy affordance rather than an edge case: the README offers it as one.
 /// </param>
 /// <param name="Ligatures">
 /// Whether the editor font may form ligatures. Cascadia Mono has them and some people
@@ -24,7 +24,7 @@ namespace Etch.Persistence.Model;
 /// <para>
 /// <b>Primitives, not the policy types they configure.</b> Storing a
 /// <c>RetentionPolicy</c> or a <c>DocumentSizePolicy</c> here would tie the file format
-/// to two classes that exist to be constructed with validation — and a validating
+/// to two classes that exist to be constructed with validation, and a validating
 /// constructor is exactly what must not run against untrusted bytes during a
 /// deserialisation. The mapping onto those types happens in the application layer,
 /// against values <see cref="Sanitised"/> has already checked.
@@ -32,14 +32,14 @@ namespace Etch.Persistence.Model;
 /// <para>
 /// <b>File associations are deliberately not here.</b> They live in the registry, and
 /// the registry is where Windows itself, the Default Apps UI and every other
-/// application can change them — so a copy in this file would be a second statement of
+/// application can change them, so a copy in this file would be a second statement of
 /// the same fact, free to drift, with nothing to say which of the two was true. The
 /// settings UI reads the registry.
 /// </para>
 /// <para>
 /// Nothing here is a secret and nothing here is a path. That matters because this file
-/// survives "wipe all scratch data" — wiping someone's preferences because they wiped
-/// their buffers would be a surprise — so it must never be somewhere a secret could
+/// survives "wipe all scratch data", wiping someone's preferences because they wiped
+/// their buffers would be a surprise, so it must never be somewhere a secret could
 /// come to rest.
 /// </para>
 /// </remarks>
@@ -104,14 +104,14 @@ public sealed record EtchSettings(
     /// <para>
     /// Clamping rather than rejecting, and that is the whole design of this type. The
     /// file is hand-editable, and one bad number must not cost the user every other
-    /// preference they set — so an out-of-range value falls back to the shipped default
+    /// preference they set, so an out-of-range value falls back to the shipped default
     /// for that field alone and the rest are kept.
     /// </para>
     /// <para>
     /// The three thresholds are treated as one group because they are only meaningful as
     /// one: <c>DocumentSizePolicy</c> requires them strictly ascending and throws
     /// otherwise. A set that does not ascend is replaced wholesale rather than repaired,
-    /// because there is no honest way to guess which of the three the user meant — and
+    /// because there is no honest way to guess which of the three the user meant, and
     /// repairing two of them to satisfy the third would produce a policy nobody chose.
     /// </para>
     /// </remarks>

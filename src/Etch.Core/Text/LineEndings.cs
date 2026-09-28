@@ -11,7 +11,7 @@ public readonly record struct LineEndingCounts(int Crlf, int Lf, int Cr)
     /// <summary>Total line breaks of any kind.</summary>
     public int Total => Crlf + Lf + Cr;
 
-    /// <summary>True when more than one convention appears — worth surfacing, it bites people.</summary>
+    /// <summary>True when more than one convention appears: worth surfacing, it bites people.</summary>
     public bool IsMixed => (Crlf > 0 ? 1 : 0) + (Lf > 0 ? 1 : 0) + (Cr > 0 ? 1 : 0) > 1;
 
     /// <summary>

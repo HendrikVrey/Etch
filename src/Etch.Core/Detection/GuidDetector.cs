@@ -9,7 +9,7 @@ namespace Etch.Core.Detection;
 /// <para>
 /// <b>The bare 32-hex form is deliberately not recognised.</b> <c>Guid.TryParse</c>
 /// accepts it, but a 32-character hex string is an MD5 hash far more often than it is
-/// a GUID, and there is no way to tell them apart — so claiming either would be
+/// a GUID, and there is no way to tell them apart, so claiming either would be
 /// guessing. The dashed, braced and parenthesised forms are unambiguous, and they are
 /// what anything that prints a GUID actually prints.
 /// </para>

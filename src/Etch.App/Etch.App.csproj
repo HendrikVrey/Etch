@@ -19,7 +19,7 @@
       Deliberately NOT set on ui:TitleBar: the title bar holds the tab strip and nothing
       else (see MainWindow.xaml), and an icon there would take width from the tabs.
 
-      assets/ is the single source of truth — see assets/build-icon.py. Keeping one copy
+      assets/ is the single source of truth: see assets/build-icon.py. Keeping one copy
       rather than a build-input duplicate inside the project is what stops the shipped
       .ico from drifting away from the SVG it was drawn from.
     -->
@@ -36,8 +36,8 @@
 
       Clearing EnableDefaultApplicationDefinition is the whole mechanism. With no
       ApplicationDefinition, the SDK generates no Main of its own (so ours does not
-      collide), and the default Page glob — which excludes @(ApplicationDefinition),
-      now empty — picks App.xaml up automatically and still emits
+      collide), and the default Page glob (which excludes @(ApplicationDefinition),
+      now empty) picks App.xaml up automatically and still emits
       InitializeComponent. Adding an explicit <Page Include="App.xaml" /> here would
       make it a duplicate item and fail the build with NETSDK1022.
     -->
@@ -54,7 +54,7 @@
       The original justification here was wrong and is worth correcting rather than
       deleting. It claimed UseWPF drops System.IO because System.Windows.Shapes.Path
       collides with System.IO.Path. Comparing the generated GlobalUsings files shows the
-      namespace UseWPF actually drops is System.Net.Http — System.IO is present in both.
+      namespace UseWPF actually drops is System.Net.Http: System.IO is present in both.
       To check whether this line is still doing anything, comment it out and diff
       obj\Debug\net10.0-windows\Etch.App.GlobalUsings.g.cs.
     -->
@@ -71,7 +71,7 @@
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <!--
-      Single-file compression trades startup time for file size — it decompresses
+      Single-file compression trades startup time for file size: it decompresses
       on every launch. Etch sells startup time, so this stays off permanently.
     -->
     <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>

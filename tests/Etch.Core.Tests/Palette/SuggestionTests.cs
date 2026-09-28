@@ -17,12 +17,12 @@ namespace Etch.Core.Tests.Palette;
 /// <para>
 /// The file exists because slice 2 tripled the size of the registry, and until
 /// <c>ITransform.Precedence</c> landed the answer to this question was decided by
-/// <b>alphabetical order</b> — "Format JSON" beat "Minify JSON" because F precedes M. That
+/// <b>alphabetical order</b>: "Format JSON" beat "Minify JSON" because F precedes M. That
 /// was right by luck, and a transform named "Compact JSON" would have taken it over without
 /// a single test failing.
 /// </para>
 /// <para>
-/// <c>PaletteRankingTests</c> covers the ranking mechanism — fuzzy matching, recency, what
+/// <c>PaletteRankingTests</c> covers the ranking mechanism: fuzzy matching, recency, what
 /// the palette lists. This file covers only the suggested-action table and the property that
 /// makes it decidable.
 /// </para>
@@ -53,7 +53,7 @@ public class SuggestionTests
     {
         // Ctrl+Enter acts without showing what it is about to do, so "the obvious thing or
         // nothing" is the only safe rule. Both of these are detected and neither has a
-        // transform yet — and a GUID in particular must not attract "New GUID", which would
+        // transform yet, and a GUID in particular must not attract "New GUID", which would
         // replace the one in the buffer with a different one.
         Assert.Null(PaletteRanking.Suggested(new DetectionResult(format, DetectionConfidence.Certain)));
     }
@@ -63,7 +63,7 @@ public class SuggestionTests
     {
         // The plan's rule: applicability first, then recency. Someone who has just used
         // "Minify JSON" gets it back on the next Ctrl+Enter even though "Format JSON" claims
-        // the slot when nothing has been used — a preference the user expressed beats a
+        // the slot when nothing has been used: a preference the user expressed beats a
         // default the transform declared.
         var json = new DetectionResult(FormatId.Json, DetectionConfidence.Certain);
 
@@ -75,7 +75,7 @@ public class SuggestionTests
     public void Everything_that_applies_to_a_format_sorts_above_everything_that_does_not()
     {
         // Applicability is the first sort key, not a nudge. It is what makes the right
-        // answer the first row before anything has been typed — and the assertion is that
+        // answer the first row before anything has been typed, and the assertion is that
         // the list is *partitioned*, which is stronger than checking the top row.
         var detection = new DetectionResult(FormatId.Json, DetectionConfidence.Certain);
         var suggested = PaletteRanking.Rank(query: null, detection).Select(static e => e.IsSuggested).ToList();

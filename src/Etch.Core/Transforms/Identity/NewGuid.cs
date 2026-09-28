@@ -13,17 +13,17 @@ namespace Etch.Core.Transforms.Identity;
 /// none of them throws anything away:
 /// </para>
 /// <list type="bullet">
-/// <item><b>With a selection</b> — the selection becomes the GUID. This is the useful case:
+/// <item><b>With a selection</b>, the selection becomes the GUID. This is the useful case:
 /// highlight the placeholder in a config file, replace it.</item>
-/// <item><b>On an empty tab</b> — the tab becomes the GUID. The normal starting point, and
+/// <item><b>On an empty tab</b>, the tab becomes the GUID. The normal starting point, and
 /// the reason <see cref="NeedsInput"/> exists.</item>
-/// <item><b>On a tab with content and no selection</b> — the GUID is <em>appended</em> on
+/// <item><b>On a tab with content and no selection</b>: the GUID is <em>appended</em> on
 /// its own line. Replacing a buffer full of notes with 36 characters would be technically
 /// consistent with every other transform and completely indefensible; one Ctrl+Z is not
 /// much comfort when the alternative was never to have done it.</item>
 /// </list>
 /// <para>
-/// Lower case, dashed, unbraced — the "D" format, which is what .NET, PostgreSQL and every
+/// Lower case, dashed, unbraced: the "D" format, which is what .NET, PostgreSQL and every
 /// JSON API print, and what <c>GuidDetector</c> recognises so that the result is
 /// immediately detected as what it is.
 /// </para>
@@ -71,7 +71,7 @@ internal sealed class NewGuid : ITransform
         // nineteen lines.
         //
         // The rest of the buffer is concatenated, not normalised. The only ending this
-        // transform introduces is the separator, which already is the document's own — and
+        // transform introduces is the separator, which already is the document's own, and
         // rewriting every other line's ending as a side effect of generating an identifier
         // would turn a one-line addition into a whole-file diff.
         var separator = EndsWithNewLine(input.Text) ? string.Empty : input.Options.NewLine;

@@ -85,7 +85,7 @@ public partial class MainWindow
     /// </summary>
     /// <remarks>
     /// The threshold is the system's own, so a drag starts at the distance every other
-    /// Windows application starts one at — a hand-picked number here would make the strip
+    /// Windows application starts one at: a hand-picked number here would make the strip
     /// feel subtly wrong on a touchpad or a high-DPI screen.
     /// </remarks>
     private void OnTabStripMouseMove(object sender, MouseEventArgs e)
@@ -140,7 +140,7 @@ public partial class MainWindow
     /// <remarks>
     /// The midpoint rule is not polish, it is what stops the strip oscillating. Tabs are
     /// content-sized between a floor and a ceiling, so neighbours are routinely different
-    /// widths — and swapping the instant the pointer crosses an edge puts the wider tab
+    /// widths, and swapping the instant the pointer crosses an edge puts the wider tab
     /// under the pointer, which immediately satisfies the condition to swap straight back.
     /// The strip would flicker between two orderings while the pointer sat still.
     /// <para>
@@ -153,8 +153,8 @@ public partial class MainWindow
     {
         var from = _workspace.Tabs.IndexOf(dragged);
 
-        // The dragged tab can be closed from elsewhere mid-gesture — a second instance
-        // handing over a file, or the journal reporting a failure — and reordering a tab
+        // The dragged tab can be closed from elsewhere mid-gesture (a second instance
+        // handing over a file, or the journal reporting a failure) and reordering a tab
         // that is no longer in the strip would be meaningless.
         if (from < 0 || !TryLocate(point, out var target, out var centre) || target == from)
         {
@@ -201,7 +201,7 @@ public partial class MainWindow
     /// Scrolls the strip sideways on the wheel.
     /// </summary>
     /// <remarks>
-    /// The scroll viewer's own handling is vertical, and it is disabled — so without this
+    /// The scroll viewer's own handling is vertical, and it is disabled, so without this
     /// the wheel would simply be forwarded to the parent and tabs past the right-hand edge
     /// would be reachable only from the keyboard. The scrollbar itself is hidden
     /// deliberately: it belongs neither in a title bar nor in the two pixels where the
@@ -225,7 +225,7 @@ public partial class MainWindow
     /// </summary>
     /// <remarks>
     /// The strip is bounded to a share of the window's width, so dragging the window
-    /// narrower takes tabs off the right-hand edge — and the one in front is as likely to
+    /// narrower takes tabs off the right-hand edge, and the one in front is as likely to
     /// be among them as any other. Without this, scrolling on activation alone would hold
     /// only until the window was next resized, which is the gesture that provokes the
     /// problem in the first place. Adding and removing tabs changes this width too, so the
@@ -242,7 +242,7 @@ public partial class MainWindow
     /// The strip is bounded to the window's width less an allowance for the caption
     /// buttons, so at the window's own 480 px minimum it holds two tabs of the minimum
     /// width and fewer than two of the maximum. Every route that changes the active tab
-    /// can therefore put a tab in front that is scrolled past the edge — Ctrl+Tab,
+    /// can therefore put a tab in front that is scrolled past the edge: Ctrl+Tab,
     /// Ctrl+1..9, reopening a closed tab, a file handed over by a second instance, and
     /// above all Ctrl+T, which appends at the end and so lands off-screen exactly when
     /// the strip is already full. The editor changes under a strip that does not move,
@@ -250,8 +250,8 @@ public partial class MainWindow
     /// </para>
     /// <para>
     /// Deferred to <see cref="DispatcherPriority.Loaded"/> because a tab activated in the
-    /// same dispatcher turn it was created in has no container yet — the items control
-    /// generates one on the next layout pass — and asking a container that does not exist
+    /// same dispatcher turn it was created in has no container yet, the items control
+    /// generates one on the next layout pass, and asking a container that does not exist
     /// to be shown fails silently, which is the failure this is here to remove rather
     /// than to reproduce one layer down.
     /// </para>
@@ -259,8 +259,8 @@ public partial class MainWindow
     /// <b>At most one request may be outstanding, and that is not a tidiness measure.</b>
     /// <see cref="DispatcherPriority.Loaded"/> is priority 6 and <c>Input</c> is 5, so
     /// Loaded operations are serviced <em>before</em> pending input. Resizing the window
-    /// raises <c>SizeChanged</c> on every layout pass — dozens of times across one drag
-    /// of the window edge — and queueing one operation per pass built a backlog that ran
+    /// raises <c>SizeChanged</c> on every layout pass, dozens of times across one drag
+    /// of the window edge, and queueing one operation per pass built a backlog that ran
     /// ahead of the user's own wheel and click events, so the whole application stopped
     /// responding until it drained. Dropping the duplicate is exact rather than
     /// approximate, because the pending operation reads the tab in front when it runs
@@ -271,7 +271,7 @@ public partial class MainWindow
     {
         // Not while a tab is being dragged. The gesture is working in the strip's own
         // coordinates, so scrolling underneath the pointer would move the tabs out from
-        // under the hand rearranging them — and the dragged tab is on screen by
+        // under the hand rearranging them, and the dragged tab is on screen by
         // construction, because the user has just pressed on it.
         if (_bound is null || _dragging || _tabScrollQueued)
         {
@@ -297,14 +297,14 @@ public partial class MainWindow
     /// <see cref="ScrollViewer.ScrollToHorizontalOffset"/> rather than
     /// <see cref="FrameworkElement.BringIntoView()"/>. The latter raises a routed event
     /// that walks the tree looking for a scroll viewer and hands it a rectangle to
-    /// resolve against its own layout — far more work than this needs, and it was part of
+    /// resolve against its own layout: far more work than this needs, and it was part of
     /// what made the backlog above expensive enough to notice. Setting the offset is a
     /// property assignment and an arrange invalidation, which is exactly what the wheel
     /// handler above has always done. The arithmetic it costs is two comparisons, and
     /// they are the same two the visibility test needs anyway.
     /// </para>
     /// <para>
-    /// Everything here is in the strip's own content coordinates — the space
+    /// Everything here is in the strip's own content coordinates: the space
     /// <see cref="TryLocate"/> works in, and the space a scroll offset is expressed in.
     /// A container's position in it does not change when the viewport scrolls, which is
     /// what makes reading it here safe.
@@ -392,8 +392,8 @@ public partial class MainWindow
     /// Reads the tab a context-menu item belongs to.
     /// </summary>
     /// <remarks>
-    /// One <c>ContextMenu</c> instance is shared by every tab — only one can be open at a
-    /// time, so a menu per tab would be pure waste — and it is pointed at the right tab by
+    /// One <c>ContextMenu</c> instance is shared by every tab (only one can be open at a
+    /// time, so a menu per tab would be pure waste) and it is pointed at the right tab by
     /// a binding through its placement target. Returning null rather than guessing when
     /// that binding has not produced a tab is the point: a menu item that acts on the
     /// wrong tab is far worse than one that does nothing.

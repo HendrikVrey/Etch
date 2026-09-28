@@ -50,7 +50,7 @@ public sealed class SessionStore
 
     /// <summary>Loads the session index.</summary>
     /// <remarks>
-    /// Never throws — not for a missing file, not for a malformed one, not for a
+    /// Never throws, not for a missing file, not for a malformed one, not for a
     /// hostile one. That is a contract rather than an aspiration, which is why there
     /// is a catch-all at the end: this runs before the first frame, and any exception
     /// escaping it is an Etch that will not start until the user finds and deletes a
@@ -117,7 +117,7 @@ public sealed class SessionStore
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // Readable text may still be sitting in the buffers directory, so this is
-            // recoverable — but the file is left exactly where it is, because a file
+            // recoverable, but the file is left exactly where it is, because a file
             // that could not be read is also one that should not be moved.
             return SessionLoadResult.Unreadable(
                 $"The session index could not be read ({ex.Message}). Open tabs were recovered from disk instead.");
@@ -129,7 +129,7 @@ public sealed class SessionStore
         {
             // The byte-order mark is skipped rather than fed to the parser, which rejects
             // it. Etch never writes one, but someone who opened session.json in Notepad to
-            // see what was in there and pressed save has now added one — and quarantining
+            // see what was in there and pressed save has now added one, and quarantining
             // their whole tab layout for that would be a poor reward for curiosity.
             var payload = bytes.AsSpan();
 
@@ -143,7 +143,7 @@ public sealed class SessionStore
         catch (Exception ex) when (ex is JsonException or NotSupportedException or ArgumentException)
         {
             // ArgumentException covers a record whose invariants were violated on
-            // disk — a file buffer with no path, a blank title, a path that is not a
+            // disk: a file buffer with no path, a blank title, a path that is not a
             // legitimate save target. One bad entry takes the whole index with it,
             // which is acceptable precisely because the text does not live here.
             return Quarantine($"The session index was not valid ({Summarise(ex.Message)}).");
@@ -157,7 +157,7 @@ public sealed class SessionStore
         if (session.IsFromFutureVersion)
         {
             // Left exactly where it is. Renaming it would lose the newer build's tab
-            // layout — the precise harm this branch exists to prevent — so this build
+            // layout, the precise harm this branch exists to prevent, so this build
             // simply declines to use it, and declines to save over it.
             return new SessionLoadResult(
                 SessionSnapshot.Empty,
@@ -257,7 +257,7 @@ public sealed class SessionStore
     /// <remarks>
     /// A deserialiser message can quote the offending value, and the offending value
     /// comes from a file that may be megabytes of hostile text. This is a local
-    /// desktop app so there is nothing to disclose — the file is the user's own — but
+    /// desktop app so there is nothing to disclose, the file is the user's own, but
     /// a status bar is not the place to render an unbounded string full of control
     /// characters and bidirectional overrides.
     /// </remarks>
@@ -275,7 +275,7 @@ public sealed class SessionStore
                     var character = source[i];
 
                     // Both categories, not just Cc. char.IsControl covers the C0/C1
-                    // ranges but not the format characters — U+202E and friends — which
+                    // ranges but not the format characters, U+202E and friends, which
                     // are exactly the ones that reorder the rest of a status bar around
                     // themselves.
                     destination[i] = char.IsControl(character)
@@ -317,7 +317,7 @@ public enum SessionLoadStatus
 /// <param name="Status">Which of the outcomes occurred.</param>
 /// <param name="Notice">
 /// A user-facing explanation when something was wrong, or null when it was not.
-/// Shown quietly in the status bar — a dialog on startup would be exactly the
+/// Shown quietly in the status bar: a dialog on startup would be exactly the
 /// interruption Etch promises never to produce.
 /// </param>
 public sealed record SessionLoadResult(SessionSnapshot Session, SessionLoadStatus Status, string? Notice)

@@ -10,7 +10,7 @@ namespace Etch.Core.Detection;
 /// Two phases, cheap first, exactly as the plan's section 7 describes. Every detector
 /// opens with character tests that rule it out in microseconds, and only the one or
 /// two that survive pay for a real parse. The whole pass runs on a capped sample, off
-/// the UI thread, on a debounce — never per keystroke.
+/// the UI thread, on a debounce, never per keystroke.
 /// </para>
 /// <para>
 /// Stateless and static. There is nothing to construct at startup, which is the point:
@@ -24,8 +24,8 @@ public static class FormatDetection
     /// How much of a buffer is examined, in characters.
     /// </summary>
     /// <remarks>
-    /// The plan's number. A prefix is enough to identify a format — nothing here needs
-    /// to see the end of a document to know what kind of document it is — and capping
+    /// The plan's number. A prefix is enough to identify a format, nothing here needs
+    /// to see the end of a document to know what kind of document it is, and capping
     /// it is what keeps detection on a 10 MB log file as cheap as on a paragraph.
     /// </remarks>
     public const int SampleLimit = 64 * 1024;
@@ -53,21 +53,21 @@ public static class FormatDetection
     /// <remarks>
     /// Most specific first, and every position here is a judgement worth stating:
     /// <list type="bullet">
-    /// <item><b>JWT above base64url</b> — a token <em>is</em> three base64url segments,
+    /// <item><b>JWT above base64url</b> (a token <em>is</em> three base64url segments,
     /// so both will fire and the more specific answer is the useful one.</item>
-    /// <item><b>NDJSON above JSON</b> — the first line of an NDJSON file is a valid
+    /// <item><b>NDJSON above JSON</b>) the first line of an NDJSON file is a valid
     /// JSON document, so JSON will often fire weakly on one.</item>
-    /// <item><b>GUID, epoch and ISO-8601 above the encodings</b> — all three are
+    /// <item><b>GUID, epoch and ISO-8601 above the encodings</b>, all three are
     /// whole-buffer matches on a rigid shape, where the encodings are guessing from an
     /// alphabet. The three cannot collide with each other: an epoch is nothing but digits,
     /// a GUID carries its dashes in five uneven groups, and an ISO date carries them in
     /// three, so their relative order here is arbitrary and does not decide anything. It is
-    /// the encodings below them that this position exists to outrank — before the uniform-
+    /// the encodings below them that this position exists to outrank (before the uniform-
     /// group rule landed in <c>HexDetector</c>, every ISO date in the world read as
     /// hexadecimal.</item>
-    /// <item><b>Hex above base64</b> — every hex string is also in the base64 alphabet.
+    /// <item><b>Hex above base64</b>) every hex string is also in the base64 alphabet.
     /// The reverse is not true, so hex is the narrower claim.</item>
-    /// <item><b>Standard base64 above URL-safe</b> — the two alphabets differ in two
+    /// <item><b>Standard base64 above URL-safe</b>: the two alphabets differ in two
     /// characters, so anything using neither <c>+/</c> nor <c>-_</c> matches both
     /// detectors with the same confidence and this pair decides it. Standard wins
     /// because it is the overwhelmingly more common form; a string that really is
@@ -134,7 +134,7 @@ public static class FormatDetection
 
         // Leading whitespace is trimmed for everyone, because every detector would
         // otherwise begin by skipping it. Trailing whitespace is only trimmed when the
-        // buffer is whole — on a sample the end is a cut point, not an end.
+        // buffer is whole, on a sample the end is a cut point, not an end.
         var trimmed = wasSampled ? sample.TrimStart() : sample.Trim();
 
         var isComplete = !wasSampled;
@@ -169,7 +169,7 @@ public static class FormatDetection
     /// Runs one detector, treating a crash in it as "not my format".
     /// </summary>
     /// <remarks>
-    /// A detector is a small pure function over a span, so this should never fire — but
+    /// A detector is a small pure function over a span, so this should never fire, but
     /// it runs against arbitrary pasted bytes on a background thread, and an unhandled
     /// exception there takes the process down with it. One bad detector must cost the
     /// format chip, not the editor and everything unsaved in it.

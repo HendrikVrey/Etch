@@ -12,7 +12,7 @@ namespace Etch.Core.Documents;
 /// holding a fragment that does not parse is still a JSON file being edited. Format
 /// detection is an <em>inference</em> from the first 64 KB, and it is right most of the
 /// time. So the extension wins wherever there is one, and detection answers for scratch
-/// tabs — which is the case that matters, because pasting into a scratch tab is what Etch
+/// tabs, which is the case that matters, because pasting into a scratch tab is what Etch
 /// is for.
 /// </para>
 /// <para>
@@ -29,9 +29,9 @@ public static class LanguageSelector
     /// </summary>
     /// <remarks>
     /// Etch's own table rather than AvalonEdit's <c>GetDefinitionByExtension</c>, and not
-    /// merely to keep this project pure. AvalonEdit registers <c>.md</c> twice — once for
-    /// <c>MarkDown</c> and again for <c>MarkDownWithFontSize</c>, which scales heading text
-    /// — and the second registration overwrites the first, so asking it by extension gets
+    /// merely to keep this project pure. AvalonEdit registers <c>.md</c> twice (once for
+    /// <c>MarkDown</c> and again for <c>MarkDownWithFontSize</c>, which scales heading text)
+    /// and the second registration overwrites the first, so asking it by extension gets
     /// the variant that changes font sizes inside a fixed-width editor. Choosing the
     /// grammar by name is the only way to get the one that is wanted.
     /// </remarks>
@@ -75,7 +75,7 @@ public static class LanguageSelector
 
         // No TypeScript grammar ships with AvalonEdit. JavaScript's is a strict subset of
         // the syntax, so keywords, strings and comments all colour correctly and only the
-        // type annotations go unhighlighted — visibly better than plain text, and honest
+        // type annotations go unhighlighted: visibly better than plain text, and honest
         // about it here rather than surprising later.
         [".ts"] = SyntaxLanguage.JavaScript,
         [".tsx"] = SyntaxLanguage.JavaScript,
@@ -124,7 +124,7 @@ public static class LanguageSelector
     /// <exception cref="ArgumentNullException"><paramref name="detect"/> is null.</exception>
     /// <remarks>
     /// The single statement of the precedence rule. It is worth one indirection to keep it
-    /// that way: written out at the call site as well, the two drifted apart within a day —
+    /// that way: written out at the call site as well, the two drifted apart within a day,
     /// the UI asked detection only for a tab with no file at all, while this asked whenever
     /// the extension said nothing, so a file called <c>payload.txt</c> full of JSON was
     /// highlighted by the tested rule and not by the shipped one.
@@ -136,7 +136,7 @@ public static class LanguageSelector
         var named = FromPath(filePath);
 
         // A recognised extension is a statement of intent and outranks the inference, even
-        // when the two disagree — a half-typed .json file that does not parse yet is still
+        // when the two disagree: a half-typed .json file that does not parse yet is still
         // being written as JSON, and losing its colours mid-keystroke would be worse than
         // useless.
         return named != SyntaxLanguage.None ? named : FromFormat(detect());
@@ -166,7 +166,7 @@ public static class LanguageSelector
         var name = filePath.AsSpan();
 
         // Trim the directory here rather than via Path.GetFileName, so that a separator
-        // appearing after the last dot — "C:\v1.0\README" — cannot be read as an extension.
+        // appearing after the last dot, "C:\v1.0\README", cannot be read as an extension.
         var separator = name.LastIndexOfAny('\\', '/');
 
         if (separator >= 0)
@@ -192,7 +192,7 @@ public static class LanguageSelector
         FormatId.Json or FormatId.Ndjson => SyntaxLanguage.Json,
 
         // Everything else Etch detects is data, not a language. Base64, hex, a GUID, a
-        // JWT, a percent-encoded string and a timestamp have no grammar to colour — they
+        // JWT, a percent-encoded string and a timestamp have no grammar to colour: they
         // have transforms, which is a different offer and one the palette already makes.
         _ => SyntaxLanguage.None,
     };

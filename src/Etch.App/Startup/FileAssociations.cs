@@ -14,8 +14,8 @@ namespace Etch.App.Startup;
 /// <c>HKEY_CLASSES_ROOT</c> or <c>HKEY_LOCAL_MACHINE</c>: those are machine-wide, they
 /// need elevation, and an editor that quietly became every account's handler for
 /// <c>.json</c> would be the sort of thing people uninstall an application over. Etch
-/// ships with an installer, and that installer is per-user too — it asks for no
-/// elevation and writes the same keys this file does — so the rule is not a workaround
+/// ships with an installer, and that installer is per-user too, it asks for no
+/// elevation and writes the same keys this file does, so the rule is not a workaround
 /// for having no uninstaller, it is the posture of the whole product. Anything written
 /// here can be undone from this panel, by the uninstaller, or by hand, without
 /// administrative rights and without affecting another account.
@@ -24,8 +24,8 @@ namespace Etch.App.Startup;
 /// <b>What this can and cannot do, stated precisely because the UI has to say it.</b>
 /// Two things are written per extension. The ProgID is registered and added to
 /// <c>OpenWithProgids</c>, which puts Etch in the "Open with" list and always works. The
-/// extension's default value under <c>Software\Classes</c> is then pointed at that ProgID
-/// — but Windows only consults that when the user has no <c>UserChoice</c> recorded for
+/// extension's default value under <c>Software\Classes</c> is then pointed at that ProgID,
+/// but Windows only consults that when the user has no <c>UserChoice</c> recorded for
 /// the extension. <c>UserChoice</c> is protected by a hash Windows verifies, and writing
 /// it is both unsupported and a thing malware does; Etch does not go near it. It is
 /// <em>read</em>, in <see cref="IsHonoured"/>, because it is the only way to answer
@@ -34,7 +34,7 @@ namespace Etch.App.Startup;
 /// <para>
 /// Withdrawal restores rather than deletes. <see cref="Register"/> stashes whatever the
 /// extension's default value was before Etch overwrote it, and <see cref="Withdraw"/>
-/// puts it back — so turning the checkbox off returns the machine to the state it was in,
+/// puts it back, so turning the checkbox off returns the machine to the state it was in,
 /// rather than to no association at all.
 /// </para>
 /// </remarks>
@@ -46,7 +46,7 @@ internal static partial class FileAssociations
     /// scratchpad. Everything else is a file type with a real editor behind it.
     /// <para>
     /// It is also what makes the registry writes below safe. Every key path here is built
-    /// by concatenation, and the only variable part is an extension — so the extension has
+    /// by concatenation, and the only variable part is an extension, so the extension has
     /// to come from this list rather than from anything a user or a file could influence.
     /// <see cref="Describe"/>'s exhaustive switch is checked by a test, so an extension
     /// added here cannot silently ship without a label.
@@ -111,7 +111,7 @@ internal static partial class FileAssociations
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Not "did Etch write the registry keys" — "will double-clicking one of these open
+    /// <b>Not "did Etch write the registry keys": "will double-clicking one of these open
     /// Etch".</b> Those are different questions on any machine where the user has ever
     /// picked a default for the extension, and answering the first while displaying the
     /// second is how a settings panel comes to show a ticked box for something that does
@@ -132,7 +132,7 @@ internal static partial class FileAssociations
     /// executable. A copy of Etch that has since moved therefore reads as ticked while
     /// double-clicking the file would fail. <see cref="IsOpenWithVerbPresent"/> does make
     /// that check, because a verb has no <c>UserChoice</c> arbiter and the command line is
-    /// the only thing there is to ask — so the asymmetry is real and is a gap here rather
+    /// the only thing there is to ask, so the asymmetry is real and is a gap here rather
     /// than a decision. Closing it means comparing against
     /// <see cref="Environment.ProcessPath"/> through <see cref="ExecutableFromCommand"/>,
     /// and wants its own tests before it changes what three existing checkboxes report.
@@ -175,7 +175,7 @@ internal static partial class FileAssociations
     /// <param name="extension">One of <see cref="Associable"/>.</param>
     /// <param name="associate">True to register, false to withdraw.</param>
     /// <returns>
-    /// What happened, including whether Windows will honour it — see
+    /// What happened, including whether Windows will honour it: see
     /// <see cref="AssociationResult"/>.
     /// </returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="extension"/> is not associable.</exception>
@@ -201,7 +201,7 @@ internal static partial class FileAssociations
             }
 
             // Without this, Explorer keeps showing the old icon and the old handler until
-            // it is restarted — which looks exactly like the setting not having worked.
+            // it is restarted, which looks exactly like the setting not having worked.
             NotifyShell();
 
             return associate && !IsHonoured(extension)
@@ -211,7 +211,7 @@ internal static partial class FileAssociations
         catch (Exception ex)
         {
             // Broad, deliberately, and this is the place for it. Set is called straight
-            // from a WPF checkbox handler, which is synchronous and not wrapped — so an
+            // from a WPF checkbox handler, which is synchronous and not wrapped, so an
             // exception escaping here reaches DispatcherUnhandledException and takes the
             // window down. RegistryKey.SetValue alone can raise ArgumentException for a
             // value it dislikes; a settings checkbox must not be able to end the process.
@@ -227,7 +227,7 @@ internal static partial class FileAssociations
     /// <remarks>
     /// <para>
     /// The second half is the part that matters. There is no <c>UserChoice</c> equivalent
-    /// arbitrating a shell verb — the key is what decides — so the honest question is not
+    /// arbitrating a shell verb, the key is what decides, so the honest question is not
     /// "did someone write this key" but "does the entry a user would click still run this
     /// executable". A copy of Etch moved, reinstalled elsewhere, or replaced by a portable
     /// build leaves a verb pointing at a path that no longer exists, and a checkbox that
@@ -337,7 +337,7 @@ internal static partial class FileAssociations
     /// </summary>
     /// <remarks>
     /// Only the quoted form is recognised, and deliberately: that is the only form Etch
-    /// writes, and an unquoted command line cannot be split reliably anyway — a path with a
+    /// writes, and an unquoted command line cannot be split reliably anyway, a path with a
     /// space in it is indistinguishable from a path followed by an argument. Anything else
     /// therefore reads as "not ours", which routes to the repair path rather than to a
     /// guess.
@@ -361,14 +361,14 @@ internal static partial class FileAssociations
     /// <remarks>
     /// <para>
     /// One per extension rather than a single shared <c>Etch.Document</c>, so each can
-    /// carry its own description — "JSON files (Etch)" is what the Open With dialog shows,
+    /// carry its own description, "JSON files (Etch)" is what the Open With dialog shows,
     /// and one generic entry repeated three times is not useful there.
     /// </para>
     /// <para>
     /// <b>This naming rule is duplicated in <c>installer/Etch.iss</c>, which hardcodes
     /// <c>Etch.txt</c>, <c>Etch.json</c> and <c>Etch.log</c>, and their descriptions from
     /// <see cref="Describe"/>.</b> Two writers now touch these keys and nothing can check
-    /// at build time that they agree — so if this changes, the <c>.iss</c> changes with
+    /// at build time that they agree, so if this changes, the <c>.iss</c> changes with
     /// it, or the settings panel will show a state that disagrees with what the installer
     /// wrote.
     /// </para>
@@ -379,7 +379,7 @@ internal static partial class FileAssociations
     /// The ProgID Windows has recorded as the user's own choice, or null if there is none.
     /// </summary>
     /// <remarks>
-    /// Read-only, always. This key is hash-protected and writing it is unsupported — see
+    /// Read-only, always. This key is hash-protected and writing it is unsupported: see
     /// the type remarks. Reading it is the only way to tell the user the truth about what
     /// their double-click will do.
     /// </remarks>
@@ -393,7 +393,7 @@ internal static partial class FileAssociations
     private static void Register(string extension)
     {
         // Environment.ProcessPath rather than the entry assembly's location: under a
-        // single-file publish — which is how Etch ships — the assembly has no path on
+        // single-file publish, which is how Etch ships, the assembly has no path on
         // disk at all, and Assembly.Location returns an empty string.
         if (Environment.ProcessPath is not { Length: > 0 } executable)
         {
@@ -413,7 +413,7 @@ internal static partial class FileAssociations
             progIdKey.SetValue(null, $"{Describe(extension)} (Etch)");
 
             // Only when it names something else, and only when there is not already one
-            // recorded — ticking the box twice must not overwrite the original with
+            // recorded: ticking the box twice must not overwrite the original with
             // Etch's own ProgID and make the restore a no-op.
             if (!string.IsNullOrEmpty(displaced)
                 && !string.Equals(displaced, progId, StringComparison.OrdinalIgnoreCase)
@@ -431,7 +431,7 @@ internal static partial class FileAssociations
             using var command = progIdKey.CreateSubKey(@"shell\open\command");
 
             // Both quoted. An unquoted path breaks on the space in "Program Files", and an
-            // unquoted %1 breaks on every file name containing a space — which, for a
+            // unquoted %1 breaks on every file name containing a space, which, for a
             // document a person named themselves, is most of them.
             command.SetValue(null, $"\"{executable}\" \"%1\"");
         }
@@ -448,7 +448,7 @@ internal static partial class FileAssociations
             openWith.SetValue(progId, string.Empty, RegistryValueKind.String);
         }
 
-        // The half Windows may decline to honour. Never UserChoice — see the type remarks.
+        // The half Windows may decline to honour. Never UserChoice: see the type remarks.
         extensionKey.SetValue(null, progId);
     }
 
@@ -468,8 +468,8 @@ internal static partial class FileAssociations
 
         using (var openWith = extensionKey.OpenSubKey(OpenWithProgIds, writable: true))
         {
-            // Only Etch's own entry. This key is a shared list — every application that
-            // can open the type adds itself to it — so deleting the key would remove every
+            // Only Etch's own entry. This key is a shared list, every application that
+            // can open the type adds itself to it, so deleting the key would remove every
             // other application's "Open with" entry along with Etch's.
             openWith?.DeleteValue(progId, throwOnMissingValue: false);
         }
@@ -505,7 +505,7 @@ internal static partial class FileAssociations
     /// </summary>
     /// <remarks>
     /// Best-effort. The registry writes have already happened and are correct whether or
-    /// not Explorer notices promptly — a failure here costs a stale icon until the next
+    /// not Explorer notices promptly: a failure here costs a stale icon until the next
     /// logon, which is not worth failing the operation over or telling the user about.
     /// </remarks>
     private static void NotifyShell()

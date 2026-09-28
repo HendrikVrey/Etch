@@ -17,8 +17,8 @@ namespace Etch.Core.Tests.Transforms;
 /// <c>System.Text.Json</c> reports the position <em>at</em> the offending byte or just
 /// past it is that library's convention, not Etch's, and pinning it here would make a
 /// harmless framework change fail a test about something else entirely. What these tests
-/// exist to catch is the <em>encoding</em> bug — a UTF-8 byte position used as a UTF-16
-/// character offset — and every case below is arranged so that the buggy answer is at
+/// exist to catch is the <em>encoding</em> bug, a UTF-8 byte position used as a UTF-16
+/// character offset, and every case below is arranged so that the buggy answer is at
 /// least three positions away. A tolerance of one separates the two cleanly while leaving
 /// the framework's own convention alone. See <see cref="Etch.Core.Text.Utf8Position"/>,
 /// whose tests pin the mapping exactly, because that part is Etch's.
@@ -50,7 +50,7 @@ public class TransformFailurePositionTests
     public void A_broken_document_reports_where_it_broke(string id)
     {
         // The bad token is the 'x'. Everything before it is well-formed, so the parser
-        // stops there — and every JSON transform reports it the same way, which is the
+        // stops there, and every JSON transform reports it the same way, which is the
         // point of them sharing JsonFailure.
         const string Broken = """{"a": 1, "b": x}""";
 
@@ -64,7 +64,7 @@ public class TransformFailurePositionTests
     public void The_offset_survives_non_ascii_text_earlier_in_the_line()
     {
         // The whole reason Utf8Position exists. Three accented characters before the
-        // error, two UTF-8 bytes each — so the byte position is three greater than the
+        // error, two UTF-8 bytes each, so the byte position is three greater than the
         // character offset, and using it directly would land the caret three positions
         // early. Well outside the tolerance above.
         const string Broken = """{"café": "réservé", "b": x}""";
@@ -78,7 +78,7 @@ public class TransformFailurePositionTests
     [Fact]
     public void The_offset_survives_a_surrogate_pair_earlier_in_the_line()
     {
-        // Four UTF-8 bytes and two UTF-16 chars — the largest disagreement between the
+        // Four UTF-8 bytes and two UTF-16 chars, the largest disagreement between the
         // encodings, and the one that can go wrong in both directions. Two emoji put the
         // buggy answer four positions out.
         const string Broken = """{"party": "🎉🎉", "b": x}""";
@@ -93,7 +93,7 @@ public class TransformFailurePositionTests
     public void A_failure_on_a_later_line_reports_a_document_offset()
     {
         // Not a line number. The offset has to be absolute, because that is what the
-        // editor's caret takes — and a transform run over a selection would otherwise
+        // editor's caret takes, and a transform run over a selection would otherwise
         // have no way to express where it was.
         const string Broken = """
             {
@@ -111,7 +111,7 @@ public class TransformFailurePositionTests
     [Fact]
     public void A_truncated_document_reports_a_position_inside_the_buffer()
     {
-        // The most common failure there is — JSON cut off mid-write. The parser runs out
+        // The most common failure there is, JSON cut off mid-write. The parser runs out
         // of input, so the position it reports is at or just past the end. What must not
         // happen is an offset outside the buffer: AvalonEdit throws on one past the end
         // of the document.
@@ -164,8 +164,8 @@ public class TransformFailurePositionTests
         Assert.False(result.Success);
         Assert.NotNull(result.ErrorOffset);
 
-        // \q is not a JSON escape. Without the mapping the offset would be two short —
-        // one for the quote added, two for the whitespace trimmed — and could point
+        // \q is not a JSON escape. Without the mapping the offset would be two short
+        // (one for the quote added, two for the whitespace trimmed) and could point
         // before the backslash the user can actually see.
         AssertPointsAt(Broken.IndexOf('\\', StringComparison.Ordinal) + 1, result.ErrorOffset);
         Assert.InRange(result.ErrorOffset!.Value, 0, Broken.Length);

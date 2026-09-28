@@ -8,7 +8,7 @@ namespace Etch.Persistence.Serialization;
 /// </summary>
 /// <remarks>
 /// Source generation rather than reflection, for two reasons that both matter here.
-/// It keeps the reflection-based serialiser out of the startup path — reading
+/// It keeps the reflection-based serialiser out of the startup path: reading
 /// <c>session.json</c> happens before the first frame, and that is the budget the
 /// whole project is built around. And it keeps <c>Etch.Persistence</c> honestly
 /// AOT-compatible, so the analyser can prove there is nothing here that a trimmed

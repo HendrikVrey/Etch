@@ -30,7 +30,7 @@ internal static partial class ConsoleBridge
 
     /// <summary>
     /// The Win32 error from a failed attach, or 0. Recorded into the log file by
-    /// <see cref="DiagnosticLog"/>, which is the only place it can be reported —
+    /// <see cref="DiagnosticLog"/>, which is the only place it can be reported:
     /// there is, by definition, no console to print it to.
     /// </summary>
     public static int LastError { get; private set; }
@@ -52,7 +52,7 @@ internal static partial class ConsoleBridge
             }
 
             // The attach gives us a console, but the standard streams are still
-            // bound to the null device from process start. Both must be rebound —
+            // bound to the null device from process start. Both must be rebound,
             // every usage error in Program.cs writes to stderr, so rebinding only
             // stdout would make bad command lines fail silently.
             var encoding = WithoutPreamble(Console.OutputEncoding);
@@ -78,7 +78,7 @@ internal static partial class ConsoleBridge
     /// <remarks>
     /// A console stream is not seekable, so StreamWriter never learns that a
     /// preamble is unnecessary and emits one on the first flush. On a UTF-8 console
-    /// — PowerShell 7, or any session that has run <c>chcp 65001</c> — that puts a
+    /// (PowerShell 7, or any session that has run <c>chcp 65001</c>) that puts a
     /// literal <c>EF BB BF</c> in front of the first line of output.
     /// </remarks>
     private static Encoding WithoutPreamble(Encoding encoding) => encoding is UTF8Encoding

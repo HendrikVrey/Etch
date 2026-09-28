@@ -94,7 +94,7 @@ public class ValueTransformTests
     public void Entity_encoding_escapes_the_five_and_nothing_else()
     {
         // Deliberately narrower than WebUtility.HtmlEncode, which also rewrites everything
-        // above U+009F as a numeric entity — correct for an unknown output encoding, and
+        // above U+009F as a numeric entity, correct for an unknown output encoding, and
         // wrong for a scratchpad that is UTF-8 throughout.
         var result = Run("html.encodeEntities", "<a href='x'>café & co</a>");
 
@@ -128,7 +128,7 @@ public class ValueTransformTests
     [Fact]
     public void Base64url_encoding_is_unpadded_and_uses_the_url_safe_alphabet()
     {
-        // RFC 7515's form — the specification that made this alphabet common. "???~~~" is
+        // RFC 7515's form: the specification that made this alphabet common. "???~~~" is
         // chosen because standard base64 encodes it as "Pz8/fn5+", which carries both of the
         // two characters the alphabets differ in.
         const string Input = "???~~~";
@@ -152,7 +152,7 @@ public class ValueTransformTests
     [InlineData("hash.sha512")]
     public void Hashes_are_lower_case_hex(string id)
     {
-        // Lower-case hex, because that is what sha256sum, git and openssl print — the tools
+        // Lower-case hex, because that is what sha256sum, git and openssl print: the tools
         // the answer is going to be compared against. The encoding is pinned separately, in
         // Sha256_matches_the_value_every_other_tool_prints, where a literal can catch it.
         var result = Run(id, "café");
@@ -165,14 +165,14 @@ public class ValueTransformTests
     public void Sha256_matches_the_value_every_other_tool_prints()
     {
         // "abc" is the published SHA-256 test vector, and it is identical under UTF-8,
-        // ASCII and Latin-1 — so on its own it says nothing about the encoding.
+        // ASCII and Latin-1, so on its own it says nothing about the encoding.
         Assert.Equal(
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
             Run("hash.sha256", "abc").Text);
 
         // "café" is where the encoding shows. UTF-8 gives the first value; Latin-1, which is
         // what Encoding.Default used to mean, gives a completely different one. Pinning the
-        // literal is the only thing that would catch a regression to the wrong encoding —
+        // literal is the only thing that would catch a regression to the wrong encoding:
         // computing the expectation with Encoding.UTF8 here would just agree with whatever
         // the transform did.
         Assert.Equal(
@@ -187,7 +187,7 @@ public class ValueTransformTests
     [Fact]
     public void The_legacy_hashes_say_so_in_their_names()
     {
-        // In the palette, where it is read at the moment someone reaches for one — not in
+        // In the palette, where it is read at the moment someone reaches for one, not in
         // documentation they will not open.
         Assert.Contains("legacy", TransformRegistry.Find("hash.md5")!.Name, StringComparison.Ordinal);
         Assert.Contains("legacy", TransformRegistry.Find("hash.sha1")!.Name, StringComparison.Ordinal);
@@ -295,7 +295,7 @@ public class ValueTransformTests
         Assert.Contains("read as UTC", result.Message, StringComparison.Ordinal);
 
         // A bare date carries no zone either, and the dashes in it must not be mistaken for
-        // an offset sign — the check that got this wrong first time round.
+        // an offset sign, the check that got this wrong first time round.
         Assert.Contains("read as UTC", Run("time.isoToEpoch", "2018-01-18").Message, StringComparison.Ordinal);
 
         // ...while one that does carry a zone must not claim the assumption was made.

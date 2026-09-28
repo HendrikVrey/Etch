@@ -1,13 +1,13 @@
 # Rules relaxed for test code only.
 #
 # This file exists so the relaxations are scoped, visible, and each one has a reason
-# written next to it. Nothing here applies to src/ — a rule that is wrong for a test is
+# written next to it. Nothing here applies to src/: a rule that is wrong for a test is
 # usually still right for the thing being tested. Anything switched off below should be
 # switched back on if its reason stops being true.
 
 [*.cs]
 
-# CA1707 — Identifiers should not contain underscores.
+# CA1707: Identifiers should not contain underscores.
 #
 # 373 hits, all of them test method names, and the convention is deliberate:
 # Every_recognised_format_has_a_label_of_its_own reads as a sentence in a test runner's
@@ -22,9 +22,9 @@ dotnet_diagnostic.CA1707.severity = none
 #
 # The deferral said to turn it back on once the suite was green and then work through the
 # call sites in one pass, which is what happened: 185 of them now pass
-# TestContext.Current.CancellationToken. Two sites deliberately pass a different token —
-# AtomicFileTests and JournalWriterTests each have one that hands in an already-cancelled
-# source, because cancellation is the behaviour under test — and the rule is satisfied by
+# TestContext.Current.CancellationToken. Two sites deliberately pass a different token
+# (AtomicFileTests and JournalWriterTests each have one that hands in an already-cancelled
+# source, because cancellation is the behaviour under test) and the rule is satisfied by
 # those too, since what it asks for is a token rather than that particular token.
 #
 # Left as a note rather than deleted: the next person to find a test hanging in CI should

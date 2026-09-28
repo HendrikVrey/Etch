@@ -119,7 +119,7 @@ public class TransformTests
     [Fact]
     public void Base64_round_trips()
     {
-        const string Original = "Etch — a scratchpad. 日本語 too.";
+        const string Original = "Etch, a scratchpad. 日本語 too.";
 
         var encoded = Run("base64.encode", Original);
 
@@ -272,7 +272,7 @@ public class TransformTests
 
                 // Three shapes are legal, and every one of them says something: replacement
                 // text, a finding with no text, or an error. What is not legal is a success
-                // carrying neither — the editor would have nothing to write and nothing to
+                // carrying neither: the editor would have nothing to write and nothing to
                 // show, and the keystroke would appear to have done nothing at all.
                 Assert.True(
                     result.Success

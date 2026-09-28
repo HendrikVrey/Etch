@@ -11,8 +11,8 @@ namespace Etch.App.Tests;
 /// the thread that constructed it and throws from any other. xUnit is free to resume an
 /// <c>async</c> test after each <c>await</c> on whichever thread-pool thread is handy,
 /// so a workspace test that creates a tab and then awaits anything would be creating
-/// the document on one thread and snapshotting it on another. That fails intermittently
-/// — which is worse than failing always.
+/// the document on one thread and snapshotting it on another. That fails intermittently,
+/// which is worse than failing always.
 /// </para>
 /// <para>
 /// The fix is not to work around the affinity but to reproduce the environment that
@@ -35,8 +35,8 @@ internal static class UiThread
     /// </summary>
     /// <param name="body">The test body.</param>
     /// <param name="timeout">
-    /// How long to wait before declaring the test hung. A deadlock here is a real finding
-    /// — it means the code under test would deadlock the dispatcher — so it fails rather
+    /// How long to wait before declaring the test hung. A deadlock here is a real finding,
+    /// it means the code under test would deadlock the dispatcher, so it fails rather
     /// than hanging the suite.
     /// </param>
     /// <exception cref="TimeoutException">The body did not finish in time.</exception>
@@ -93,7 +93,7 @@ internal static class UiThread
             }
             catch (Exception ex) when (ex is InvalidOperationException or ObjectDisposedException)
             {
-                // The pump has already been completed — a continuation arriving after the
+                // The pump has already been completed: a continuation arriving after the
                 // body finished, which is normal for fire-and-forget work the workspace
                 // starts. Dropping it matches what a dispatcher does once it shuts down.
             }
@@ -128,7 +128,7 @@ internal static class UiThread
                 if (!_queue.TryTake(out var work, remaining))
                 {
                     // TryTake also reports false the instant the queue is completed and
-                    // empty, which is the ordinary way a test finishes — the body can
+                    // empty, which is the ordinary way a test finishes: the body can
                     // complete between the check above and this call. Only a genuinely
                     // empty wait is a timeout.
                     if (_queue.IsCompleted)

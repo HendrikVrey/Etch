@@ -6,7 +6,7 @@ namespace Etch.Core.Abstractions;
 /// <remarks>
 /// <para>
 /// <b>Synchronous, deliberately.</b> The plan's draft contract was asynchronous, and
-/// the plan is right that expensive transforms must not run on the UI thread — but
+/// the plan is right that expensive transforms must not run on the UI thread, but
 /// that is a fact about <em>where the caller invokes this</em>, not about what a
 /// transform is. A transform is a pure function from text to text. Making the
 /// signature asynchronous would invite an implementation to await something, and the
@@ -53,8 +53,8 @@ public interface ITransform
     /// </summary>
     /// <remarks>
     /// True for everything that reads its input, which is everything but the generators.
-    /// The application refuses to run a transform over an empty tab — an "applied" with
-    /// nothing to apply it to is a confusing thing to be told — and "New GUID" is precisely
+    /// The application refuses to run a transform over an empty tab, an "applied" with
+    /// nothing to apply it to is a confusing thing to be told, and "New GUID" is precisely
     /// the case where an empty tab is the <em>normal</em> starting point.
     /// </remarks>
     bool NeedsInput => true;
@@ -64,7 +64,7 @@ public interface ITransform
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Only consulted between transforms that scored identically — in practice, between
+    /// Only consulted between transforms that scored identically, in practice, between
     /// ones that all apply to the detected format and have never been used. That is exactly
     /// the case <c>Ctrl+Enter</c> decides on a fresh session, so leaving it to the final
     /// tie-break meant the most important key in the product was answered by <b>alphabetical
@@ -75,7 +75,7 @@ public interface ITransform
     /// <para>
     /// Zero is the answer for almost everything. A number here is only worth setting when a
     /// transform is deliberately claiming, or deliberately conceding, the suggested slot for
-    /// a format — and <c>SuggestionTests</c> pins what each format resolves to so that a
+    /// a format, and <c>SuggestionTests</c> pins what each format resolves to so that a
     /// change to any of these numbers has to be an intended one.
     /// </para>
     /// </remarks>
@@ -87,7 +87,7 @@ public interface ITransform
     /// <remarks>
     /// Called for every registered transform each time the palette opens and each time
     /// detection re-runs, so it must be a comparison and not a computation. It decides
-    /// ranking, not permission — a transform that returns false is still reachable by
+    /// ranking, not permission: a transform that returns false is still reachable by
     /// searching for it, because detection is a guess and the user is not.
     /// </remarks>
     bool IsAvailable(in DetectionResult detection);

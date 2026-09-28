@@ -13,8 +13,8 @@ namespace Etch.App.Palette;
 /// <remarks>
 /// <para>
 /// A separate type from <c>PaletteEntry</c> so that <c>Etch.Core</c> owns the ranking
-/// and knows nothing about how it is displayed. The alternative — binding the list
-/// straight to the core type — would put display concerns into the project the whole
+/// and knows nothing about how it is displayed. The alternative, binding the list
+/// straight to the core type, would put display concerns into the project the whole
 /// architecture exists to keep free of them.
 /// </para>
 /// <para>

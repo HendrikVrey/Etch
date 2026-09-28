@@ -13,8 +13,8 @@ namespace Etch.Core.Transforms;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <b>A hand-written list, and it stays that way.</b> The obvious alternative —
-/// scanning the assembly for implementations of <see cref="ITransform"/> — is the
+/// <b>A hand-written list, and it stays that way.</b> The obvious alternative,
+/// scanning the assembly for implementations of <see cref="ITransform"/>, is the
 /// single most reliable way to destroy a startup budget, and it would also make
 /// <c>Etch.Core</c> depend on reflection that a trimmed or ahead-of-time build cannot
 /// see through. The cost of this decision is one line per transform, paid by the
@@ -22,7 +22,7 @@ namespace Etch.Core.Transforms;
 /// </para>
 /// <para>
 /// The instances are built the first time anything touches this class, which is when
-/// the palette first opens or the first <c>Ctrl+Enter</c> is pressed — never during
+/// the palette first opens or the first <c>Ctrl+Enter</c> is pressed, never during
 /// startup. That is the plan's "construct nothing until needed", and it is why this is
 /// a static field rather than something the application composes at launch.
 /// </para>
@@ -63,7 +63,7 @@ public static class TransformRegistry
         new ToUtc(),
         new ToLocalTime(),
 
-        // Text — case
+        // Text: case
         new ToCamelCase(),
         new ToPascalCase(),
         new ToSnakeCase(),
@@ -71,7 +71,7 @@ public static class TransformRegistry
         new ToConstantCase(),
         new ToTitleCase(),
 
-        // Text — lines
+        // Text: lines
         new SortLines(),
         new ReverseLines(),
         new DedupeLines(),
@@ -79,7 +79,7 @@ public static class TransformRegistry
         new JoinLinesWithCommas(),
         new SplitOnCommas(),
 
-        // Text — whitespace
+        // Text: whitespace
         new TrimTrailingWhitespace(),
         new CollapseWhitespace(),
         new TabsToSpaces(),

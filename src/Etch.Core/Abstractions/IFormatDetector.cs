@@ -13,7 +13,7 @@ namespace Etch.Core.Abstractions;
 /// <para>
 /// The sample may be a <em>prefix</em> of the real text. A detector that needs to see
 /// a closing brace to be sure must return <see cref="DetectionConfidence.Likely"/> in
-/// that case rather than <see cref="DetectionConfidence.None"/> — declaring a 4 MB
+/// that case rather than <see cref="DetectionConfidence.None"/>: declaring a 4 MB
 /// JSON file to be plain text because its end was never read is the failure this whole
 /// interface is shaped around.
 /// </para>

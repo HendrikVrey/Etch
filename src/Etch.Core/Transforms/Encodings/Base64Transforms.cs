@@ -23,7 +23,7 @@ internal sealed class EncodeBase64 : ITransform
     /// <remarks>
     /// Never the suggested action. Encoding is something you go looking for; decoding is
     /// something the buffer tells you it needs. Offering "encode" as the top-ranked
-    /// action for a base64 string — the one case where it is actively wrong — is exactly
+    /// action for a base64 string, the one case where it is actively wrong, is exactly
     /// what ranking by availability is for.
     /// </remarks>
     public bool IsAvailable(in DetectionResult detection) => false;
@@ -44,11 +44,11 @@ internal sealed class EncodeBase64 : ITransform
 /// one. Decoding can tell the alphabets apart from the input, so asking the user which one
 /// they have would be making them do work the tool has already done. Encoding cannot: only
 /// the person knows whether the output is going into a URL, and getting it wrong is
-/// silent — standard base64's <c>+</c> and <c>/</c> travel through a query string looking
+/// silent, standard base64's <c>+</c> and <c>/</c> travel through a query string looking
 /// fine and arrive as a space and a path separator.
 /// </para>
 /// <para>
-/// Unpadded, because RFC 7515 — the specification that made this alphabet common — says so.
+/// Unpadded, because RFC 7515, the specification that made this alphabet common, says so.
 /// </para>
 /// </remarks>
 internal sealed class EncodeBase64Url : ITransform

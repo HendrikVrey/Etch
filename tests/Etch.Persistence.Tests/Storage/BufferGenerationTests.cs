@@ -9,8 +9,8 @@ namespace Etch.Persistence.Tests.Storage;
 /// </summary>
 /// <remarks>
 /// The journal is an unattended overwrite loop with no human ever confirming a save,
-/// so a single bad call from the layer above — an empty text change raised before a
-/// tab has hydrated is the realistic one — would otherwise replace someone's notes with
+/// so a single bad call from the layer above, an empty text change raised before a
+/// tab has hydrated is the realistic one, would otherwise replace someone's notes with
 /// nothing, permanently. These tests pin the four behaviours that make that
 /// recoverable, and the three that stop the extra copy becoming a liability of its own.
 /// </remarks>
@@ -97,7 +97,7 @@ public sealed class BufferGenerationTests
     public async Task Trashing_a_buffer_takes_its_generation_with_it()
     {
         // A generation left behind would be adopted as a recovered tab on the next
-        // launch, resurrecting a tab the user closed — with text one revision stale.
+        // launch, resurrecting a tab the user closed, with text one revision stale.
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
@@ -114,7 +114,7 @@ public sealed class BufferGenerationTests
     public async Task Trashing_falls_back_to_the_generation_when_the_live_file_is_gone()
     {
         // Closing a tab after a crash inside the rename window still has to be
-        // reopenable — that is precisely when the user most needs it to be.
+        // reopenable, that is precisely when the user most needs it to be.
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 

@@ -48,7 +48,7 @@ internal sealed class EditorTheme : IDisposable
     /// bearing rather than defensive. <c>ApplicationThemeManager.Apply</c> raises
     /// <c>Changed</c> only when the resource dictionary genuinely swapped, so a launch on
     /// a machine whose theme already matches the dictionary compiled into <c>App.xaml</c>
-    /// raises nothing at all — which is exactly the launch this would otherwise leave with
+    /// raises nothing at all, which is exactly the launch this would otherwise leave with
     /// AvalonEdit's own colours. Idempotent, so calling it twice costs a few microseconds
     /// and changes nothing.
     /// </remarks>
@@ -75,8 +75,8 @@ internal sealed class EditorTheme : IDisposable
     /// <para>
     /// Known limit: changing the accent colour <em>without</em> changing light or dark does
     /// not reach here, because the dictionary does not swap and <c>Changed</c> is not
-    /// raised. The selection stays fully legible — its contrast is guaranteed by
-    /// construction — but it keeps the previous accent until the next theme change or the
+    /// raised. The selection stays fully legible, its contrast is guaranteed by
+    /// construction, but it keeps the previous accent until the next theme change or the
     /// next launch. A second mechanism listening for <c>WM_SETTINGCHANGE</c> would close
     /// it, and two mechanisms for one job is the defect §22 of the plan was written about.
     /// </para>
@@ -91,7 +91,7 @@ internal sealed class EditorTheme : IDisposable
     /// question the same way. The registry rather than
     /// <c>ApplicationThemeManager.GetAppTheme</c>, for the reason given on this type: Etch
     /// constructs its window before it applies a theme, so the library's cached answer is
-    /// <c>Unknown</c> for part of startup. Read afresh on every call — it costs
+    /// <c>Unknown</c> for part of startup. Read afresh on every call: it costs
     /// microseconds and a cached copy is a second source of truth about something the user
     /// can change at any moment.
     /// </remarks>
@@ -108,7 +108,7 @@ internal sealed class EditorTheme : IDisposable
     /// <summary>Reads the system accent, with somewhere to fall back to at each step.</summary>
     /// <remarks>
     /// WPF-UI populates <c>SystemAccent</c> from inside <c>ApplicationThemeManager.Apply</c>,
-    /// so it is set by the time the application asks for a refresh — but it is a plain
+    /// so it is set by the time the application asks for a refresh, but it is a plain
     /// static that is simply unset before then, and an unset one is fully transparent
     /// rather than absent. Alpha is therefore what "no answer" looks like, at both steps.
     /// </remarks>
@@ -130,7 +130,7 @@ internal sealed class EditorTheme : IDisposable
         area.SelectionBorder = scheme.SelectionBorder;
         area.SelectionForeground = scheme.SelectionForeground;
 
-        // A local value, which outranks the setters in AvalonEdit's own TextArea style —
+        // A local value, which outranks the setters in AvalonEdit's own TextArea style,
         // that style is where the defaults being replaced here come from.
         var view = area.TextView;
 

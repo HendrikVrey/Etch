@@ -106,7 +106,7 @@ public class WorkspaceSettingsTests
         await workspace.WipeAllAsync(TestContext.Current.CancellationToken);
 
         // The files behind the stack are gone, so an entry left on it would be an offer
-        // Etch could not honour — and the entry itself holds the tab's title.
+        // Etch could not honour, and the entry itself holds the tab's title.
         Assert.False(workspace.CanReopenClosed);
         Assert.Null(directory.ReadTrashed(doomed.Id));
     });
@@ -119,7 +119,7 @@ public class WorkspaceSettingsTests
 
         var tab = workspace.Active!;
 
-        // A renamed tab, because the index holds titles the user wrote — which is the
+        // A renamed tab, because the index holds titles the user wrote, which is the
         // reason republishing a pre-wipe snapshot would be a leak rather than a nuisance.
         tab.Title = "prod-db-password";
 
@@ -144,7 +144,7 @@ public class WorkspaceSettingsTests
         await using var workspace = await OpenAsync(directory);
 
         // The privacy affordance §12 requires, and the one setting whose consequence is
-        // irreversible — so it is worth proving it reaches the trash sweep rather than
+        // irreversible, so it is worth proving it reaches the trash sweep rather than
         // merely being stored.
         workspace.ApplySettings(EtchSettings.Default with { TrashRetentionDays = 0 });
 

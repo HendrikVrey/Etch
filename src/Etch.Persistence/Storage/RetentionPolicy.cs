@@ -11,7 +11,7 @@ namespace Etch.Persistence.Storage;
 /// </para>
 /// <para>
 /// This policy is the reason Etch can close a tab without asking. Close is a move
-/// to the trash, not a delete, so there is nothing to confirm — and that only stays
+/// to the trash, not a delete, so there is nothing to confirm, and that only stays
 /// true for as long as the retention window is honest about when deletion happens.
 /// </para>
 /// </remarks>
@@ -59,8 +59,8 @@ public sealed class RetentionPolicy
     /// <paramref name="nowUtc"/>.
     /// </summary>
     /// <remarks>
-    /// A timestamp in the future — a clock correction, a daylight-saving jump, a
-    /// file copied from another machine — is treated as not expired. Erring the
+    /// A timestamp in the future (a clock correction, a daylight-saving jump, a
+    /// file copied from another machine) is treated as not expired. Erring the
     /// other way would delete recently closed tabs because the clock moved.
     /// </remarks>
     public bool IsExpired(DateTimeOffset trashedAtUtc, DateTimeOffset nowUtc)

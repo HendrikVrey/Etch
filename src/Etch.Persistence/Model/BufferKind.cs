@@ -22,7 +22,7 @@ public enum BufferKind
 
     /// <summary>
     /// Backed by a file on disk that the user opened. Edits are journaled to Etch's
-    /// shadow copy, never written through to the original — that happens only on an
+    /// shadow copy, never written through to the original, that happens only on an
     /// explicit save.
     /// </summary>
     File = 1,

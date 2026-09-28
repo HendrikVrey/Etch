@@ -12,9 +12,9 @@ namespace Etch.Core.Detection;
 /// <c>YYYY-MM-DD</c> optionally followed by a time and a zone, and nothing else; it then
 /// hands the string to <see cref="DateTimeOffset.TryParse(ReadOnlySpan{char}, IFormatProvider, DateTimeStyles, out DateTimeOffset)"/>
 /// purely to reject a month of 13 or a 30th of February. Splitting it that way is
-/// deliberate: <c>TryParse</c> alone is far too permissive to be a detector — under the
+/// deliberate: <c>TryParse</c> alone is far too permissive to be a detector (under the
 /// invariant culture it happily accepts <c>08/01/2026</c> and <c>Aug 1 2026</c>, neither of
-/// which is ISO-8601 — while a hand-rolled calendar is a well-known source of leap-year
+/// which is ISO-8601) while a hand-rolled calendar is a well-known source of leap-year
 /// bugs that the framework has already got right.
 /// </para>
 /// <para>
@@ -26,7 +26,7 @@ namespace Etch.Core.Detection;
 /// </para>
 /// <para>
 /// The whole buffer must be the timestamp. A date inside a log line does not make the line
-/// a date, and <c>Ctrl+Enter</c> — which does not ask first — would otherwise replace the
+/// a date, and <c>Ctrl+Enter</c>, which does not ask first, would otherwise replace the
 /// entire line with a number.
 /// </para>
 /// </remarks>
@@ -76,7 +76,7 @@ internal sealed class Iso8601Detector : IFormatDetector
         // transform disagree at the edges of the representable range and the format chip
         // says something different on a machine in Johannesburg than on one in New York.
         //
-        // Note that RoundtripKind — the obvious flag to reach for — is silently discarded by
+        // Note that RoundtripKind, the obvious flag to reach for, is silently discarded by
         // DateTimeOffset.TryParse ("RoundtripKind does not make sense for DateTimeOffset",
         // says the framework's own source), which would leave this parsing zone-less input as
         // machine-local. Passing a flag that does nothing while a comment claims it does is
@@ -145,7 +145,7 @@ internal sealed class Iso8601Detector : IFormatDetector
             // The standard also allows a comma as the decimal separator. It is rejected
             // here on purpose: DateTimeOffset.TryParse does not accept one, so admitting it
             // to the shape test would produce a span this detector calls ISO-8601 and then
-            // fails to parse — a disagreement between the two halves of this file.
+            // fails to parse, a disagreement between the two halves of this file.
             var digits = 0;
 
             while (digits < rest.Length - 1 && char.IsAsciiDigit(rest[digits + 1]))

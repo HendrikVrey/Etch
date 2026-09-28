@@ -6,7 +6,7 @@ using Xunit;
 namespace Etch.Persistence.Tests.Settings;
 
 /// <summary>
-/// <see cref="SettingsStore"/>, whose contract is that it never throws — it runs on the
+/// <see cref="SettingsStore"/>, whose contract is that it never throws: it runs on the
 /// startup path, and an exception escaping it is an Etch that will not start until the
 /// user finds and deletes a file they have never heard of.
 /// </summary>
@@ -88,7 +88,7 @@ public class SettingsStoreTests
         Assert.NotNull(result.Notice);
 
         // Unlike the session index, this is NOT quarantined. The likeliest cause is a
-        // typo in a file the user was invited to edit, and the fix is to correct it —
+        // typo in a file the user was invited to edit, and the fix is to correct it:
         // renaming it out from under them turns a misplaced comma into lost preferences.
         Assert.True(File.Exists(workspace.Paths.SettingsFile));
     }

@@ -13,7 +13,7 @@ namespace Etch.Core.Detection;
 /// </para>
 /// <para>
 /// A single malformed escape disqualifies the buffer. <c>%</c> followed by anything
-/// other than two hex digits is not URL-encoded text with a typo in it — it is text
+/// other than two hex digits is not URL-encoded text with a typo in it: it is text
 /// that contains a percent sign, which is far more common.
 /// </para>
 /// </remarks>
@@ -55,7 +55,7 @@ internal sealed class UrlEncodedDetector : IFormatDetector
             return DetectionConfidence.None;
         }
 
-        // One escape is a real signal but a thin one — a stray "%20" inside a log line
+        // One escape is a real signal but a thin one: a stray "%20" inside a log line
         // does not make the log line URL-encoded. Several is a value someone encoded.
         return escapes >= 2 && isComplete
             ? DetectionConfidence.Certain

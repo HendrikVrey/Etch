@@ -3,7 +3,7 @@
   <!--
     Etch.Core is pure functions over text: no UI reference, no I/O, no platform
     dependency. Everything of value in the product lives here so it can be
-    exhaustively unit-tested without a GUI. Keep it that way — if a PackageReference
+    exhaustively unit-tested without a GUI. Keep it that way, if a PackageReference
     or a `using System.Windows` appears in this project, something has gone wrong.
   -->
   <PropertyGroup>
@@ -14,15 +14,15 @@
       Embedded, not portable: the package carries its own debug information so a
       consumer can step into a transform without a symbol server. It costs a little
       size in a library that has no other dependencies, and it removes the .snupkg
-      question entirely — GitHub Packages does not host symbol packages.
+      question entirely: GitHub Packages does not host symbol packages.
     -->
     <DebugType>embedded</DebugType>
   </PropertyGroup>
 
   <!--
     This is the only packable project in the solution (Directory.Build.props turns
-    packing off by default). It is packed so that Sling — the HTTP client that runs
-    this same transform chain over a response body — can consume the engine as a
+    packing off by default). It is packed so that Sling, the HTTP client that runs
+    this same transform chain over a response body, can consume the engine as a
     versioned dependency rather than as a submodule or a copied folder.
 
     THE FEED IS PRIVATE, AND THE LICENCE IS WHY. LICENCE §3(b) forbids making the
@@ -37,7 +37,7 @@
     <IsPackable>true</IsPackable>
     <PackageId>Etch.Core</PackageId>
     <Title>Etch.Core</Title>
-    <Description>The Etch transform engine: format detection, the transform catalogue, palette ranking, and the text utilities behind them. Pure — no UI, no I/O, no dependencies. Source-available, not open source; see the bundled LICENSE.</Description>
+    <Description>The Etch transform engine: format detection, the transform catalogue, palette ranking, and the text utilities behind them. Pure, no UI, no I/O, no dependencies. Source-available, not open source; see the bundled LICENSE.</Description>
     <PackageTags>etch;text;transform;json;base64;jwt;formatting</PackageTags>
     <PackageProjectUrl>https://github.com/HendrikVrey/Etch</PackageProjectUrl>
     <RepositoryUrl>https://github.com/HendrikVrey/Etch</RepositoryUrl>
@@ -51,8 +51,8 @@
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <!--
       The package version tracks the repository's VersionPrefix rather than carrying
-      one of its own. One number to bump, and with a single consumer the cost — a
-      version bump on a release that did not change this assembly's API — buys
+      one of its own. One number to bump, and with a single consumer the cost, a
+      version bump on a release that did not change this assembly's API, buys
       nothing worth a second version scheme.
     -->
   </PropertyGroup>

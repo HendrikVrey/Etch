@@ -10,8 +10,8 @@ namespace Etch.App.Tests.Views;
 /// <remarks>
 /// One switch, and one way for it to go wrong: its default arm returns "Plain text", so a
 /// <see cref="FormatId"/> added without a case reports a recognised buffer as unrecognised
-/// and nothing fails. That is the same shape of defect as the missing <c>Ctrl+T</c> — every
-/// mechanism works, and no artefact says what is missing — so it gets the same treatment,
+/// and nothing fails. That is the same shape of defect as the missing <c>Ctrl+T</c> (every
+/// mechanism works, and no artefact says what is missing) so it gets the same treatment,
 /// a test that walks the enum.
 /// </remarks>
 public class FormatChipTests

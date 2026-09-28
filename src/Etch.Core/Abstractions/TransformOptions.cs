@@ -7,7 +7,7 @@ namespace Etch.Core.Abstractions;
 /// <param name="IndentSize">Spaces per indent level for formatters.</param>
 /// <param name="NewLine">
 /// The line ending to emit. Taken from the document rather than assumed, because a
-/// transform that writes <c>\n</c> into a CRLF buffer leaves a file with both — which
+/// transform that writes <c>\n</c> into a CRLF buffer leaves a file with both, which
 /// is invisible on screen and very visible in a diff.
 /// </param>
 /// <remarks>

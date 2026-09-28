@@ -13,7 +13,7 @@ namespace Etch.Persistence.Model;
 /// A wrapper rather than a bare <see cref="Guid"/> because this type is the
 /// security boundary for every path Etch builds under its data directory. The only
 /// way to obtain one is <see cref="New"/> or <see cref="TryParseFileName"/>, and
-/// <see cref="FileName"/> is a 32-character hex string by construction — it cannot
+/// <see cref="FileName"/> is a 32-character hex string by construction: it cannot
 /// contain a separator, a drive letter, a <c>..</c> segment, or a reserved device
 /// name. Path traversal is therefore not something the storage layer has to defend
 /// against; it is unrepresentable.
@@ -35,7 +35,7 @@ public readonly record struct BufferId
     /// </summary>
     /// <remarks>
     /// Etch's headline promise is that it never loses text, and the journal is an
-    /// unattended overwrite loop — so a single bad call from the editor layer, such
+    /// unattended overwrite loop, so a single bad call from the editor layer, such
     /// as an empty text change raised before a tab has finished hydrating, would
     /// otherwise replace someone's notes with nothing and no human would ever be
     /// asked to confirm it. Keeping the previous revision costs one rename per write
@@ -86,7 +86,7 @@ public readonly record struct BufferId
     /// <remarks>
     /// Deliberately strict. This is what runs over the contents of the buffers and
     /// trash directories, and a file Etch did not write is a file Etch must not
-    /// read, move, or delete — the retention sweep would otherwise be a delete
+    /// read, move, or delete: the retention sweep would otherwise be a delete
     /// primitive pointed at whatever happened to be in the folder. Anything that
     /// does not parse exactly is ignored rather than repaired.
     /// </remarks>
@@ -152,7 +152,7 @@ public readonly record struct BufferId
         // and accepts uppercase hex. Both are legal in an NTFS file name, so without
         // this check " <hex>.txt" and "<HEX>.txt" would parse to an id whose FileName
         // is a *different* string. Every caller then acts on the reconstructed
-        // canonical path rather than the one it enumerated — which means the trash
+        // canonical path rather than the one it enumerated, which means the trash
         // sweep would delete a file it never looked at while leaving the one it did.
         // Requiring the round trip to be byte-identical is what makes
         // "enumerate, parse, then operate on the canonical name" safe.

@@ -12,7 +12,7 @@ namespace Etch.App.Views;
 /// Its own type rather than more members on the window, because this is a pure
 /// string-to-number rule and nothing about it needs a <c>Window</c>. Reaching it through
 /// <c>MainWindow</c> would also mean every test of it ran that type's static
-/// initialiser — which constructs WPF objects — for no reason at all.
+/// initialiser, which constructs WPF objects, for no reason at all.
 /// </para>
 /// <para>
 /// <see cref="Format"/> and <see cref="TryParse"/> are a matched pair and have to stay
@@ -22,12 +22,12 @@ namespace Etch.App.Views;
 /// </para>
 /// <para>
 /// <b>They are not exact inverses, and cannot be.</b> A byte count divided by 2^20
-/// terminates in decimal but can need up to twenty places — 100 KiB is 0.09765625 MB, and
-/// an odd byte count is far worse — so every readable precision loses something. What is
+/// terminates in decimal but can need up to twenty places (100 KiB is 0.09765625 MB, and
+/// an odd byte count is far worse) so every readable precision loses something. What is
 /// guaranteed instead are the two properties the panel actually rests on: anything
 /// <see cref="Format"/> produces is accepted by <see cref="TryParse"/>, and formatting is
 /// idempotent, so repeated edits cannot walk a threshold away from where the user put it.
-/// The residual drift is dealt with by not re-reading a box nobody has touched — see
+/// The residual drift is dealt with by not re-reading a box nobody has touched: see
 /// <see cref="IsUnchanged"/>.
 /// </para>
 /// </remarks>
@@ -39,7 +39,7 @@ internal static class SettingsThresholds
     /// <remarks>
     /// Four decimal places, not two, and the floor is why: the smallest legal threshold is
     /// 64 KiB, which is 0.0625 MB exactly. Rounding that to "0.06" would write back 62 914
-    /// bytes — below the floor — so the panel would refuse the value it had just shown.
+    /// bytes, below the floor, so the panel would refuse the value it had just shown.
     /// </remarks>
     private const string Precision = "0.####";
 
@@ -51,7 +51,7 @@ internal static class SettingsThresholds
 
     /// <summary>
     /// Whether <paramref name="text"/> is still exactly what <see cref="Format"/> would
-    /// have written for <paramref name="bytes"/> — that is, whether the box is untouched.
+    /// have written for <paramref name="bytes"/>, that is, whether the box is untouched.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -76,7 +76,7 @@ internal static class SettingsThresholds
     /// </summary>
     /// <remarks>
     /// All or nothing, because <c>DocumentSizePolicy</c> throws on a set that does not
-    /// ascend — so accepting one field at a time would mean every intermediate keystroke
+    /// ascend, so accepting one field at a time would mean every intermediate keystroke
     /// produced a policy that could not be constructed.
     /// </remarks>
     public static bool TryParse(
@@ -105,7 +105,7 @@ internal static class SettingsThresholds
     /// The styles are spelled out rather than taken from <c>NumberStyles.Float</c>, which
     /// includes <c>AllowExponent</c>: "1e9" in a box labelled MB is far more likely to be
     /// a typo than an intention. A leading sign <em>is</em> allowed, so that "-1" reads as
-    /// out of range in the caller's check rather than as unparseable — the two deserve
+    /// out of range in the caller's check rather than as unparseable: the two deserve
     /// different messages.
     /// </remarks>
     private static bool TryReadMegabytes(string text, out long bytes)
@@ -126,7 +126,7 @@ internal static class SettingsThresholds
         var exact = megabytes * BytesPerMegabyte;
 
         // Range-checked before the cast, not after. A double outside long's range converts,
-        // in an unchecked context, to an unspecified value — long.MinValue in practice —
+        // in an unchecked context, to an unspecified value, long.MinValue in practice,
         // which would then sail through the ascending-order check above as a
         // plausible-looking negative threshold.
         if (exact is < 0 or > EtchSettings.MaxThresholdBytes)

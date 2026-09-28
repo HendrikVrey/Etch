@@ -47,8 +47,8 @@ public sealed class SettingsStore
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The settings panel starts a save without awaiting it — a checkbox must not feel
-    /// slow — so two can be in flight at once. Each writes to a uniquely-named temporary
+    /// The settings panel starts a save without awaiting it, a checkbox must not feel
+    /// slow, so two can be in flight at once. Each writes to a uniquely-named temporary
     /// file, so nothing interleaves inside the file; what is not protected without this
     /// gate is the <em>order</em> of the two renames, which is the filesystem's to choose.
     /// The loser of that race decides what is on disk, and it is as likely to be the older
@@ -72,7 +72,7 @@ public sealed class SettingsStore
     /// Never throws, with one deliberate exception: a cancellation requested through
     /// <paramref name="cancellationToken"/> propagates, because a caller that asked for
     /// the read to stop wants to know it did. The startup path passes no token, so for
-    /// that caller — the one this contract exists for — the guarantee is unqualified.
+    /// that caller, the one this contract exists for, the guarantee is unqualified.
     /// </remarks>
     public async Task<SettingsLoadResult> LoadAsync(CancellationToken cancellationToken = default)
     {
@@ -206,7 +206,7 @@ public sealed class SettingsStore
 
             // No backup generation, for the reason the session index has none: this is
             // cheap to lose and expensive to keep a second copy of. Unlike the index it is
-            // not even rebuilt — it simply reverts to the shipped defaults, which is a
+            // not even rebuilt: it simply reverts to the shipped defaults, which is a
             // recoverable state rather than a lossy one.
             await AtomicFile.WriteAllTextAsync(_paths.SettingsFile, json, backupPath: null, cancellationToken)
                 .ConfigureAwait(false);
@@ -266,7 +266,7 @@ public enum SettingsLoadStatus
     /// <summary>The file was read and is usable.</summary>
     Loaded = 0,
 
-    /// <summary>There was no file. A first launch — not an error, and not worth a message.</summary>
+    /// <summary>There was no file. A first launch, not an error, and not worth a message.</summary>
     Missing = 1,
 
     /// <summary>

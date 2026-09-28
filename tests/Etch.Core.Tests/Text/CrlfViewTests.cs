@@ -6,9 +6,9 @@ namespace Etch.Core.Tests.Text;
 
 /// <summary>
 /// The offset mapping is the whole of this type, and it is the kind of arithmetic that
-/// looks right and is off by one. These assert the property directly — normalising the
-/// original substring a mapped match points at must give back the text that was matched
-/// — rather than asserting particular numbers, because the numbers are not the contract.
+/// looks right and is off by one. These assert the property directly, normalising the
+/// original substring a mapped match points at must give back the text that was matched,
+/// rather than asserting particular numbers, because the numbers are not the contract.
 /// </summary>
 public class CrlfViewTests
 {

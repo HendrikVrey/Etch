@@ -22,7 +22,7 @@
     <windowsSettings>
       <!--
         Per-monitor DPI v2. Without this the window is bitmap-scaled on high-DPI
-        displays and the text goes soft — unacceptable in an editor.
+        displays and the text goes soft: unacceptable in an editor.
       -->
       <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/pm</dpiAware>
       <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">permonitorv2</dpiAwareness>

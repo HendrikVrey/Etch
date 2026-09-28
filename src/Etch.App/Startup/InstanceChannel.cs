@@ -15,7 +15,7 @@ internal enum HandoffResult
 
     /// <summary>
     /// The running instance is shutting down and cannot take it, but is about to release
-    /// the data directory — so the sender should wait for the lock rather than give up.
+    /// the data directory, so the sender should wait for the lock rather than give up.
     /// </summary>
     Refused = 2,
 }
@@ -116,8 +116,8 @@ internal sealed class InstanceChannel : IAsyncDisposable
     /// before it was set.
     /// </summary>
     /// <remarks>
-    /// The buffer exists because the channel opens as early as possible — before the
-    /// window is constructed — so that a second launch a few hundred milliseconds
+    /// The buffer exists because the channel opens as early as possible, before the
+    /// window is constructed, so that a second launch a few hundred milliseconds
     /// behind the first is answered rather than told the running instance is not
     /// responding. Anything that lands in that gap is a real user action and must not
     /// be dropped.
@@ -158,7 +158,7 @@ internal sealed class InstanceChannel : IAsyncDisposable
     /// apart. <see cref="HandoffResult.Accepted"/> is done.
     /// <see cref="HandoffResult.Refused"/> means the holder is closing and will release
     /// the lock shortly, so waiting for it is right.
-    /// <see cref="HandoffResult.Unreachable"/> means it is not answering at all — and
+    /// <see cref="HandoffResult.Unreachable"/> means it is not answering at all, and
     /// starting anyway is the exact data-loss scenario the lock exists to prevent.
     /// </remarks>
     public static async Task<HandoffResult> TrySendAsync(string name, InstanceRequest request, TimeSpan timeout)
@@ -234,8 +234,8 @@ internal sealed class InstanceChannel : IAsyncDisposable
 
                 try
                 {
-                    // Exponential, capped. A permanently unusable pipe name — squatted by
-                    // another process of the same user — would otherwise wake this four
+                    // Exponential, capped. A permanently unusable pipe name, squatted by
+                    // another process of the same user, would otherwise wake this four
                     // times a second for the life of the process, against a stated 0%
                     // idle-CPU budget, and never escalate.
                     await Task.Delay(BackoffFor(++consecutiveFailures), token).ConfigureAwait(false);
@@ -261,7 +261,7 @@ internal sealed class InstanceChannel : IAsyncDisposable
     /// </summary>
     /// <remarks>
     /// Called the moment the window begins closing. Until it is, a second launch
-    /// connects, is acknowledged, and exits believing its file was accepted — while the
+    /// connects, is acknowledged, and exits believing its file was accepted, while the
     /// window that was supposed to open it is shutting down. The user double-clicks a
     /// file and nothing happens, with no error anywhere.
     /// </remarks>
@@ -331,7 +331,7 @@ internal sealed class InstanceChannel : IAsyncDisposable
 
         // Answered rather than ignored, and answered with a distinct byte. This instance
         // is closing and genuinely cannot open the file, but it is about to release the
-        // lock — so the sender should wait for it, not conclude that Etch is wedged.
+        // lock, so the sender should wait for it, not conclude that Etch is wedged.
         if (Volatile.Read(ref _refusing) == 1)
         {
             await server.WriteAsync(new[] { Refusal }, token).ConfigureAwait(false);

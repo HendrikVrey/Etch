@@ -16,7 +16,7 @@ namespace Etch.App.Views;
 /// the only one that is discoverable without having read anything. It shows the same
 /// transforms the palette would mark green, in the same order, because
 /// <see cref="PaletteRanking.SuggestedTop"/> is the single place that decides what is
-/// ready — see its remarks for why that matters more than it looks.
+/// ready: see its remarks for why that matters more than it looks.
 /// </para>
 /// <para>
 /// <b>The menu is attached to <c>Editor.TextArea</c>, not to the <c>TextEditor</c>, and
@@ -24,7 +24,7 @@ namespace Etch.App.Views;
 /// its own: <c>Copy()</c>, <c>Cut()</c>, <c>Paste()</c> and <c>SelectAll()</c> all
 /// forward to the <c>TextArea</c>, and the real bindings are registered by
 /// <c>EditingCommandHandler</c> and <c>CaretNavigationCommandHandler</c> onto the
-/// <c>TextArea</c>'s input handler — whose <c>CanExecute</c> handlers begin with
+/// <c>TextArea</c>'s input handler, whose <c>CanExecute</c> handlers begin with
 /// <c>target as TextArea</c> and do nothing when the target is anything else. A menu
 /// targeting the <c>TextEditor</c> would therefore render every clipboard item greyed
 /// out, which looks like a WPF bug and is not one. (Verified against upstream source,
@@ -63,8 +63,8 @@ public partial class MainWindow
 
     /// <summary>Attaches the right-click menu to the editor.</summary>
     /// <remarks>
-    /// Called after <c>InitializeComponent</c>, because it needs the editor — and
-    /// therefore its <c>TextArea</c> — to exist. The menu instance is created once and
+    /// Called after <c>InitializeComponent</c>, because it needs the editor, and
+    /// therefore its <c>TextArea</c>, to exist. The menu instance is created once and
     /// its contents rebuilt on each open.
     /// </remarks>
     private void InitialiseContextMenu()
@@ -87,7 +87,7 @@ public partial class MainWindow
     /// <para>
     /// <b>Right-clicking does not move the caret or change the selection</b>, which is
     /// AvalonEdit's behaviour and is deliberately left alone. The menu therefore acts on
-    /// the current selection, or on the whole buffer when there is none — byte-identical
+    /// the current selection, or on the whole buffer when there is none: byte-identical
     /// to what <c>Ctrl+Enter</c> would do at that moment. Making right-click move the
     /// caret, as some editors do, would silently change what the transform runs against
     /// between the click that opened the menu and the row that was chosen. Do not
@@ -172,7 +172,7 @@ public partial class MainWindow
     /// <para>
     /// <b>Cut and Copy are enabled even with no selection.</b> AvalonEdit's
     /// <c>CanCutOrCopy</c> is <c>Options.CutCopyWholeLine || !Selection.IsEmpty</c>, and
-    /// <c>CutCopyWholeLine</c> defaults to true, so both act on the caret's line — which
+    /// <c>CutCopyWholeLine</c> defaults to true, so both act on the caret's line, which
     /// is exactly what <c>Ctrl+X</c> and <c>Ctrl+C</c> already do in this editor. The menu
     /// agreeing with the keyboard is the point.
     /// </para>
@@ -231,7 +231,7 @@ public partial class MainWindow
     /// <summary>Builds a header of the green marker followed by the transform's name.</summary>
     /// <remarks>
     /// The brush is attached with <see cref="FrameworkElement.SetResourceReference"/>,
-    /// which is the code equivalent of <c>DynamicResource</c> — a static lookup would
+    /// which is the code equivalent of <c>DynamicResource</c>: a static lookup would
     /// freeze the marker at whichever theme was loaded when the menu was first opened.
     /// </remarks>
     private static StackPanel SuggestedHeader(string name)

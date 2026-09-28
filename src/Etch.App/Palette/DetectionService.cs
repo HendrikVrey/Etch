@@ -19,7 +19,7 @@ namespace Etch.App.Palette;
 /// immutable snapshot, which is the affordance AvalonEdit's document exists to
 /// provide.</item>
 /// <item><b>Never a polling timer.</b> The timer is created on first use, fires once,
-/// and stops itself — so an idle Etch has nothing scheduled, which is what the plan's
+/// and stops itself, so an idle Etch has nothing scheduled, which is what the plan's
 /// 0% idle CPU budget actually requires.</item>
 /// </list>
 /// <para>
@@ -66,7 +66,7 @@ internal sealed class DetectionService
     /// Notes that <paramref name="document"/> may have changed and schedules a scan.
     /// </summary>
     /// <remarks>
-    /// Called from every route that changes what is on screen — a keystroke, a tab
+    /// Called from every route that changes what is on screen: a keystroke, a tab
     /// switch, an applied transform. Restarting the timer rather than queueing is the
     /// debounce.
     /// </remarks>
@@ -96,7 +96,7 @@ internal sealed class DetectionService
     /// <remarks>
     /// For <c>Ctrl+Enter</c> and for opening the palette, where waiting out a debounce
     /// would mean acting on the wrong buffer. Synchronous, and affordable because the
-    /// scan is bounded to a 64 KB sample whatever the document's size — the same work
+    /// scan is bounded to a 64 KB sample whatever the document's size: the same work
     /// the background pass does, on a budget of 15 ms.
     /// </remarks>
     public DetectionResult DetectNow(TextDocument? document)
@@ -123,7 +123,7 @@ internal sealed class DetectionService
     /// <summary>Runs the detection over a snapshot, reading only what it needs.</summary>
     /// <remarks>
     /// <c>GetText(0, n)</c> rather than <c>snapshot.Text</c>. The latter walks the rope
-    /// and allocates a copy of the whole document — on a 10 MB buffer that is a
+    /// and allocates a copy of the whole document, on a 10 MB buffer that is a
     /// large-object-heap allocation per debounce, to examine the first 64 KB of it.
     /// </remarks>
     private static DetectionResult Scan(ITextSource snapshot)
@@ -177,8 +177,8 @@ internal sealed class DetectionService
                     return;
                 }
 
-                // And the version, not just the document. Two scans can overlap — an
-                // Invalidate landing while the first is on the pool — and nothing makes
+                // And the version, not just the document. Two scans can overlap, an
+                // Invalidate landing while the first is on the pool, and nothing makes
                 // them finish in order, so without this the older answer can publish last
                 // and leave the chip describing text that has already been replaced.
                 if (snapshot.Version is not { } scanned

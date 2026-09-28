@@ -127,7 +127,7 @@ public sealed record BufferRecord
     /// <c>session.json</c> is the untrusted-input boundary, and this is the only field
     /// in it that names a location outside Etch's own directory. On an explicit save
     /// it becomes a write target, so a planted index would otherwise be a persistent,
-    /// reboot-surviving arbitrary-write primitive that fires on a routine keystroke —
+    /// reboot-surviving arbitrary-write primitive that fires on a routine keystroke,
     /// with the title attacker-controlled too, so the tab can be dressed up as the
     /// user's own file.
     /// </para>
@@ -187,7 +187,7 @@ public sealed record BufferRecord
         }
 
         // Requiring the already-canonical form rejects traversal segments and the
-        // trailing dots and spaces Windows silently strips — both of which let two
+        // trailing dots and spaces Windows silently strips, both of which let two
         // different strings name the same file, which is how a check on one string
         // ends up guarding a write to another.
         if (!string.Equals(canonical, filePath, StringComparison.Ordinal))

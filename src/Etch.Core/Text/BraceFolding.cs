@@ -11,8 +11,8 @@ public readonly record struct FoldRegion(int StartOffset, int EndOffset, string 
 /// </summary>
 /// <remarks>
 /// <para>
-/// AvalonEdit ships exactly one folding strategy and it is for XML, so everything else —
-/// JSON, C#, JavaScript, CSS, the languages people actually open a scratchpad for — has
+/// AvalonEdit ships exactly one folding strategy and it is for XML, so everything else
+/// (JSON, C#, JavaScript, CSS, the languages people actually open a scratchpad for) has
 /// none. This is that strategy, written here rather than in the UI layer because the
 /// entire difficulty is lexical: a <c>{</c> inside a string literal is not a block, a
 /// <c>}</c> inside a comment does not close one, and a file with one stray quote in it
@@ -22,7 +22,7 @@ public readonly record struct FoldRegion(int StartOffset, int EndOffset, string 
 /// <para>
 /// <b>One lexical model, stated plainly.</b> Double-quoted and single-quoted strings with
 /// backslash escapes, <c>//</c> to end of line, and <c>/* */</c> across lines. That is the
-/// C family and JSON, which is exactly the set of languages this is offered for — XML and
+/// C family and JSON, which is exactly the set of languages this is offered for: XML and
 /// HTML fold through AvalonEdit's own strategy, and Python and Markdown are not offered
 /// folding at all because their structure is not bracketed and pretending otherwise would
 /// produce folds in the wrong places.
@@ -30,7 +30,7 @@ public readonly record struct FoldRegion(int StartOffset, int EndOffset, string 
 /// <para>
 /// <b>Known imprecision, deliberate.</b> A string is ended by a newline as well as by its
 /// closing quote. That is wrong for C# verbatim strings and JavaScript template literals,
-/// which really do span lines — but the alternative is worse in the case that actually
+/// which really do span lines, but the alternative is worse in the case that actually
 /// happens: a single unmatched quote anywhere in a file would otherwise swallow the whole
 /// remainder as string content and silently delete every fold below it. Recovering at the
 /// line break confines the damage to one line, which is the same bet every syntax
@@ -127,8 +127,8 @@ public static class BraceFolding
         }
 
         // Innermost-first becomes outermost-first. Sorting on the start offset alone is
-        // enough, and stability is not needed rather than assumed — List<T>.Sort is
-        // introsort and is not stable — because two regions cannot share a start offset:
+        // enough, and stability is not needed rather than assumed, List<T>.Sort is
+        // introsort and is not stable, because two regions cannot share a start offset:
         // that would need one bracket to open two regions.
         regions.Sort(static (first, second) => first.StartOffset.CompareTo(second.StartOffset));
 
@@ -139,7 +139,7 @@ public static class BraceFolding
     /// <remarks>
     /// A closer with nothing to match is discarded rather than popping whatever happens to
     /// be on top. Popping would let a single stray <c>}</c> in a comment-like position
-    /// close an outer block and produce a fold spanning the wrong half of the file — a
+    /// close an outer block and produce a fold spanning the wrong half of the file: a
     /// visibly broken margin, where discarding merely produces one fewer fold.
     /// </remarks>
     private static void Close(char closer, int index, int line, Stack<Opening> open, List<FoldRegion> regions)
@@ -168,7 +168,7 @@ public static class BraceFolding
     /// </summary>
     /// <remarks>
     /// A backslash escapes the next character whatever it is, which is what stops
-    /// <c>"\\"</c> — a string holding one backslash — from reading as an unterminated
+    /// <c>"\\"</c>, a string holding one backslash, from reading as an unterminated
     /// string that swallows the rest of the line. The newline case is the recovery
     /// described on the type: it is consumed and counted, so the caller's line number stays
     /// correct even when a quote was never closed.
@@ -184,7 +184,7 @@ public static class BraceFolding
 
             if (character == '\\')
             {
-                // Two characters, not one — but never past the end, and never over a
+                // Two characters, not one, but never past the end, and never over a
                 // newline, or an escape at the end of a line would hide the line break from
                 // the counter and every fold below would be attributed to the wrong line.
                 if (index + 1 < text.Length && text[index + 1] != '\n')

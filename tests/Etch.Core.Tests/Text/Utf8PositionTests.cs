@@ -38,7 +38,7 @@ public class Utf8PositionTests
     [InlineData("café", 5, 4)]
     // Three bytes per ideograph.
     [InlineData("日本語", 9, 3)]
-    // Four bytes per emoji, and two chars — a surrogate pair.
+    // Four bytes per emoji, and two chars: a surrogate pair.
     [InlineData("🎉", 4, 2)]
     [InlineData("a🎉b", 6, 4)]
     public void A_non_ascii_line_maps_bytes_onto_characters(string line, long bytePosition, int expected)
@@ -58,7 +58,7 @@ public class Utf8PositionTests
         // way past it. "café": is 4 chars for café plus the quotes and colon.
         const string Line = "\"café\": tru";
 
-        // 12 UTF-8 bytes for 11 chars — the é is two.
+        // 12 UTF-8 bytes for 11 chars, the é is two.
         Assert.Equal(12, Encoding.UTF8.GetByteCount(Line));
 
         Assert.True(Utf8Position.TryResolve(Line, 0, 12, out var offset));
@@ -117,7 +117,7 @@ public class Utf8PositionTests
     [Fact]
     public void A_byte_position_past_the_end_of_its_line_stops_at_the_line_end()
     {
-        // The most common failure of all — JSON cut off mid-write, where the parser stops
+        // The most common failure of all: JSON cut off mid-write, where the parser stops
         // at the end of the input and reports the position just past it. Clamped rather
         // than refused, because there is a right answer here and it is "the end".
         Assert.True(Utf8Position.TryResolve("ab\ncd", 0, 99, out var offset));
@@ -139,14 +139,14 @@ public class Utf8PositionTests
     [Fact]
     public void An_unpaired_surrogate_is_counted_as_three_bytes_and_one_char()
     {
-        // A scratchpad buffer really can hold one — pasted out of a hex viewer or a
-        // truncated log — and refusing to resolve any position on the line because of a
+        // A scratchpad buffer really can hold one, pasted out of a hex viewer or a
+        // truncated log, and refusing to resolve any position on the line because of a
         // stray character earlier in it would be the worse failure.
         //
         // The exact answer, not merely a plausible one: 'a' is one byte, the lone
         // surrogate is charged the three bytes its replacement character would occupy, so
         // four bytes in is two chars in. Asserting only "somewhere in the string" would
-        // pass for every possible return value, including "gave up at the start" — which
+        // pass for every possible return value, including "gave up at the start", which
         // is precisely the failure this test is named after.
         var text = "a" + '\uD800' + "bc";
 

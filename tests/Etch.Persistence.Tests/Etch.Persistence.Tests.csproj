@@ -3,8 +3,8 @@
   <PropertyGroup>
     <!--
       Windows-targeted, unlike Etch.Persistence itself. The suite asserts on Windows
-      path shapes and on NTFS rename semantics, which is honest — Etch is a Windows
-      application — but it means these tests are not portable, and pretending
+      path shapes and on NTFS rename semantics, which is honest, Etch is a Windows
+      application, but it means these tests are not portable, and pretending
       otherwise by targeting plain net10.0 would just mean they fail on Linux.
     -->
     <TargetFramework>net10.0-windows</TargetFramework>

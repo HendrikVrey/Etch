@@ -19,7 +19,7 @@ public readonly record struct PaletteEntry(ITransform Transform, bool IsSuggeste
 /// <para>
 /// The plan's rule, in order: what applies to the detected format, then what was used
 /// recently, then how well the query matches. The point is stated in section 9 and is
-/// worth restating here because every part of this file serves it — <b>the right
+/// worth restating here because every part of this file serves it: <b>the right
 /// answer should be the first row before anything is typed.</b>
 /// </para>
 /// <para>
@@ -45,7 +45,7 @@ public static class PaletteRanking
     /// <param name="query">What was typed. Empty lists everything.</param>
     /// <param name="detection">What the buffer was detected as.</param>
     /// <param name="recentIds">
-    /// Transform ids most recently used, newest first. Null or empty is normal — it is
+    /// Transform ids most recently used, newest first. Null or empty is normal: it is
     /// what a fresh session looks like.
     /// </param>
     public static IReadOnlyList<PaletteEntry> Rank(
@@ -78,7 +78,7 @@ public static class PaletteRanking
         // Score, then declared precedence, then name.
         //
         // Precedence sits in the middle because an exact score tie is the one case where
-        // the order is otherwise an accident of the alphabet — and on a fresh session that
+        // the order is otherwise an accident of the alphabet, and on a fresh session that
         // tie is what Ctrl+Enter resolves. Name stays as the last word so the list is
         // stable between openings: a palette whose rows move when nothing changed is one
         // people stop trusting to muscle memory, which is most of what a palette is for.
@@ -105,7 +105,7 @@ public static class PaletteRanking
     /// <remarks>
     /// Only ever something that applies to the detected format. This key does its job
     /// without showing the user what it is about to do, so it has to be the obvious
-    /// action or no action — running the highest-scoring transform in a list nobody
+    /// action or no action: running the highest-scoring transform in a list nobody
     /// looked at would be a keystroke that reformats a buffer at random.
     /// </remarks>
     public static ITransform? Suggested(in DetectionResult detection, IReadOnlyList<string>? recentIds = null)
@@ -128,14 +128,14 @@ public static class PaletteRanking
     /// "which transforms are ready" now has three consumers: <c>Ctrl+Enter</c>, the green
     /// markers in the palette, and the editor's right-click menu. A rule written in more
     /// than one place will disagree, and the copy under test is not necessarily the copy
-    /// that ships — so the rule lives here and the menu asks rather than re-deriving it by
+    /// that ships, so the rule lives here and the menu asks rather than re-deriving it by
     /// filtering <see cref="Rank"/> at the call site.
     /// </para>
     /// <para>
     /// The scan stops at the first row that is not suggested rather than filtering the
     /// whole ranking. With an empty query every fuzzy score is zero, so
     /// <see cref="SuggestedBonus"/> (10,000) cannot be overtaken by the largest possible
-    /// recency bonus (8,000) and the suggested entries are exactly the leading run — the
+    /// recency bonus (8,000) and the suggested entries are exactly the leading run: the
     /// two readings agree today. Stopping is still the one to write down, because it is
     /// what keeps <see cref="Suggested"/> returning null in the case its own contract
     /// names: the top-ranked entry is not itself suggested.

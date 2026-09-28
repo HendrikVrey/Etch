@@ -4,7 +4,7 @@ namespace Etch.Core.Abstractions;
 /// The grouping a transform appears under in the palette.
 /// </summary>
 /// <remarks>
-/// Presentation only. Nothing routes on this — a category that decided behaviour would
+/// Presentation only. Nothing routes on this: a category that decided behaviour would
 /// be a second, weaker copy of <see cref="ITransform.IsAvailable"/>.
 /// </remarks>
 public enum TransformCategory

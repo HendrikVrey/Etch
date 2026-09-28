@@ -6,7 +6,7 @@ namespace Etch.Core.Abstractions;
 /// <remarks>
 /// Four levels rather than a boolean, because the interesting cases are the ones in
 /// between. A 64 KB prefix of a 4 MB JSON file cannot be fully parsed, so a detector
-/// that could only say yes or no would have to say no — and the status bar would call
+/// that could only say yes or no would have to say no, and the status bar would call
 /// the largest, most useful documents plain text. <see cref="Likely"/> is where those
 /// live.
 /// </remarks>
@@ -22,7 +22,7 @@ public enum DetectionConfidence
     Weak = 1,
 
     /// <summary>
-    /// Everything examined was valid, but not everything could be examined — a
+    /// Everything examined was valid, but not everything could be examined: a
     /// truncated sample, or a format with no terminator to check against.
     /// </summary>
     Likely = 2,

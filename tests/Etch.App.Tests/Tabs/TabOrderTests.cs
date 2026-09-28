@@ -8,7 +8,7 @@ namespace Etch.App.Tests.Tabs;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The whole feature rests on one rule — pinned tabs are a contiguous run at index zero —
+/// The whole feature rests on one rule, pinned tabs are a contiguous run at index zero,
 /// and three separate operations have to preserve it: pinning, unpinning, and dragging.
 /// Break it in any of them and the symptom is not an exception, it is tabs that refuse to
 /// move for no visible reason, because a drag clamps against a boundary that is not where

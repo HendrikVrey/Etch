@@ -11,17 +11,17 @@ namespace Etch.Core.Text;
 /// <b>This exists because the two are not the same number, and the difference is silent.</b>
 /// <c>System.Text.Json</c> reports failures as a line number plus a
 /// <c>BytePositionInLine</c>, and its own documentation is explicit that the second
-/// "counts the number of bytes (i.e. UTF-8 code units) and not characters or scalars" —
+/// "counts the number of bytes (i.e. UTF-8 code units) and not characters or scalars":
 /// <see cref="System.Text.Json.JsonDocument.Parse(string, System.Text.Json.JsonDocumentOptions)"/>
 /// transcodes to UTF-8 before parsing. Handing that byte count to an editor as a
 /// character offset is correct for pure ASCII and wrong for every line containing an
-/// accent, a CJK ideograph or an emoji — by one, two or three positions per character
+/// accent, a CJK ideograph or an emoji, by one, two or three positions per character
 /// before the error. A caret that lands near the problem on English input and drifts
 /// further the more interesting the data gets is worse than no caret at all, because
 /// nothing about it looks broken.
 /// </para>
 /// <para>
-/// Line numbers need no such care: the reader counts <c>\n</c> and nothing else — a lone
+/// Line numbers need no such care: the reader counts <c>\n</c> and nothing else, a lone
 /// <c>\r</c> is ordinary whitespace to it, and the <c>\r</c> of a <c>\r\n</c> is counted
 /// as a byte on the line it ends. Verified against <c>JsonReaderHelper.CountNewLines</c>,
 /// which searches for the line feed alone.
@@ -38,7 +38,7 @@ public static class Utf8Position
     /// <param name="bytePositionInLine">Zero-based UTF-8 byte offset from the start of that line.</param>
     /// <param name="offset">The character offset, when one could be resolved.</param>
     /// <returns>
-    /// False when the position does not describe somewhere in <paramref name="text"/> —
+    /// False when the position does not describe somewhere in <paramref name="text"/>:
     /// a negative input, or a line past the end. A caller that gets false should say what
     /// went wrong without claiming to know where, which is strictly better than pointing
     /// at the wrong place.
@@ -72,7 +72,7 @@ public static class Utf8Position
     /// <summary>Finds the character offset at which line <paramref name="lineNumber"/> begins.</summary>
     /// <remarks>
     /// The empty string is line 0 starting at offset 0, and a buffer ending in a newline
-    /// has a final empty line that a parser can legitimately fail on — so a line start
+    /// has a final empty line that a parser can legitimately fail on, so a line start
     /// exactly equal to the length is valid, and only a line number beyond that is not.
     /// </remarks>
     private static bool TryFindLineStart(string text, long lineNumber, out int lineStart)
@@ -107,7 +107,7 @@ public static class Utf8Position
     /// account for the pair twice.
     /// </para>
     /// <para>
-    /// An unpaired surrogate — which a scratchpad buffer really can contain — is counted
+    /// An unpaired surrogate, which a scratchpad buffer really can contain, is counted
     /// as the three bytes its replacement character would occupy and stepped over as one
     /// <see cref="char"/>. The alternative is refusing to resolve a position at all
     /// because of a stray character somewhere earlier on the line, and being off by a

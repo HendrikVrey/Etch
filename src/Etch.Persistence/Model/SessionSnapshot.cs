@@ -13,7 +13,7 @@ namespace Etch.Persistence.Model;
 /// </param>
 /// <param name="CleanShutdown">
 /// False while Etch is running, and set true only on an orderly exit. On the next
-/// launch a false value means the last session ended in a crash or a kill — which
+/// launch a false value means the last session ended in a crash or a kill, which
 /// changes nothing about what Etch does, and that is the point. Restoring is the
 /// only path, so it is exercised on every single launch and cannot rot the way a
 /// rarely-taken "recover your files?" branch would.
@@ -38,14 +38,14 @@ public sealed record SessionSnapshot(
     /// <remarks>
     /// Normalised here rather than trusted, because this record is deserialised
     /// straight from a file the user can edit. System.Text.Json supplies
-    /// <c>default</c> — that is, null — for any constructor parameter the payload
+    /// <c>default</c> (that is, null) for any constructor parameter the payload
     /// omits, so a three-line <c>session.json</c> with no <c>buffers</c> key would
     /// otherwise hand a null list to everything downstream and turn a trivially
     /// malformed file into a startup crash that only a manual file deletion clears.
     /// </remarks>
     public IReadOnlyList<BufferRecord> Buffers { get; init; } = Buffers ?? [];
 
-    /// <summary>A session with no tabs — first launch, or everything closed.</summary>
+    /// <summary>A session with no tabs: first launch, or everything closed.</summary>
     public static SessionSnapshot Empty { get; } = new(
         CurrentVersion,
         CleanShutdown: true,

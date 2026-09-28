@@ -6,7 +6,7 @@ namespace Etch.Persistence.Tests.Journal;
 
 /// <summary>
 /// The scheduler carries all of the journal's timing logic, so it carries most of
-/// the journal's tests. Every case here is arithmetic on supplied timestamps —
+/// the journal's tests. Every case here is arithmetic on supplied timestamps:
 /// there is not a single sleep in this file, and there should never be one.
 /// </summary>
 public class WriteSchedulerTests
@@ -73,7 +73,7 @@ public class WriteSchedulerTests
         // The same leak by a quieter route: SetSuppressed(id, false) is the only other
         // thing that removes one, and a closed ephemeral tab never calls it. Dropped at
         // prune time rather than at Discard, so that the two sets stay independent while
-        // the buffer is alive — an id still discarded here was closed and never reopened,
+        // the buffer is alive: an id still discarded here was closed and never reopened,
         // because Record lifts a discard.
         var scheduler = CreateScheduler();
         var ephemeral = BufferId.New();
@@ -192,7 +192,7 @@ public class WriteSchedulerTests
         scheduler.Record(id, "second", T0.AddMilliseconds(4_800));
 
         // The edit lands late enough that its own debounce (5.3 s) would fall past the
-        // ceiling, so the ceiling is what decides — which is the only arrangement that
+        // ceiling, so the ceiling is what decides, which is the only arrangement that
         // can tell the two apart. Measured from the first change the deadline is 5.0 s,
         // 200 ms away; measured from this one it would be 9.8 s, and the answer would
         // instead be the debounce's 500 ms.
@@ -508,7 +508,7 @@ public class WriteSchedulerTests
         // Awaited rather than blocked on. Two things were wrong with Wait(timeout): it
         // blocks a test thread on a task, which is the deadlock shape this codebase has
         // already been bitten by twice, and it returns a bool saying whether the task
-        // actually finished — which was discarded. So a drainer that hung was reported as
+        // actually finished, which was discarded. So a drainer that hung was reported as
         // missing writes, thirty seconds later, pointing at the wrong component entirely.
         // WaitAsync throws TimeoutException instead, which names what went wrong.
         await drainer.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);

@@ -5,9 +5,9 @@ using Xunit;
 namespace Etch.Core.Tests.Detection;
 
 /// <summary>
-/// The corpus. Detection is the component most able to regress silently — nothing
+/// The corpus. Detection is the component most able to regress silently (nothing
 /// throws when it guesses wrong, the format chip just says something slightly untrue
-/// and the palette offers the wrong first row — so the guard against that is a table
+/// and the palette offers the wrong first row) so the guard against that is a table
 /// of real-world samples with asserted answers rather than a handful of happy paths.
 /// </summary>
 public class FormatDetectionTests
@@ -42,7 +42,7 @@ public class FormatDetectionTests
     public void Recognises_a_jwt_ahead_of_the_base64url_it_is_made_of()
     {
         // Both detectors fire. The more specific answer is the useful one, and getting
-        // this backwards would offer "base64 decode" for a token — which produces three
+        // this backwards would offer "base64 decode" for a token, which produces three
         // lines of mangled bytes instead of the claims.
         var result = FormatDetection.Detect(Jwt);
 
@@ -145,15 +145,15 @@ public class FormatDetectionTests
     public void An_iso_date_is_not_hexadecimal()
     {
         // Every decimal digit is a hex digit and '-' is a separator, so without the
-        // uniform-group rule this is Hex with full confidence — and Ctrl+Enter, which
+        // uniform-group rule this is Hex with full confidence, and Ctrl+Enter, which
         // does not ask first, rewrites the date as four bytes of control characters.
         //
         // Slice 2 added a detector that claims the single date properly, which does not
         // retire the rule: Hex must still decline, or the tie-break becomes the only thing
         // standing between a date and being rewritten as bytes.
         //
-        // The two-date buffer is what still proves that. ISO-8601 refuses it — a date that is
-        // merely the start of a longer string is not a date — so nothing but Hex could claim
+        // The two-date buffer is what still proves that. ISO-8601 refuses it, a date that is
+        // merely the start of a longer string is not a date, so nothing but Hex could claim
         // it, and the answer is plain text.
         Assert.Equal(FormatId.PlainText, FormatDetection.Detect("2026-07-31 2026-08-01").Format);
         Assert.Equal(FormatId.PlainText, FormatDetection.Detect("2026-07-31 2026-08-01 2026-09-01").Format);
@@ -188,8 +188,8 @@ public class FormatDetectionTests
     public void The_looser_spellings_are_the_frameworks_call_and_are_never_an_encoding(string text)
     {
         // Whether these are *claimed* is DateTimeOffset.TryParse's decision, not this
-        // detector's. The shape test admits all three deliberately — a compact offset, a
-        // two-digit offset, and the lower-case separators some emitters produce — and then
+        // detector's. The shape test admits all three deliberately (a compact offset, a
+        // two-digit offset, and the lower-case separators some emitters produce) and then
         // lets the parser have the last word, which costs nothing when it says no.
         //
         // What must hold either way is that they never end up as hex or base64. That is the
@@ -264,7 +264,7 @@ public class FormatDetectionTests
         {
             var result = FormatDetection.Detect(text);
 
-            // Not merely "it returned something" — Enum.ToString() is never null, so that
+            // Not merely "it returned something": Enum.ToString() is never null, so that
             // assertion only ever restated the fact that the call did not throw. What is
             // worth pinning is that none of these is *claimed*: each one is malformed, and a
             // detector confident about malformed input puts a transform under Ctrl+Enter

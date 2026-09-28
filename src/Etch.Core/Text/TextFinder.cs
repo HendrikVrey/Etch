@@ -27,15 +27,15 @@ public readonly record struct SearchCompilation(TextFinder? Finder, string? Erro
 /// </summary>
 /// <remarks>
 /// <para>
-/// Written rather than borrowed. AvalonEdit ships a search panel, but it finds only —
-/// it has no replace at all — and its default template is styled for its own host
+/// Written rather than borrowed. AvalonEdit ships a search panel, but it finds only,
+/// it has no replace at all, and its default template is styled for its own host
 /// rather than for a Fluent window, so half of find-and-replace would have had to be
 /// built here regardless and the two halves would have looked and behaved differently.
 /// </para>
 /// <para>
-/// Pure and in <c>Etch.Core</c>, which is the point: every awkward case — overlapping
+/// Pure and in <c>Etch.Core</c>, which is the point: every awkward case (overlapping
 /// matches, an empty regex match, a replacement that contains the pattern, a
-/// zero-length pattern — is a unit test rather than something to discover by clicking
+/// zero-length pattern) is a unit test rather than something to discover by clicking
 /// around.
 /// </para>
 /// <para>
@@ -88,15 +88,15 @@ public sealed class TextFinder
     /// </para>
     /// <para>
     /// <b>One field, not two.</b> The source and the view of it have to become visible
-    /// together — as a pair of fields they can be written in either order, and a reader
+    /// together, as a pair of fields they can be written in either order, and a reader
     /// that sees the new source beside the old view maps every offset through the wrong
     /// removal table and replaces at wrong positions with nothing raised. A single
     /// reference assignment publishes both or neither.
     /// </para>
     /// <para>
     /// The source is held <b>weakly</b>. A finder outlives the document it last ran
-    /// over — it is discarded only when the find box's text or options change, so it
-    /// survives closing the tab — and a strong reference here would keep both the
+    /// over (it is discarded only when the find box's text or options change, so it
+    /// survives closing the tab) and a strong reference here would keep both the
     /// original buffer and its normalised copy alive behind it. Two hundred megabytes
     /// retained for a 100 MB file, against the 120 MB budget cited above.
     /// </para>
@@ -122,7 +122,7 @@ public sealed class TextFinder
     /// Whether this search runs over a CRLF-normalised view of the buffer.
     /// </summary>
     /// <remarks>
-    /// False for literal searches, which need the buffer exactly as it is — the pattern
+    /// False for literal searches, which need the buffer exactly as it is: the pattern
     /// has been through <see cref="Regex.Escape(string)"/>, so nothing in it can match a
     /// carriage return by accident, and someone searching literally for a line ending
     /// must still find one.
@@ -215,8 +215,8 @@ public sealed class TextFinder
     /// </para>
     /// <para>
     /// Only the spellings that name a carriage return outright are looked for. Classes
-    /// that merely happen to include one — <c>\s</c>, <c>\W</c>, <c>[^a]</c>, and
-    /// <c>.</c> itself — are not, and that is the point rather than an omission: those
+    /// that merely happen to include one (<c>\s</c>, <c>\W</c>, <c>[^a]</c>, and
+    /// <c>.</c> itself) are not, and that is the point rather than an omission: those
     /// are the patterns that were behaving badly. <c>\s+$</c> against a CRLF line
     /// currently matches the trailing spaces <i>and</i> the carriage return, so using it
     /// to trim whitespace rewrites the file's line endings. Over the normalised view it
@@ -253,8 +253,8 @@ public sealed class TextFinder
                 case 'c' when i + 2 < pattern.Length && pattern[i + 2] is 'M' or 'm':
                     return true;
 
-                // The escape letter itself is case-sensitive — \X and \U are not escapes
-                // at all — but the digits after it are not.
+                // The escape letter itself is case-sensitive, \X and \U are not escapes
+                // at all, but the digits after it are not.
                 case 'x' when IsHexEscape(pattern, i + 2, digits: 2):
                 case 'u' when IsHexEscape(pattern, i + 2, digits: 4):
                     return true;
@@ -385,7 +385,7 @@ public sealed class TextFinder
 
         // At-or-after, not the plain floor. Both halves of a removed \r\n share one
         // normalised offset, so the caller's "resume just past the last match" nudge
-        // across a line ending maps back to where it started — and a zero-width pattern
+        // across a line ending maps back to where it started, and a zero-width pattern
         // like `$` then returns the same match for ever, which is an Enter key that
         // stops working rather than an obviously wrong answer.
         var from = view.ToNormalisedAtOrAfter(Math.Clamp(startOffset, 0, text.Length));
@@ -421,7 +421,7 @@ public sealed class TextFinder
 
         // One pass, not two. The earlier shape walked the document again from the top
         // whenever nothing was found before the caret, which is the common case for the
-        // first Shift+Enter — doubling the cost of the very press most likely to be slow.
+        // first Shift+Enter: doubling the cost of the very press most likely to be slow.
         //
         // The matches arrive in original coordinates, so `limit` stays the caret offset
         // the caller passed rather than being mapped into the view.
@@ -454,7 +454,7 @@ public sealed class TextFinder
     /// <see cref="Regex.Match(string, int)"/> and checks the result, not the
     /// three-argument overload that takes a length. Since .NET 7 the three-argument form
     /// runs against a *slice*, so a lookbehind cannot see before the match, a lookahead
-    /// cannot see past it, and <c>\B</c> inverts at the window edge — every such pattern
+    /// cannot see past it, and <c>\B</c> inverts at the window edge, every such pattern
     /// would fail to re-match and this method would fall through to returning the
     /// unexpanded replacement, writing a literal <c>$1</c> into the user's buffer with
     /// no error anywhere.
@@ -501,7 +501,7 @@ public sealed class TextFinder
     /// <see cref="Match.Result"/> substitutes from the string the match was made against,
     /// which here has had its carriage returns removed. So <c>$&amp;</c> against a CRLF
     /// buffer expands to an LF-only copy of the matched text, and replacing the original
-    /// span with it converts that line ending — reintroducing, through the replacement
+    /// span with it converts that line ending: reintroducing, through the replacement
     /// syntax, the exact defect <see cref="CrlfView"/> exists to prevent. <c>$_</c> is the
     /// same bug over the whole document.
     /// </para>
@@ -590,7 +590,7 @@ public sealed class TextFinder
         builder.Append(text, span.Offset, span.Length);
     }
 
-    /// <summary>Appends <c>$+</c> — the highest-numbered group that captured.</summary>
+    /// <summary>Appends <c>$+</c>: the highest-numbered group that captured.</summary>
     private static void AppendLastCaptured(System.Text.StringBuilder builder, string text, CrlfView view, Match found)
     {
         for (var number = found.Groups.Count - 1; number >= 1; number--)
@@ -679,7 +679,7 @@ public sealed class TextFinder
     /// <remarks>
     /// <para>
     /// A number is resolved by <b>position</b>, not by name. Named groups are numbered
-    /// too — <c>(?&lt;line&gt;.*)</c> is group 1 — and <c>Groups[1].Name</c> is
+    /// too, <c>(?&lt;line&gt;.*)</c> is group 1, and <c>Groups[1].Name</c> is
     /// <c>"line"</c>, so looking a number up by name finds nothing and <c>$1</c> comes
     /// out as the literal text <c>$1</c>. <see cref="GroupCollection.Count"/> is the
     /// bound, because <see cref="GroupCollection"/> returns an unsuccessful group for an
@@ -727,15 +727,15 @@ public sealed class TextFinder
     /// </summary>
     /// <remarks>
     /// <para>
-    /// A regular expression can match the empty string — <c>a*</c> against
-    /// <c>"bbb"</c> matches at every position — and a loop that advances by the match
+    /// A regular expression can match the empty string, <c>a*</c> against
+    /// <c>"bbb"</c> matches at every position, and a loop that advances by the match
     /// length would then never advance at all. Stepping one character past an
     /// empty match is what turns that from a hang into the behaviour everyone expects.
     /// </para>
     /// <para>
     /// Takes normalised offsets and yields matches in the caller's coordinates. Doing the
     /// mapping in one place is what keeps every caller from having to remember which
-    /// space it is in — the mistake that would otherwise be made once per method.
+    /// space it is in: the mistake that would otherwise be made once per method.
     /// </para>
     /// </remarks>
     private IEnumerable<SearchMatch> EnumerateFrom(CrlfView view, int startOffset, long deadline)

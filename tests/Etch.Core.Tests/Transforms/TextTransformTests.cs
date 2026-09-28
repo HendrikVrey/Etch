@@ -5,7 +5,7 @@ using Xunit;
 namespace Etch.Core.Tests.Transforms;
 
 /// <summary>
-/// The case, line and whitespace transforms — the M2 slice-2 text block.
+/// The case, line and whitespace transforms: the M2 slice-2 text block.
 /// </summary>
 /// <remarks>
 /// Most of these are small enough that the interesting assertions are not "does it work"
@@ -53,7 +53,7 @@ public class TextTransformTests
     [InlineData("case.camel", "HTTPResponse", "httpResponse")]
     public void An_acronym_is_one_word_and_a_digit_does_not_start_one(string id, string input, string expected)
     {
-        // The last capital of a run belongs to the word after it — without that rule
+        // The last capital of a run belongs to the word after it, without that rule
         // HTTPResponse is a single word and comes back as "httpresponse". Digits attach to
         // the word in progress, or every version-numbered identifier grows a word.
         Assert.Equal(expected, Run(id, input).Text);
@@ -73,7 +73,7 @@ public class TextTransformTests
 
     [Theory]
     // The one that made this transform stop using WordSplitter. Through the splitter every
-    // separator is dropped and this reads "Don T Stop It S Fine" — the apostrophes and the
+    // separator is dropped and this reads "Don T Stop It S Fine": the apostrophes and the
     // full stops simply gone from the user's buffer.
     [InlineData("don't stop. it's fine!", "Don't Stop. It's Fine!")]
     [InlineData("SHOUTED TEXT", "Shouted Text")]
@@ -98,7 +98,7 @@ public class TextTransformTests
     public void Case_conversion_keeps_characters_outside_the_basic_plane()
     {
         // char.IsLetterOrDigit answers for one UTF-16 code unit, so it says false for both
-        // halves of every surrogate pair and for every combining mark — and a splitter built
+        // halves of every surrogate pair and for every combining mark, and a splitter built
         // on it silently deletes them, because whatever it calls a separator it drops. A
         // letter vanishing out of a buffer as a side effect of "snake_case" is exactly the
         // kind of quiet damage this tool must not do.
@@ -106,7 +106,7 @@ public class TextTransformTests
         // U+20000 is a CJK Extension B ideograph: a letter, and two UTF-16 code units.
         Assert.Equal("\U00020000_test", Run("case.snake", "\U00020000 Test").Text);
 
-        // NFD — c, a, f, e, U+0301 COMBINING ACUTE ACCENT — which is the normal form for
+        // NFD (c, a, f, e, U+0301 COMBINING ACUTE ACCENT) which is the normal form for
         // anything that has been near macOS. The mark belongs to the e before it rather than
         // standing between two words, so the accent survives and stays attached to its
         // letter instead of being read as a separator and dropped.
@@ -220,8 +220,8 @@ public class TextTransformTests
     [Fact]
     public void Only_leading_whitespace_is_converted_in_either_direction()
     {
-        // A tab in the middle of a line is a column separator — pasted TSV, an aligned
-        // table — and rewriting it destroys the alignment it existed to create.
+        // A tab in the middle of a line is a column separator (pasted TSV, an aligned
+        // table) and rewriting it destroys the alignment it existed to create.
         var tabbed = Run("text.tabsToSpaces", "\tname\tvalue\n", new TransformOptions(IndentSize: 2));
 
         Assert.Equal("  name\tvalue\n", tabbed.Text);
@@ -283,12 +283,12 @@ public class TextTransformTests
     public void Every_line_transform_writes_the_buffers_own_line_ending()
     {
         // A transform that writes LF into a CRLF buffer leaves a file with both, which is
-        // invisible on screen and very visible in a diff — and blamed on the editor.
+        // invisible on screen and very visible in a diff, and blamed on the editor.
         var options = new TransformOptions(NewLine: "\r\n");
 
         // Chosen so that every transform below actually changes something. One that changed
         // nothing would report rather than return text, and the assertion would be measuring
-        // the wrong thing — or dereferencing null.
+        // the wrong thing, or dereferencing null.
         const string Buffer = "  beta  \r\n  beta  \r\n\r\nalpha,gamma\r\n";
 
         foreach (var id in new[]

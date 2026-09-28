@@ -94,7 +94,7 @@ public class LanguageSelectorTests
     {
         // These are things to transform, not things to colour. Mapping them onto some
         // grammar would produce highlighting that is confidently wrong, which is worse
-        // than none — the status bar already says what they are.
+        // than none: the status bar already says what they are.
         Assert.Equal(SyntaxLanguage.None, LanguageSelector.Select(filePath: null, () => format));
     }
 

@@ -29,10 +29,10 @@ public static class AtomicFile
     private const string TemporaryExtension = ".tmp";
     private const int BufferSize = 1 << 16;
 
-    /// <summary>Backoff between rename attempts, in milliseconds. Short — this is an AV window, not an outage.</summary>
+    /// <summary>Backoff between rename attempts, in milliseconds. Short: this is an AV window, not an outage.</summary>
     private static readonly int[] PublishRetryDelaysMs = [10, 40, 120];
 
-    /// <summary>UTF-8 without a byte-order mark — what every tool expects of a text file.</summary>
+    /// <summary>UTF-8 without a byte-order mark: what every tool expects of a text file.</summary>
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: false);
 
     /// <summary>
@@ -55,7 +55,7 @@ public static class AtomicFile
     /// <para>
     /// A <paramref name="backupPath"/> narrows the atomicity guarantee slightly and
     /// it is worth being precise about how. The destination is moved aside and then
-    /// replaced, so there is a window — two metadata operations wide — in which no
+    /// replaced, so there is a window, two metadata operations wide, in which no
     /// file exists at <paramref name="path"/>. A crash inside that window leaves the
     /// previous contents intact at the backup path rather than at the destination,
     /// which callers recover from by reading the backup when the live file is
@@ -119,8 +119,8 @@ public static class AtomicFile
     /// </summary>
     /// <remarks>
     /// Best-effort, and that is a deliberate choice rather than an oversight. The
-    /// backup is a safety net for a logic bug in the layer above — an empty text
-    /// change raised before a tab has hydrated, say — not part of the durability
+    /// backup is a safety net for a logic bug in the layer above (an empty text
+    /// change raised before a tab has hydrated, say) not part of the durability
     /// contract. Failing the write because the previous generation could not be
     /// preserved would turn a missing safety net into the very data loss it exists to
     /// prevent.
@@ -197,13 +197,13 @@ public static class AtomicFile
     /// <remarks>
     /// <para>
     /// <c>File.Move(overwrite: true)</c> rather than <c>File.Replace</c>, deliberately.
-    /// <c>ReplaceFile</c> has documented failure states — <c>ERROR_UNABLE_TO_MOVE_REPLACEMENT_2</c>,
-    /// <c>ERROR_UNABLE_TO_REMOVE_REPLACED</c> — in which the destination has already
+    /// <c>ReplaceFile</c> has documented failure states (<c>ERROR_UNABLE_TO_MOVE_REPLACEMENT_2</c>,
+    /// <c>ERROR_UNABLE_TO_REMOVE_REPLACED</c>) in which the destination has already
     /// been destroyed, which is a data-loss window this code exists to close.
     /// <c>MoveFileEx</c> with <c>MOVEFILE_REPLACE_EXISTING</c> has no such state and is
     /// atomic within a volume; both paths are in the same directory by construction,
     /// so the cross-volume copy fallback never applies. The usual argument for
-    /// <c>Replace</c> — that it preserves the destination's ACLs — does not apply
+    /// <c>Replace</c>, that it preserves the destination's ACLs, does not apply
     /// either: everything written here is a file Etch itself created under its own
     /// data directory. A user's own file is never written through.
     /// </para>
@@ -211,7 +211,7 @@ public static class AtomicFile
     /// The retry is for antivirus. Real-time scanners routinely hold a handle on a
     /// freshly written file for a few milliseconds, which surfaces as a sharing
     /// violation on the rename. Without a retry that becomes a spurious write failure
-    /// on an ordinary Windows desktop — and on the shutdown flush there is no second
+    /// on an ordinary Windows desktop, and on the shutdown flush there is no second
     /// chance to get it right.
     /// </para>
     /// </remarks>
@@ -243,7 +243,7 @@ public static class AtomicFile
     /// Best-effort by design: a leftover scratch file wastes a few kilobytes and
     /// nothing else, so a failure to remove one must never propagate into startup.
     /// A file another process is actively writing is skipped, because it is still
-    /// open and the delete fails — which is the correct outcome.
+    /// open and the delete fails, which is the correct outcome.
     /// </remarks>
     public static int SweepTemporaryFiles(string directory)
     {

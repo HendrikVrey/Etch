@@ -1,6 +1,6 @@
 // System.Text.Json as well as .Serialization: JsonCommentHandling lives in the former
 // while every other type named below lives in the latter. Getting this wrong is
-// expensive out of all proportion — an unresolved name in a [JsonSourceGenerationOptions]
+// expensive out of all proportion: an unresolved name in a [JsonSourceGenerationOptions]
 // argument makes the source generator produce nothing for the *whole* compilation, so
 // every context in the assembly then fails with CS0534 for missing members it would have
 // generated. One real error, four spurious ones.

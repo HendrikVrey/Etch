@@ -80,7 +80,7 @@ public partial class App : Application
 
         // Assigned before the theme is applied, deliberately: WPF-UI sets the DWM
         // immersive-dark-mode window attribute through Application.MainWindow and
-        // silently skips it when that is still null — which leaves a light window frame
+        // silently skips it when that is still null, which leaves a light window frame
         // and light Mica around dark content.
         MainWindow = _window;
 
@@ -91,7 +91,7 @@ public partial class App : Application
         StartupTimeline.Mark("window-shown");
 
         // Queued here rather than from ContentRendered because this is where the
-        // deferred *product* work happens — restoring the session, installing the theme
+        // deferred *product* work happens: restoring the session, installing the theme
         // watcher, opening the file named on the command line. Hanging that off a
         // diagnostics event would mean a window that never raises ContentRendered
         // (started minimised, a remote session that renders nothing) silently loses the
@@ -124,7 +124,7 @@ public partial class App : Application
         // be pushed rather than inherited. Explicitly, and not left to the library's own
         // Changed event: that event is raised only when the dictionary actually swapped, so
         // on a machine whose theme already matches the one compiled into App.xaml it never
-        // fires at all — and the editor would keep AvalonEdit's defaults for the whole
+        // fires at all, and the editor would keep AvalonEdit's defaults for the whole
         // session. Microseconds; it does not get its own timeline phase.
         window.RefreshEditorTheme();
     }
@@ -142,7 +142,7 @@ public partial class App : Application
     /// <remarks>
     /// The hand-off channel's handler is installed last, on purpose. Requests that
     /// arrived before then were buffered by the channel and are delivered the moment it
-    /// is set — so a second launch a few hundred milliseconds behind the first is
+    /// is set, so a second launch a few hundred milliseconds behind the first is
     /// answered rather than told the running instance is not responding.
     /// </remarks>
     private async void CompleteStartup()
@@ -269,13 +269,13 @@ public partial class App : Application
     private void Fail(string context, Exception exception)
     {
         // Logged before the re-entrancy guard, always. The guard exists to stop a second
-        // dialog, not a second log entry — and the nested message loop the first dialog
+        // dialog, not a second log entry, and the nested message loop the first dialog
         // pumps is precisely when follow-on exceptions arrive. Dropping those would make
         // every failure after the first one invisible.
         DiagnosticLog.WriteFailure(context, exception);
 
         // A modal pumps a nested message loop, which can raise a second dispatcher
-        // exception and re-enter here — stacking dialogs and shutting down twice.
+        // exception and re-enter here: stacking dialogs and shutting down twice.
         if (Interlocked.Exchange(ref _failing, 1) == 1)
         {
             return;
@@ -297,7 +297,7 @@ public partial class App : Application
     /// </summary>
     /// <remarks>
     /// The flush comes first. The user is about to be told the editor is closing, and
-    /// the honest thing to do before saying so is get their text onto the disk — this is
+    /// the honest thing to do before saying so is get their text onto the disk: this is
     /// the one moment where the promise that nothing is ever lost is hardest to keep and
     /// most worth keeping.
     /// </remarks>

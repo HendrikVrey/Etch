@@ -13,7 +13,7 @@ namespace Etch.App.Startup;
 /// Two Etch processes over one data directory is silent, unbounded data loss: both
 /// journal to the same buffer files and both rewrite the same session index, so the
 /// loser's text is overwritten with no error anywhere. Nothing in the persistence
-/// layer can detect it — each process is doing exactly what it was told — which is
+/// layer can detect it, each process is doing exactly what it was told, which is
 /// why the guard has to sit above it, before any of that machinery starts.
 /// </para>
 /// <para>
@@ -21,7 +21,7 @@ namespace Etch.App.Startup;
 /// a lock file is scoped to precisely that: it holds across terminal-server sessions
 /// where the <c>Local\</c> object namespace does not, and it needs none of the
 /// privilege that creating a <c>Global\</c> object does. Windows drops the handle
-/// when the process ends however it ends — clean exit, crash, or task-manager kill —
+/// when the process ends however it ends (clean exit, crash, or task-manager kill)
 /// so there is no stale lock to detect or reap.
 /// </para>
 /// </remarks>
@@ -50,7 +50,7 @@ internal sealed class InstanceLock : IDisposable
     /// <returns>True when this process now owns the directory.</returns>
     /// <exception cref="IOException">
     /// The data directory itself could not be created. That is not a contention
-    /// failure and must not be reported as one — starting a second instance because
+    /// failure and must not be reported as one: starting a second instance because
     /// the disk is full would be the worst possible reading of it.
     /// </exception>
     public static bool TryAcquire(EtchPaths paths, out InstanceLock? held, out string channelName)
@@ -80,7 +80,7 @@ internal sealed class InstanceLock : IDisposable
         catch (DirectoryNotFoundException)
         {
             // Not contention. The directory was created a line ago, so this means it went
-            // away underneath us — and reporting it as "already running" would send this
+            // away underneath us, and reporting it as "already running" would send this
             // process off to hand off to a pipe that does not exist, wait out the full
             // timeout, and then refuse to start.
             throw;
@@ -89,15 +89,15 @@ internal sealed class InstanceLock : IDisposable
         {
             // Held by another Etch. UnauthorizedAccessException is included because a file
             // marked delete-pending, or one whose ACL was tightened, surfaces as that
-            // rather than as a sharing violation — and in every one of those cases the
+            // rather than as a sharing violation, and in every one of those cases the
             // safe reading is still "do not start a second writer".
             return false;
         }
 
         try
         {
-            // Diagnostic only. Nothing reads this to make a decision — the handle is
-            // the lock — but it turns "Etch is already running" into a message the
+            // Diagnostic only. Nothing reads this to make a decision, the handle is
+            // the lock, but it turns "Etch is already running" into a message the
             // user can act on when the holder has wedged.
             var stamp = string.Create(
                 CultureInfo.InvariantCulture,
@@ -162,7 +162,7 @@ internal sealed class InstanceLock : IDisposable
     /// </summary>
     /// <remarks>
     /// Derived from the directory rather than fixed, so that two Etch instances
-    /// pointed at different data directories — a test run beside a real one — do not
+    /// pointed at different data directories, a test run beside a real one, do not
     /// find each other. Hashed because a path is not a legal pipe name and because a
     /// pipe name is visible system-wide, and there is no reason to publish the user's
     /// profile path in it. Upper-cased first: Windows paths are case-insensitive, so

@@ -9,7 +9,7 @@ namespace Etch.Core.Abstractions;
 /// caller puts the result back where it came from.
 /// </param>
 /// <param name="WasSelection">
-/// True when <paramref name="Text"/> is a selection. Not a routing flag — it exists so
+/// True when <paramref name="Text"/> is a selection. Not a routing flag: it exists so
 /// that a transform which only makes sense over a whole document can say so, and so
 /// that error messages can name the right thing.
 /// </param>

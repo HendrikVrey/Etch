@@ -14,7 +14,7 @@
 
       What replaces it is the discipline the flag was standing in for. The solution was
       taken to zero warnings on 2026-08-01, and every rule switched off since is switched
-      off *at its site* with a written reason — [SuppressMessage] on the member for the
+      off *at its site* with a written reason: [SuppressMessage] on the member for the
       three in src/, and tests/.editorconfig for the two that only apply to test code.
       There is no blanket NoWarn anywhere, so a warning appearing in a build is news.
     -->

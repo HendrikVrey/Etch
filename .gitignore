@@ -44,7 +44,7 @@ Thumbs.db
 desktop.ini
 .DS_Store
 
-## Etch — local diagnostics and generated perf fixtures
+## Etch: local diagnostics and generated perf fixtures
 diag/
 *.diag.log
 samples/*.generated.*

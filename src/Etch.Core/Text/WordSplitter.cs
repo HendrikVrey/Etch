@@ -9,8 +9,8 @@ namespace Etch.Core.Text;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Every case conversion is the same two steps — work out where the words are, then write
-/// them back joined differently — and the first step is the only hard one. Doing it once
+/// Every case conversion is the same two steps (work out where the words are, then write
+/// them back joined differently) and the first step is the only hard one. Doing it once
 /// means <c>camelCase</c> and <c>snake_case</c> cannot disagree about where
 /// <c>parseHTTPResponse2</c> divides, which they certainly would if each rewrote the other
 /// directly.
@@ -34,7 +34,7 @@ namespace Etch.Core.Text;
 /// <para>
 /// <b>This walks runes, not chars, and that is not pedantry.</b> <c>char.IsLetterOrDigit</c>
 /// answers for a single UTF-16 code unit, so it says <em>false</em> for both halves of every
-/// surrogate pair — every emoji, every CJK extension ideograph — and false for every
+/// surrogate pair (every emoji, every CJK extension ideograph) and false for every
 /// combining mark, which is all of NFD text and therefore most text that has been near
 /// macOS. A splitter built on it silently <em>deletes</em> those characters, because
 /// anything it classes as a separator is dropped rather than kept. Losing an accent or an
@@ -46,7 +46,7 @@ internal static class WordSplitter
 {
     /// <summary>Splits <paramref name="text"/> into words, dropping separators.</summary>
     /// <returns>
-    /// The words, in order. Empty when there was nothing alphanumeric — which callers
+    /// The words, in order. Empty when there was nothing alphanumeric, which callers
     /// treat as "leave this line exactly as it was" rather than as an empty result.
     /// </returns>
     public static List<string> Split(ReadOnlySpan<char> text)
@@ -89,7 +89,7 @@ internal static class WordSplitter
 
     /// <summary>Decodes one rune, reporting how many code units it occupied.</summary>
     /// <remarks>
-    /// An invalid sequence — a lone surrogate — is reported as one unit and not a word
+    /// An invalid sequence, a lone surrogate, is reported as one unit and not a word
     /// character, so it acts as a separator. That is the only sensible reading: it is not a
     /// letter, and it cannot be part of one.
     /// </remarks>
@@ -129,7 +129,7 @@ internal static class WordSplitter
         }
 
         // Inside a run of capitals. It only breaks at the last one, and only when a
-        // lower-case letter follows — "HTTPResponse" divides before the R, while "HTTP" on
+        // lower-case letter follows: "HTTPResponse" divides before the R, while "HTTP" on
         // its own stays whole.
         var next = index + (rune.Utf16SequenceLength);
 

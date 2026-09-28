@@ -10,8 +10,8 @@ namespace Etch.App.Tests.Tabs;
 /// </summary>
 /// <remarks>
 /// <para>
-/// <see cref="Workspace"/> is where Etch's central promise is actually kept — no save
-/// dialog, no unsaved-changes prompt, no destructive close — and every one of those
+/// <see cref="Workspace"/> is where Etch's central promise is actually kept (no save
+/// dialog, no unsaved-changes prompt, no destructive close) and every one of those
 /// rests on an ordering that is invisible in the code unless you go looking: journal
 /// before trashing, subscribe only after hydrating, suppress before deleting, revive
 /// before restoring. Getting one of them backwards loses somebody's notes silently, so
@@ -40,7 +40,7 @@ public class WorkspaceTests
         Assert.NotNull(tab.Document);
 
         // Through the document, exactly as typing does, so the journal subscription is
-        // what carries the change — asserting on text set some other way would prove
+        // what carries the change: asserting on text set some other way would prove
         // nothing about the path that matters.
         tab.Document!.Text = text;
     }
@@ -181,7 +181,7 @@ public class WorkspaceTests
     public void A_reopened_file_tab_is_still_a_file_tab() => UiThread.Run(async () =>
     {
         // Without the record kept at close, a closed file tab comes back as an untitled
-        // scratch buffer holding the file's text — and Ctrl+S stops writing through to the
+        // scratch buffer holding the file's text, and Ctrl+S stops writing through to the
         // file it came from, silently offering a Save As instead.
         using var directory = TemporaryDataDirectory.Create();
         await using var workspace = await OpenAsync(directory);
@@ -303,7 +303,7 @@ public class WorkspaceTests
     public void Nothing_writes_the_index_after_the_workspace_is_disposed() => UiThread.Run(async () =>
     {
         // Index writes are fire-and-forget, so one could still be renaming a file over
-        // session.json after the workspace said it was finished — behind a caller that
+        // session.json after the workspace said it was finished: behind a caller that
         // has already gone on to read that file, or to delete the directory.
         //
         // Disposed without shutting down first, deliberately: ShutdownAsync drains the
@@ -315,14 +315,14 @@ public class WorkspaceTests
             SetText(workspace.Active!, "text worth keeping");
 
             // Two requests: the first is still in flight, so the second only sets the
-            // flag that makes the save loop go round again — which is the iteration that
+            // flag that makes the save loop go round again, which is the iteration that
             // used to run after dispose.
             workspace.NewScratch();
             workspace.RequestSessionSave();
         }
 
         // Deleted rather than timestamped. A later write recreates the file, and
-        // "does not exist" is not a comparison that can tie on a coarse clock — and the
+        // "does not exist" is not a comparison that can tie on a coarse clock, and the
         // delete succeeding is itself proof that no handle is still open on it.
         File.Delete(directory.Paths.SessionFile);
 

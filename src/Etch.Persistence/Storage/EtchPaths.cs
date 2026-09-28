@@ -9,7 +9,7 @@ namespace Etch.Persistence.Storage;
 /// <remarks>
 /// One type owns the layout so that no other code concatenates a path under the
 /// data directory. The root is injectable purely so tests can point at a temporary
-/// folder — nothing may write to a real profile during a test run.
+/// folder, nothing may write to a real profile during a test run.
 /// </remarks>
 public sealed class EtchPaths
 {
@@ -59,8 +59,8 @@ public sealed class EtchPaths
     /// </summary>
     /// <remarks>
     /// Deliberately <b>not</b> removed by <see cref="BufferStore.WipeAll"/>. Everything
-    /// else under this root is buffer text or a description of it — the things somebody
-    /// wiping their scratch data is trying to get rid of — whereas this file holds only
+    /// else under this root is buffer text or a description of it, the things somebody
+    /// wiping their scratch data is trying to get rid of, whereas this file holds only
     /// preferences, contains no path and no fragment of any buffer, and losing it would
     /// be a surprise rather than a relief. It is also the file that records a retention
     /// window of zero, which is a choice a privacy-minded user would have to make twice
@@ -85,8 +85,8 @@ public sealed class EtchPaths
     /// <summary>The default layout, under the local application data folder.</summary>
     /// <exception cref="InvalidOperationException">
     /// The local application data folder could not be resolved. Windows returns an
-    /// empty string rather than throwing when the profile is not loaded — a service
-    /// account, or a badly broken profile — and silently rooting Etch's storage at
+    /// empty string rather than throwing when the profile is not loaded (a service
+    /// account, or a badly broken profile) and silently rooting Etch's storage at
     /// a relative "Etch" in the working directory would be far worse than failing.
     /// </exception>
     public static EtchPaths CreateDefault()
@@ -112,7 +112,7 @@ public sealed class EtchPaths
     /// </summary>
     /// <remarks>
     /// Same directory as the live file, deliberately, so that rotating a generation is
-    /// a rename within one volume rather than a copy — and so that a wipe or a trash
+    /// a rename within one volume rather than a copy, and so that a wipe or a trash
     /// move only ever has one place to look.
     /// </remarks>
     public string BufferBackupFile(BufferId id) => Path.Combine(BuffersDirectory, id.BackupFileName);
@@ -130,7 +130,7 @@ public sealed class EtchPaths
     /// </param>
     /// <remarks>
     /// Built from <see cref="Root"/> rather than by re-deriving the directory from
-    /// the session file's path — a null directory there would silently produce a
+    /// the session file's path: a null directory there would silently produce a
     /// relative name, and a relative name resolves against the process working
     /// directory, which is how a copy of the user's index ends up outside the data
     /// folder entirely.
@@ -157,8 +157,8 @@ public sealed class EtchPaths
 
     /// <summary>Every quarantined session index currently on disk.</summary>
     /// <remarks>
-    /// Nothing else deletes these, and each one holds a complete prior index —
-    /// including tab titles and file paths — so a wipe has to be able to find them.
+    /// Nothing else deletes these, and each one holds a complete prior index,
+    /// including tab titles and file paths, so a wipe has to be able to find them.
     /// </remarks>
     public IReadOnlyList<string> EnumerateQuarantinedSessions()
     {

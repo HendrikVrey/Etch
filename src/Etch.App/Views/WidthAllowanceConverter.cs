@@ -16,7 +16,7 @@ namespace Etch.App.Views;
 /// much room to leave.
 /// </para>
 /// <para>
-/// A converter rather than a hard-coded number — which is what it replaced — because the
+/// A converter rather than a hard-coded number, which is what it replaced, because the
 /// window is resizable, and a constant that is right at 1100 px wastes half the bar at
 /// 1920 and overflows at 640.
 /// </para>
@@ -32,7 +32,7 @@ public sealed class WidthAllowanceConverter : IValueConverter
     /// Anything that would produce a non-positive width falls back to
     /// <see cref="DependencyProperty.UnsetValue"/>, which leaves the target property at
     /// its own default rather than pinning it to zero. That covers the genuine error cases
-    /// — a parameter that is not a number, a source that is not a width — and one ordinary
+    /// (a parameter that is not a number, a source that is not a width) and one ordinary
     /// one: on the very first layout pass the window has no measured width yet, and a
     /// converter that answered zero there would collapse the tab strip for a frame on
     /// every launch.

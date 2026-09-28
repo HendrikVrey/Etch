@@ -16,8 +16,8 @@ namespace Etch.Core.Transforms.Data;
 /// asking.
 /// </para>
 /// <para>
-/// It concedes the suggested slot — <see cref="Precedence"/> is behind
-/// <see cref="FormatJson"/>'s — because <c>Ctrl+Enter</c> should do something to a JSON
+/// It concedes the suggested slot, <see cref="Precedence"/> is behind
+/// <see cref="FormatJson"/>'s, because <c>Ctrl+Enter</c> should do something to a JSON
 /// buffer, and "it is valid" is what the format chip already says.
 /// </para>
 /// </remarks>
@@ -58,7 +58,7 @@ internal sealed class ValidateJson : ITransform
                     // point of having a separate validator: "Etch can format this" and
                     // "this is JSON" are different questions, and a file with trailing
                     // commas is a yes to the first and a no to the second. Anything that
-                    // rejects it — a parser in production, most likely — is going to be
+                    // rejects it (a parser in production, most likely) is going to be
                     // stricter than a scratchpad.
                     AllowTrailingCommas = false,
                     CommentHandling = JsonCommentHandling.Disallow,
@@ -82,7 +82,7 @@ internal sealed class ValidateJson : ITransform
     /// <summary>Describes the root in the terms someone validating actually wants.</summary>
     /// <remarks>
     /// A count, not just a "yes". The common reason to validate a payload is to check that
-    /// it holds what it should, and "Valid JSON — an object with 3 keys" answers a
+    /// it holds what it should, and "Valid JSON: an object with 3 keys" answers a
     /// truncated-response question that a bare "valid" does not.
     /// </remarks>
     private static string Describe(JsonElement root) => root.ValueKind switch

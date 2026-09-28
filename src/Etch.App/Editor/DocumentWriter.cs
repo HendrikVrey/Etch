@@ -9,7 +9,7 @@ namespace Etch.App.Editor;
 /// <remarks>
 /// <para>
 /// The only place Etch writes outside its own data directory, and the only write a
-/// user explicitly asks for. Everything else is journaled to a shadow copy — the
+/// user explicitly asks for. Everything else is journaled to a shadow copy: the
 /// distinction between the two is the single most consequential one in the whole
 /// design, because getting it wrong means silently replacing a file someone cared
 /// about.
@@ -46,7 +46,7 @@ internal static class DocumentWriter
     /// runs off it.
     /// </param>
     /// <param name="encoding">
-    /// The encoding the file was read with. Preserved rather than normalised —
+    /// The encoding the file was read with. Preserved rather than normalised:
     /// rewriting a UTF-16 configuration file as UTF-8 because Etch prefers UTF-8 is a
     /// silent, tool-breaking change to a file the user only meant to edit.
     /// </param>
@@ -65,7 +65,7 @@ internal static class DocumentWriter
 
         // Off the UI thread as a whole, not merely awaited from it. Opening a FileStream
         // is synchronous however the handle is configured, and Flush(flushToDisk) is a
-        // blocking disk round trip — both of which land on whatever thread called in, and
+        // blocking disk round trip, both of which land on whatever thread called in, and
         // the caller is the UI thread. A network share makes the open alone seconds long.
         return Task.Run(() => WriteCoreAsync(path, snapshot, encoding, cancellationToken), cancellationToken);
     }

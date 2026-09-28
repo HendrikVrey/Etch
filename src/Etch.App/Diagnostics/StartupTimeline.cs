@@ -209,7 +209,7 @@ internal static class StartupTimeline
 
         // JIT time is the clearest signal of whether ReadyToRun is doing its job.
         // A large compiled-method count on an R2R build means the pre-compiled
-        // code is being rejected — usually a RID or framework-version mismatch.
+        // code is being rejected, usually a RID or framework-version mismatch.
         report.AppendLine(CultureInfo.InvariantCulture,
             $"  jit        {Ms(JitInfo.GetCompilationTime())} across {JitInfo.GetCompiledMethodCount()} methods");
 

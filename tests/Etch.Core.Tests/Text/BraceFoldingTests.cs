@@ -101,7 +101,7 @@ public class BraceFoldingTests
     public void An_unmatched_closer_is_discarded_rather_than_popping()
     {
         // Popping whatever is on top would let a stray } close an outer block and produce
-        // a fold spanning the wrong half of the file — a visibly broken margin, where
+        // a fold spanning the wrong half of the file: a visibly broken margin, where
         // discarding merely produces one fewer fold.
         var regions = Scan("{\n  ]\n  \"a\": 1\n}");
 

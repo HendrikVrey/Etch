@@ -10,7 +10,7 @@ namespace Etch.App.Tests.Editor;
 /// <remarks>
 /// <para>
 /// This is the test the whole derivation exists for. A hand-picked selection colour can
-/// only ever be checked by looking at it, on one machine, with one accent — and the defect
+/// only ever be checked by looking at it, on one machine, with one accent, and the defect
 /// it replaced (AvalonEdit's default, legible over an opaque background and not over Mica)
 /// is exactly the kind that survives that check. Sweeping the accent space turns "it looks
 /// fine" into a property.
@@ -119,7 +119,7 @@ public class EditorColoursTests
     /// </summary>
     /// <remarks>
     /// Etch's editor is transparent over Mica, so a translucent selection composites
-    /// against a blurred wallpaper — which is why the default one was hard to see, and why
+    /// against a blurred wallpaper, which is why the default one was hard to see, and why
     /// every contrast figure above would otherwise be a claim about a colour that never
     /// reaches the screen.
     /// </remarks>
@@ -154,7 +154,7 @@ public class EditorColoursTests
     /// Asserted rather than left as a comment, because it is a decision whose consequence
     /// is dated to a later milestone. AvalonEdit's colorizer forces every selected run to a
     /// single brush when this is set, which would flatten syntax highlighting inside a
-    /// selection the moment M3 turns highlighting on — and nothing else in the codebase
+    /// selection the moment M3 turns highlighting on, and nothing else in the codebase
     /// would fail if somebody set it.
     /// </remarks>
     [Theory]
@@ -197,7 +197,7 @@ public class EditorColoursTests
     /// </summary>
     /// <remarks>
     /// Windows lets the accent be any colour at all, including the ones that break a naive
-    /// derivation: pure black, pure white, saturated primaries, and mid grey — which has no
+    /// derivation: pure black, pure white, saturated primaries, and mid grey, which has no
     /// hue to preserve and sits near the luminance of neither theme's background.
     /// </remarks>
     private static IEnumerable<Color> Accents()

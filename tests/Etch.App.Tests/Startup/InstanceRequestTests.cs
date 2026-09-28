@@ -78,7 +78,7 @@ public class InstanceRequestTests
     public void A_path_that_is_not_already_canonical_and_absolute_is_refused(string message)
     {
         // Resolution happens against the working directory, and the two processes do not
-        // share one — so a relative path that "worked" here would open a different file
+        // share one, so a relative path that "worked" here would open a different file
         // from the one the sender meant. Trailing spaces are stripped by Windows, which
         // is how a check on one string ends up guarding an open of another.
         Assert.False(InstanceRequest.TryParse(Encode(message), out _));

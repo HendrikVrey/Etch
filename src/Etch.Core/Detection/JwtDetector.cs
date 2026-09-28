@@ -10,8 +10,8 @@ namespace Etch.Core.Detection;
 /// The one detector whose answer is worth real work: it decodes two of the three
 /// segments and requires both to be JSON objects with an <c>alg</c> in the header.
 /// That is expensive by the standards of this pass, and it is affordable because the
-/// cheap shape test in front of it — exactly two dots, base64url alphabet, plausible
-/// length — rules out essentially every buffer before the decode is reached.
+/// cheap shape test in front of it (exactly two dots, base64url alphabet, plausible
+/// length) rules out essentially every buffer before the decode is reached.
 /// </remarks>
 internal sealed class JwtDetector : IFormatDetector
 {
@@ -27,7 +27,7 @@ internal sealed class JwtDetector : IFormatDetector
     public DetectionConfidence Detect(ReadOnlySpan<char> sample, bool isComplete)
     {
         // A token is one line and well under the sample limit, so a sampled buffer is
-        // not one — and running the decode on a truncated tail would fail anyway.
+        // not one, and running the decode on a truncated tail would fail anyway.
         if (!isComplete)
         {
             return DetectionConfidence.None;

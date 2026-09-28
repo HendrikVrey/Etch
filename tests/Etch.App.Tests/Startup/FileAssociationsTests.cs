@@ -11,7 +11,7 @@ namespace Etch.App.Tests.Startup;
 /// Nothing here calls <c>Set</c>. That method changes machine state outside Etch's own
 /// data directory, and a test suite that quietly re-associated a developer's <c>.json</c>
 /// files would be indefensible however carefully it cleaned up afterwards. What is
-/// covered is the whitelist and the labels — which is where the actual bugs would be,
+/// covered is the whitelist and the labels, which is where the actual bugs would be,
 /// because everything else is a registry call whose behaviour belongs to Windows.
 /// </remarks>
 public class FileAssociationsTests
@@ -21,7 +21,7 @@ public class FileAssociationsTests
     {
         // Describe throws on an unknown extension, so an extension added to Associable
         // without a label fails here rather than shipping as a blank row in the settings
-        // panel — a blank checkbox that changes the user's file associations.
+        // panel: a blank checkbox that changes the user's file associations.
         var labels = FileAssociations.Associable.Select(FileAssociations.Describe).ToArray();
 
         Assert.All(labels, label => Assert.False(string.IsNullOrWhiteSpace(label)));
@@ -33,7 +33,7 @@ public class FileAssociationsTests
     {
         // Written out rather than derived, so widening it is a deliberate act. Every
         // registry path in this type is built by concatenation with an extension in it,
-        // and this list is what makes that safe — so growing it should require editing a
+        // and this list is what makes that safe, so growing it should require editing a
         // test that says why it is short.
         Assert.Equal(new[] { ".txt", ".json", ".log" }, FileAssociations.Associable);
     }
@@ -48,7 +48,7 @@ public class FileAssociationsTests
     public void An_extension_outside_the_whitelist_is_refused(string extension)
     {
         // Case included deliberately: the whitelist is compared ordinally, so ".TXT" is
-        // not ".txt". That is the stricter reading and the right one here — the key path
+        // not ".txt". That is the stricter reading and the right one here: the key path
         // written to the registry should be the exact string in the list, not whatever
         // casing arrived.
         Assert.Throws<ArgumentOutOfRangeException>(() => FileAssociations.Set(extension, associate: true));

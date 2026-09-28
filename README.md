@@ -396,7 +396,7 @@ assets/                the icon: SVG sources, the packed .ico, and build-icon.py
 window. If a `using System.Windows` ever appears in it, something has gone wrong.
 
 It is also packaged, so a sibling tool can run the same transform chain over its own
-buffers — **to a private feed, not to nuget.org.** A public package would put a copy of
+buffers: **to a private feed, not to nuget.org.** A public package would put a copy of
 Etch inside every consumer's build output, which the licence below does not permit;
 [docs/packaging.md](docs/packaging.md) has the reasoning and the mechanics. If you want to
 build something on it, section 11 of the licence says to ask.

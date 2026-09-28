@@ -17,8 +17,8 @@ namespace Etch.Core.Transforms.Time;
 /// back.
 /// </para>
 /// <para>
-/// <b>A timestamp with no zone is read as UTC.</b> There is no good answer here — the text
-/// genuinely does not say — but there is a defensible one: the machine's zone would make
+/// <b>A timestamp with no zone is read as UTC.</b> There is no good answer here, the text
+/// genuinely does not say, but there is a defensible one: the machine's zone would make
 /// the same buffer convert to different numbers on different machines, which is the
 /// property that makes a scratchpad untrustworthy. The message says which assumption was
 /// made, so the ambiguity is surfaced rather than hidden.
@@ -26,7 +26,7 @@ namespace Etch.Core.Transforms.Time;
 /// <para>
 /// <b>The toggle is one-way before 1970.</b> A pre-epoch instant converts to a negative
 /// number, <c>EpochToIso</c> reads it back correctly, but <c>UnixEpochDetector</c> does not
-/// claim a leading minus sign — so the format chip drops to plain text and the second
+/// claim a leading minus sign, so the format chip drops to plain text and the second
 /// <c>Ctrl+Enter</c> does nothing rather than converting back. Widening the detector to
 /// accept a sign would make every negative nine-to-thirteen-digit number in a buffer a
 /// timestamp, which is a worse trade than a one-way conversion for dates most people never
@@ -49,7 +49,7 @@ internal sealed class IsoToEpoch : ITransform
     /// <b>Directional forms only, deliberately.</b> This transform and
     /// <see cref="EpochToIso"/> are inverses, so any alias they share is a tie neither can
     /// win on merit: both scored 97 on a query of <c>epoch</c>, and the winner was decided
-    /// by <see cref="Precedence"/> — a value chosen to settle <c>Ctrl+Enter</c> on a
+    /// by <see cref="Precedence"/>, a value chosen to settle <c>Ctrl+Enter</c> on a
     /// detected buffer, which has nothing to say about what a typed word means. The rule
     /// that resolves it: <b>a bare format noun belongs to the transform that consumes that
     /// format, and its inverse takes the "to …" form.</b> Someone typing <c>epoch</c> at a
@@ -57,7 +57,7 @@ internal sealed class IsoToEpoch : ITransform
     /// <para>
     /// Nothing is lost in the other direction. When the buffer really is ISO-8601,
     /// detection applies the suggested bonus, which outranks every fuzzy score by two
-    /// orders of magnitude — so <c>epoch</c>, <c>timestamp</c> and <c>unix time</c> all
+    /// orders of magnitude, so <c>epoch</c>, <c>timestamp</c> and <c>unix time</c> all
     /// still land here first, reached through the "to …" aliases below.
     /// </para>
     /// </remarks>
@@ -115,8 +115,8 @@ internal sealed class IsoToEpoch : ITransform
     /// <summary>True when the text carries a zone designator.</summary>
     /// <remarks>
     /// The scan starts past the date, because the date's own separators are dashes and a
-    /// search over the whole string would call every plain <c>2026-08-01</c> zone-qualified
-    /// — reporting UTC as though the text had said so.
+    /// search over the whole string would call every plain <c>2026-08-01</c> zone-qualified:
+    /// reporting UTC as though the text had said so.
     /// </remarks>
     private static bool HasZone(string text)
     {

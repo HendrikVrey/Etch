@@ -8,7 +8,7 @@ namespace Etch.Core.Transforms.Data;
 /// <remarks>
 /// The transform the whole product is an argument for: paste a minified payload, press
 /// <c>Ctrl+Enter</c>, read it. Note that it drops comments, because the parser is
-/// configured to skip them — the alternative is refusing to format the config files
+/// configured to skip them: the alternative is refusing to format the config files
 /// people most want formatted.
 /// </remarks>
 internal sealed class FormatJson : ITransform
@@ -28,7 +28,7 @@ internal sealed class FormatJson : ITransform
     /// <inheritdoc />
     /// <remarks>
     /// Claims the suggested slot for JSON outright. It held it before this property
-    /// existed, but only because "Format JSON" sorts ahead of "Minify JSON" — the right
+    /// existed, but only because "Format JSON" sorts ahead of "Minify JSON": the right
     /// answer for the wrong reason, and one a differently-named transform would have taken
     /// away silently.
     /// </remarks>

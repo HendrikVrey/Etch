@@ -8,7 +8,7 @@ namespace Etch.App.Startup;
 /// <remarks>
 /// There are two such boundaries and they must agree: the command line, and the
 /// hand-off pipe another Etch launch uses to pass a file to the running instance.
-/// Keeping one implementation is not tidiness — a validator that is stricter on one
+/// Keeping one implementation is not tidiness: a validator that is stricter on one
 /// route than the other is a validator with a bypass.
 /// </remarks>
 internal static class PathGuard
@@ -21,7 +21,7 @@ internal static class PathGuard
     /// <see cref="Path.GetFullPath(string)"/> normalises away <c>..</c> traversal and
     /// relative segments, so downstream code only ever sees a fully resolved path. It
     /// throws on invalid characters and over-long paths, which is exactly the
-    /// validation wanted — converted here into a clear message rather than an
+    /// validation wanted: converted here into a clear message rather than an
     /// unhandled exception at startup.
     /// <para>
     /// It also resolves DOS device names, so <c>CON</c> and <c>\\.\PhysicalDrive0</c>

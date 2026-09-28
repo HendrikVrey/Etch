@@ -9,7 +9,7 @@ namespace Etch.Core.Transforms.Time;
 /// <remarks>
 /// <para>
 /// The width decides the unit: ten digits is seconds, thirteen is milliseconds. That
-/// is not a heuristic so much as an arithmetic fact for any date this century — the
+/// is not a heuristic so much as an arithmetic fact for any date this century: the
 /// two ranges do not overlap and will not until the year 2286.
 /// </para>
 /// <para>
@@ -41,7 +41,7 @@ internal sealed class EpochToIso : ITransform
         var trimmed = input.Text.AsSpan().Trim();
 
         // AllowLeadingSign, not None. A Unix timestamp before 1970 is negative, and
-        // NumberStyles.None forbids the sign outright — so this used to refuse the exact
+        // NumberStyles.None forbids the sign outright, so this used to refuse the exact
         // values IsoToEpoch produces for anything in the past, breaking the round trip the
         // two transforms are documented to form. The detector still does not claim a
         // negative number (see IsoToEpoch), so this is reached from the palette rather than

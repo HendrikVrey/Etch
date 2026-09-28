@@ -6,8 +6,8 @@ namespace Etch.Core.Text;
 /// <remarks>
 /// <para>
 /// Exists for one reason: in .NET, <c>.</c> matches every character except <c>\n</c>,
-/// so on a CRLF buffer it matches the carriage return. <c>^(.*)$</c> — the most
-/// ordinary line-oriented pattern there is — therefore captures a trailing <c>\r</c>,
+/// so on a CRLF buffer it matches the carriage return. <c>^(.*)$</c>, the most
+/// ordinary line-oriented pattern there is, therefore captures a trailing <c>\r</c>,
 /// and a replacement built from <c>$1</c> writes the line back without it. A
 /// find-and-replace that silently converts a file's line endings is not a
 /// find-and-replace.
@@ -39,7 +39,7 @@ public sealed class CrlfView
     /// <remarks>
     /// Each entry is the index, <i>in the normalised text</i>, of a <c>\n</c> whose
     /// <c>\r</c> was dropped. Ascending by construction, so it is binary-searched rather
-    /// than walked — a ten-megabyte log has a few hundred thousand of these and the
+    /// than walked: a ten-megabyte log has a few hundred thousand of these and the
     /// mapping runs once per match.
     /// </remarks>
     private readonly int[] _removed;
@@ -85,8 +85,8 @@ public sealed class CrlfView
 
         var removed = new int[pairs];
 
-        // string.Create writes straight into the final string. The obvious shape —
-        // fill a char[] and then construct a string from it — holds a second full-size
+        // string.Create writes straight into the final string. The obvious shape,
+        // fill a char[] and then construct a string from it, holds a second full-size
         // copy live at the same time, and at the sizes this editor opens both land on
         // the large object heap. One 100 MB document should cost one 100 MB copy.
         var normalised = string.Create(
@@ -129,7 +129,7 @@ public sealed class CrlfView
     /// At the end of a match it is the bug this type exists to prevent: <c>^(.*)$</c>
     /// stops just before the terminator, and counting the removal there would stretch
     /// the match back over the <c>\r</c>. At a zero-width <c>$</c> it would put the
-    /// caret between the <c>\r</c> and the <c>\n</c> — inside a line terminator, which
+    /// caret between the <c>\r</c> and the <c>\n</c>: inside a line terminator, which
     /// is not a position in the document as far as the user is concerned.
     /// </para>
     /// <para>
@@ -202,7 +202,7 @@ public sealed class CrlfView
     /// <see cref="ToNormalised"/> is a floor, and a floor is the wrong answer for a
     /// search's resume point. Both halves of a removed <c>\r\n</c> map down to the same
     /// normalised offset, so advancing the caret by one character across a line ending
-    /// does not advance it in the view at all — a caller that searches "from the caret,
+    /// does not advance it in the view at all: a caller that searches "from the caret,
     /// which I have just nudged past the last match" gets the same match back and never
     /// terminates.
     /// </para>

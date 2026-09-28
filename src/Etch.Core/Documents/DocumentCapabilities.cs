@@ -19,7 +19,7 @@ namespace Etch.Core.Documents;
 /// </param>
 /// <param name="Notice">
 /// A short, user-facing explanation for any degradation, or null when nothing was
-/// taken away. Shown quietly in the status bar — never as a dialog.
+/// taken away. Shown quietly in the status bar, never as a dialog.
 /// </param>
 public readonly record struct DocumentCapabilities(
     DocumentTier Tier,
@@ -36,7 +36,7 @@ public readonly record struct DocumentCapabilities(
     /// that value carries <see cref="DocumentTier.PlainText"/> because there is no tier
     /// meaning "no document", so it reports itself as degraded. Nothing reads this for a
     /// buffer that is absent, and adding a tier for the absent case would put a member on
-    /// an enum that <see cref="DocumentSizePolicy.Evaluate"/> can never return — a wider
+    /// an enum that <see cref="DocumentSizePolicy.Evaluate"/> can never return: a wider
     /// lie than this one.
     /// </remarks>
     public bool IsDegraded => Tier != DocumentTier.Full;
@@ -45,7 +45,7 @@ public readonly record struct DocumentCapabilities(
     /// Everything off, for when there is no document at all.
     /// </summary>
     /// <remarks>
-    /// Not a tier and not reachable from <see cref="DocumentSizePolicy.Evaluate"/> — it
+    /// Not a tier and not reachable from <see cref="DocumentSizePolicy.Evaluate"/>: it
     /// describes the absence of a buffer rather than a large one. It exists so that the
     /// editor's "no tab bound" path can say what it means to the features that read these
     /// flags, instead of leaving the last real document's capabilities in force over an

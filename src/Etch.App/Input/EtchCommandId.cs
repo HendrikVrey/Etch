@@ -7,14 +7,14 @@ namespace Etch.App.Input;
 /// <para>
 /// The vocabulary shared by <see cref="KeyMap"/>, which says which chord means which
 /// action, and the window, which says what each action does. Splitting the two is what
-/// lets the map be a table of data rather than a pile of XAML bindings — and a table can
+/// lets the map be a table of data rather than a pile of XAML bindings, and a table can
 /// be printed, diffed against the README, and asserted in a test, which is how a missing
 /// binding gets noticed before a user finds it.
 /// </para>
 /// <para>
 /// <b>Public, unlike everything around it, and only because of that last clause.</b>
 /// <c>KeyMapTests</c> takes it as a parameter of a <c>[Theory]</c>, xunit requires test
-/// methods to be public, and a public method may not have a less-accessible parameter type —
+/// methods to be public, and a public method may not have a less-accessible parameter type:
 /// <c>InternalsVisibleTo</c> grants access but does not change declared accessibility, so
 /// the consistency rule still fires (CS0051). Etch.App is a <c>WinExe</c> with no API
 /// surface to protect, which makes this the cheaper of the two ways out; the alternative was

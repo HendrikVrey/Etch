@@ -52,7 +52,7 @@ public sealed class JournalWriter : IAsyncDisposable
     /// <param name="timeProvider">The clock and the timer source. Defaults to the system clock.</param>
     /// <param name="onFailure">
     /// Invoked when a write fails, on the journal's own thread. Intended for a quiet
-    /// status-bar indicator — never a dialog, and never on the UI thread without the
+    /// status-bar indicator, never a dialog, and never on the UI thread without the
     /// caller marshalling it there itself.
     /// </param>
     public JournalWriter(
@@ -106,7 +106,7 @@ public sealed class JournalWriter : IAsyncDisposable
     /// <remarks>
     /// Called from the UI thread on every edit, so it does no I/O and takes only an
     /// uncontended lock. <paramref name="content"/> is materialised later, on the
-    /// journal's thread — see <see cref="BufferContent"/> for why the editor must
+    /// journal's thread: see <see cref="BufferContent"/> for why the editor must
     /// hand over a snapshot rather than a string.
     /// </remarks>
     public void Enqueue(BufferId id, BufferContent content)
@@ -131,7 +131,7 @@ public sealed class JournalWriter : IAsyncDisposable
     public void Discard(BufferId id) => _scheduler.Discard(id);
 
     /// <summary>
-    /// Stops or resumes writing a buffer entirely — an ephemeral tab, a buffer read
+    /// Stops or resumes writing a buffer entirely: an ephemeral tab, a buffer read
     /// back truncated, or one past the journaling size threshold.
     /// </summary>
     /// <returns>True when unwritten content was dropped by this call.</returns>
@@ -151,7 +151,7 @@ public sealed class JournalWriter : IAsyncDisposable
     /// Backs "wipe all scratch data", and the wait is the whole point. Clearing the
     /// queue alone is not enough: a batch already taken by the writer is no longer in
     /// the queue, so it would complete and recreate the file <em>after</em> the wipe
-    /// deleted it — putting the secret the user asked to destroy straight back on disk.
+    /// deleted it, putting the secret the user asked to destroy straight back on disk.
     /// Taking the same gate the writer holds is what makes "nothing is in flight" true
     /// rather than likely.
     /// </remarks>
@@ -175,7 +175,7 @@ public sealed class JournalWriter : IAsyncDisposable
     /// </summary>
     /// <remarks>
     /// The immediate-flush path from the plan: tab switch, window blur, tab close and
-    /// application exit. Safe to call concurrently with the background loop — both go
+    /// application exit. Safe to call concurrently with the background loop, both go
     /// through the same gate, so a buffer is never written from two places at once.
     /// If <paramref name="cancellationToken"/> fires mid-batch, everything not yet
     /// written goes back on the queue rather than being dropped.
@@ -306,9 +306,9 @@ public sealed class JournalWriter : IAsyncDisposable
     /// </para>
     /// <para>
     /// Taken under <c>_writeGate</c>, and deliberately not under a test of
-    /// <c>_inFlight</c>. Every batch leaves the scheduler <i>inside</i> the gate —
-    /// <c>WriteBatchAsync(_scheduler.TakeAll(), …)</c> evaluates its argument once the
-    /// gate is held — but <c>_inFlight</c> is not incremented until the method body
+    /// <c>_inFlight</c>. Every batch leaves the scheduler <i>inside</i> the gate
+    /// (<c>WriteBatchAsync(_scheduler.TakeAll(), …)</c> evaluates its argument once the
+    /// gate is held) but <c>_inFlight</c> is not incremented until the method body
     /// begins. Between those two points the scheduler is empty, <c>_inFlight</c> is still
     /// zero, and a batch is nonetheless in somebody's hand: a prune there clears the
     /// discard for an id in that batch, the closed tab's buffer file is republished, and
@@ -372,7 +372,7 @@ public sealed class JournalWriter : IAsyncDisposable
         }
 
         // Exponential from the debounce interval, capped. A disk that is not coming
-        // back must not be retried twice a second forever — each attempt is a real
+        // back must not be retried twice a second forever, each attempt is a real
         // disk round trip and a callback the UI has to marshal.
         var exponent = Math.Min(consecutiveFailures - 1, 16);
         var scaled = _options.DebounceInterval * Math.Pow(2, exponent);
@@ -385,8 +385,8 @@ public sealed class JournalWriter : IAsyncDisposable
     /// </summary>
     /// <remarks>
     /// The batch has already been removed from the scheduler by the time it gets
-    /// here, so this method owns the only reference to that text. Every exit path —
-    /// success, failure, cancellation — has to account for all of it. Returning
+    /// here, so this method owns the only reference to that text. Every exit path
+    /// (success, failure, cancellation) has to account for all of it. Returning
     /// early without requeuing the remainder is silent data loss, and it would happen
     /// at application exit, which is exactly when there is the most unwritten text
     /// and the least chance of anyone noticing.
@@ -444,7 +444,7 @@ public sealed class JournalWriter : IAsyncDisposable
 
                     // Closed or suppressed while this write was in flight. The publish
                     // won the race, so undo it rather than leave an orphan for the next
-                    // launch to adopt as a recovered tab — or, for an ephemeral buffer,
+                    // launch to adopt as a recovered tab, or, for an ephemeral buffer,
                     // leave the one thing it promised never to write sitting on disk.
                     if (_scheduler.IsDiscarded(write.Id) || _scheduler.IsSuppressed(write.Id))
                     {
@@ -504,7 +504,7 @@ public sealed class JournalWriter : IAsyncDisposable
     /// Stops the loop and writes everything still pending.
     /// </summary>
     /// <remarks>
-    /// The final flush runs with its own token rather than the shutdown one — the
+    /// The final flush runs with its own token rather than the shutdown one: the
     /// whole point of this method is to write the edits that shutdown would otherwise
     /// discard, so cancelling it with the shutdown signal would defeat it. Both waits
     /// share a single <see cref="ShutdownTimeout"/> budget so a wedged disk delays

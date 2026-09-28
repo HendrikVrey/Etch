@@ -20,8 +20,8 @@ namespace Etch.App.Views;
 /// <para>
 /// The single most important interaction in the product, and the reason the rest of it
 /// exists: transforms come to the text rather than the text going to a tool. Everything
-/// here is in service of two keystrokes — <c>Ctrl+Enter</c> to do the obvious thing,
-/// <c>Ctrl+Shift+P</c> to choose something else — and neither of them opens a dialog,
+/// here is in service of two keystrokes (<c>Ctrl+Enter</c> to do the obvious thing,
+/// <c>Ctrl+Shift+P</c> to choose something else) and neither of them opens a dialog,
 /// leaves the buffer, or asks a question.
 /// </para>
 /// <para>
@@ -38,7 +38,7 @@ public partial class MainWindow
     /// </summary>
     /// <remarks>
     /// The plan budgets 500 ms for formatting 10 MB of JSON. This is twenty times that,
-    /// so it is not a performance gate — it is the backstop that stops a pathological
+    /// so it is not a performance gate: it is the backstop that stops a pathological
     /// input from leaving the editor with no way to say what happened.
     /// </remarks>
     private static readonly TimeSpan TransformTimeout = TimeSpan.FromSeconds(10);
@@ -116,7 +116,7 @@ public partial class MainWindow
         }
 
         // The palette is ranked against the detection, so a result arriving while it is
-        // open has to reorder it — otherwise pasting into an open palette leaves the
+        // open has to reorder it, otherwise pasting into an open palette leaves the
         // wrong first row under an Enter that is about to be pressed.
         if (IsPaletteOpen)
         {
@@ -293,7 +293,7 @@ public partial class MainWindow
     /// <remarks>
     /// Only ever runs something that applies to the detected format. This key acts
     /// without showing what it is about to do, so "the obvious thing or nothing" is the
-    /// only safe rule — anything looser is a keystroke that reformats a buffer at random.
+    /// only safe rule: anything looser is a keystroke that reformats a buffer at random.
     /// </remarks>
     private void ApplySuggested()
     {
@@ -332,7 +332,7 @@ public partial class MainWindow
     /// <para>
     /// The document version is captured before the work starts and checked after. If the
     /// text changed while a transform was running, the result describes a buffer that no
-    /// longer exists and is discarded <em>silently</em> — the user has moved on, and an
+    /// longer exists and is discarded <em>silently</em>: the user has moved on, and an
     /// error about work they did not know was happening would be noise.
     /// </para>
     /// </remarks>
@@ -407,7 +407,7 @@ public partial class MainWindow
             // Nothing this transform produced describes the tab in front any more. Checked
             // before the result is looked at rather than only before it is written, because
             // the status bar belongs to the foreground tab just as much as the document
-            // does: "Valid JSON — an object with 42 keys" over a tab holding a stack trace
+            // does: "Valid JSON, an object with 42 keys" over a tab holding a stack trace
             // is a false statement, and the transform would also climb the recency list on
             // the strength of a buffer the user has left.
             if (!ReferenceEquals(_bound, tab))
@@ -430,7 +430,7 @@ public partial class MainWindow
                 return;
             }
 
-            // A transform that answered a question rather than performing an edit — the
+            // A transform that answered a question rather than performing an edit: the
             // validators, and anything that found nothing to do. Nothing is written, so
             // there is no *version* check to make and no undo step to create: replacing a
             // document with a byte-identical copy would cost the caret position and a
@@ -450,7 +450,7 @@ public partial class MainWindow
             }
 
             // The version as well as the tab. Replace() finishes by moving the caret and
-            // selection, and those belong to the one editor control rather than to the tab —
+            // selection, and those belong to the one editor control rather than to the tab,
             // so a transform that completes after an edit would write over text it never
             // read, and Editor.Select validates against the document as it is now, throwing
             // if it has become shorter.
@@ -487,14 +487,14 @@ public partial class MainWindow
     /// <remarks>
     /// <para>
     /// This is what makes "where it failed" worth carrying as a number rather than as
-    /// more prose in the message. The parsers already say "line 4, position 12" — but on
+    /// more prose in the message. The parsers already say "line 4, position 12", but on
     /// a minified payload, which is most of what gets pasted into a scratchpad, the whole
     /// document is line one and that sentence tells nobody anything.
     /// </para>
     /// <para>
     /// The caret is moved and the line brought into view; nothing is selected. A selection
     /// would change what the next transform runs against, so a failed transform would
-    /// silently narrow the input to the second attempt — which is the opposite of helpful
+    /// silently narrow the input to the second attempt, which is the opposite of helpful
     /// when the second attempt is the user trying the same thing again after a fix.
     /// </para>
     /// <para>
@@ -535,8 +535,8 @@ public partial class MainWindow
 
         // The selection is restored over the new text so a chain can be applied to the
         // same region again without reselecting it. Without a selection the caret goes
-        // to the start, because the alternative — an offset into text that has been
-        // wholly rewritten — is meaningless.
+        // to the start, because the alternative, an offset into text that has been
+        // wholly rewritten, is meaningless.
         if (wasSelection)
         {
             Editor.Select(start, Math.Min(text.Length, document.TextLength - start));

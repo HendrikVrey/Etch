@@ -10,8 +10,8 @@ namespace Etch.App.Input;
 /// <remarks>
 /// <para>
 /// A value type so the keyboard map can be a dictionary rather than a chain of
-/// comparisons. That is not a performance argument — nobody types fast enough for it
-/// to matter — it is so the whole map is one literal table that can be read top to
+/// comparisons. That is not a performance argument, nobody types fast enough for it
+/// to matter, it is so the whole map is one literal table that can be read top to
 /// bottom and asserted against in a test.
 /// </para>
 /// <para>

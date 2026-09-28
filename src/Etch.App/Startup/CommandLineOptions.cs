@@ -3,10 +3,10 @@ namespace Etch.App.Startup;
 /// <summary>The content shape of a generated performance fixture.</summary>
 internal enum SampleShape
 {
-    /// <summary>NDJSON records — realistic log-like input with long lines.</summary>
+    /// <summary>NDJSON records: realistic log-like input with long lines.</summary>
     Json,
 
-    /// <summary>Plain prose lines — the cheapest thing the editor can be asked to hold.</summary>
+    /// <summary>Plain prose lines: the cheapest thing the editor can be asked to hold.</summary>
     Text,
 }
 
@@ -15,8 +15,8 @@ internal enum SampleShape
 /// </summary>
 /// <remarks>
 /// A closed hierarchy rather than a bag of optional properties, so that
-/// contradictory combinations cannot be constructed at all. The previous shape —
-/// nullable fields plus an <c>IsHeadless</c> predicate — allowed
+/// contradictory combinations cannot be constructed at all. The previous shape,
+/// nullable fields plus an <c>IsHeadless</c> predicate, allowed
 /// <c>--help --gen-sample x</c> and <c>--size 100</c> with no <c>--gen-sample</c>
 /// to be represented, and both were silently mishandled downstream.
 /// </remarks>

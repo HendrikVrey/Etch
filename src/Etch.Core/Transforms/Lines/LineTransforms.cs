@@ -7,7 +7,7 @@ namespace Etch.Core.Transforms.Lines;
 /// The shared body of the line transforms.
 /// </summary>
 /// <remarks>
-/// All of them do the same three things — split, rework the list, join — and the split and
+/// All of them do the same three things (split, rework the list, join) and the split and
 /// the join are exactly where the trailing-newline and CRLF mistakes live. None of them is
 /// ever the suggested action: no detector can tell you that a buffer is a list, which is
 /// the only thing that would make reordering or deleting lines an obvious move.
@@ -44,7 +44,7 @@ internal abstract class LineTransform : ITransform
 
         // Nothing changed: report it instead of writing an identical copy back. The editor
         // does not diff before replacing, so returning Ok here would cost an undo step and
-        // the caret position to produce a byte-for-byte identical document — which is the
+        // the caret position to produce a byte-for-byte identical document, which is the
         // exact case TransformResult.Reported was added for.
         if (Unchanged(lines, reworked))
         {
@@ -101,7 +101,7 @@ internal abstract class LineTransform : ITransform
     /// <remarks>
     /// Overridden by everything whose effect can be invisible. "Applied" is a poor answer
     /// when the change is that some lines are gone, and a worse one when the answer is that
-    /// there was nothing to do — someone who presses "remove blank lines" and is told
+    /// there was nothing to do: someone who presses "remove blank lines" and is told
     /// "applied" has learnt nothing about why the document looks the same.
     /// </remarks>
     protected virtual string? Describe(IReadOnlyList<string> before, IReadOnlyList<string> after) => null;
@@ -186,7 +186,7 @@ internal sealed class ReverseLines : LineTransform
 /// </para>
 /// <para>
 /// Ordinal comparison, matching <c>SortLines</c>. Two lines differing only in case are two
-/// lines — this is not the transform to decide otherwise, because the decision is
+/// lines: this is not the transform to decide otherwise, because the decision is
 /// irreversible.
 /// </para>
 /// </remarks>

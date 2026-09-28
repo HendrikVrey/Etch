@@ -10,7 +10,7 @@ namespace Etch.Core.Detection;
 /// <remarks>
 /// <para>
 /// <c>Utf8JsonReader</c> works in bytes and detection works in characters, so this
-/// conversion is unavoidable for the JSON-shaped detectors — but it happens on every
+/// conversion is unavoidable for the JSON-shaped detectors, but it happens on every
 /// debounce, so it does not get to allocate. One place owns the rent-and-return
 /// discipline rather than three detectors each remembering to write a <c>finally</c>.
 /// </para>
@@ -34,7 +34,7 @@ internal static class Utf8Scratch
     /// <summary>Runs <paramref name="scan"/> over the UTF-8 form of <paramref name="sample"/>.</summary>
     /// <remarks>
     /// Callers pass a <c>static</c> lambda so the delegate is cached rather than
-    /// allocated per call — which is the whole point of pooling the buffer.
+    /// allocated per call, which is the whole point of pooling the buffer.
     /// </remarks>
     public static DetectionConfidence Use(ReadOnlySpan<char> sample, bool isComplete, Scan scan)
     {

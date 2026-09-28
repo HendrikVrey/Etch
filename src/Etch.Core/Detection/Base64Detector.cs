@@ -34,7 +34,7 @@ internal sealed class Base64UrlDetector : IFormatDetector
 /// </para>
 /// <list type="bullet">
 /// <item><b>No interior spaces or tabs.</b> Base64 in the wild is wrapped with
-/// newlines — by PEM, by MIME, by every shell tool that emits it — and never broken
+/// newlines (by PEM, by MIME, by every shell tool that emits it) and never broken
 /// with spaces. Refusing them is what stops a plain English sentence from being
 /// offered a "decode base64" as its top-ranked action.</item>
 /// <item><b>A length that works.</b> Sixteen significant characters minimum, and a

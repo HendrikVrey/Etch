@@ -86,7 +86,7 @@ public sealed class SessionRestorer
 
         // Two sets, and the distinction between them is the whole correctness of the
         // active-tab choice below. "Indexed" means the index has already accounted for
-        // this id, so the recovery pass must not adopt it a second time — and a dropped
+        // this id, so the recovery pass must not adopt it a second time, and a dropped
         // entry is still accounted for. "Restorable" means a tab actually came back.
         // Collapsing them into one set makes an id that was dropped look like a tab that
         // exists, and the session opens pointing at a tab that is not there.
@@ -98,7 +98,7 @@ public sealed class SessionRestorer
         foreach (var record in session.Buffers)
         {
             // Null elements are unreachable from SessionStore, which sanitises them
-            // out — but this method is public and documented as pure, so it will be
+            // out, but this method is public and documented as pure, so it will be
             // called with hand-built input.
             if (record is null || !indexed.Add(record.Id))
             {
@@ -119,7 +119,7 @@ public sealed class SessionRestorer
             dropped++;
         }
 
-        // Text on disk that the index does not mention. The reverse crash window —
+        // Text on disk that the index does not mention. The reverse crash window:
         // the buffer was written and the index never caught up. This is the case
         // worth getting right, because unlike the other one there is real text to
         // save, and it is recovered without a prompt.
@@ -191,7 +191,7 @@ public sealed record ReconciledSession(
 /// <param name="SweptTemporaryFiles">Partial writes cleaned up from a previous crash.</param>
 /// <param name="WasUncleanShutdown">
 /// True when the last session did not exit cleanly. Worth a quiet line in the
-/// status bar and nothing more — the restore already happened, and by the time the
+/// status bar and nothing more: the restore already happened, and by the time the
 /// user reads it there is nothing for them to decide.
 /// </param>
 /// <param name="CanSaveIndex">

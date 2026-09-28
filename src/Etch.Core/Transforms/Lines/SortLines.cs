@@ -16,7 +16,7 @@ namespace Etch.Core.Transforms.Lines;
 /// <para>
 /// Available for any buffer, because "sort these lines" is a question about a list and
 /// no detector can tell you whether something is a list. It is reachable by searching
-/// for it and never suggested — <c>Ctrl+Enter</c> on a JSON document should not
+/// for it and never suggested: <c>Ctrl+Enter</c> on a JSON document should not
 /// scramble it.
 /// </para>
 /// </remarks>

@@ -61,7 +61,7 @@ internal sealed class UnixEpochDetector : IFormatDetector
         }
 
         // Anything between the two exact widths is a number of the right shape but not
-        // of a recognisable precision — worth offering, not worth asserting.
+        // of a recognisable precision: worth offering, not worth asserting.
         return trimmed.Length is SecondsDigits or MillisecondsDigits
             ? DetectionConfidence.Certain
             : DetectionConfidence.Weak;

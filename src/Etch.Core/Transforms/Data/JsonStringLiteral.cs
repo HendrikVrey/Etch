@@ -60,7 +60,7 @@ internal sealed class EscapeJsonString : ITransform
         {
             // Almost always a lone surrogate: Utf8JsonWriter transcodes to UTF-8 as it
             // writes and cannot encode half a code point, so it throws rather than
-            // substituting — the same trap JsonDocument.Parse(string) sets, reached from the
+            // substituting, the same trap JsonDocument.Parse(string) sets, reached from the
             // other direction. A buffer holding one is a normal thing to paste out of a hex
             // viewer or a truncated log, and a transform reports bad input rather than
             // throwing.
@@ -86,7 +86,7 @@ internal sealed class EscapeJsonString : ITransform
 /// <remarks>
 /// The inverse, and the one that gets used more: it is what turns the unreadable
 /// <c>"{\"id\":1}"</c> pulled out of a log into something the JSON transforms can then work
-/// on. Chaining is the point — unescape, and the buffer is detected as JSON, and
+/// on. Chaining is the point: unescape, and the buffer is detected as JSON, and
 /// <c>Ctrl+Enter</c> formats it.
 /// </remarks>
 internal sealed class UnescapeJsonString : ITransform
@@ -106,7 +106,7 @@ internal sealed class UnescapeJsonString : ITransform
     /// <inheritdoc />
     /// <remarks>
     /// Not suggested either. A quoted string is valid JSON, but the JSON detector
-    /// deliberately only claims objects and arrays, so nothing detects "a string literal" —
+    /// deliberately only claims objects and arrays, so nothing detects "a string literal",
     /// and inventing a detector for it would misfire on every buffer that begins with a
     /// quotation mark.
     /// </remarks>
@@ -122,7 +122,7 @@ internal sealed class UnescapeJsonString : ITransform
             return TransformResult.Failed("There is nothing here to unescape.");
         }
 
-        // Bare escape sequences with no surrounding quotes are the common paste — half a
+        // Bare escape sequences with no surrounding quotes are the common paste: half a
         // literal, copied out of a log viewer that had already stripped them. Quoting it
         // makes it parseable; a raw quotation mark inside would then fail, which is
         // correct, because that text is not one string literal.
@@ -149,7 +149,7 @@ internal sealed class UnescapeJsonString : ITransform
             // The parser saw `literal`, which is not what the user is looking at: leading
             // whitespace was trimmed off the front, and a quotation mark may have been
             // added to it. Both have to come back out of the offset or the caret lands a
-            // character or two away from the problem — close enough to look deliberate
+            // character or two away from the problem: close enough to look deliberate
             // and wrong enough to send someone hunting.
             //
             // Trailing whitespace needs no such correction: it is only ever after

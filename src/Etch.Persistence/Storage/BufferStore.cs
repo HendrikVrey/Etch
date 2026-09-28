@@ -21,7 +21,7 @@ public sealed class BufferStore
     /// <remarks>
     /// Live buffers are not journaled above the plain-text threshold, so a file here
     /// should never approach this. The cap exists for the file that got there
-    /// anyway — hand-edited, restored from a backup, or written by a future build —
+    /// anyway (hand-edited, restored from a backup, or written by a future build)
     /// so that a startup restore cannot be turned into an out-of-memory failure by
     /// something on disk. A read that hits it reports
     /// <see cref="StoredBuffer.WasTruncated"/>, and a truncated buffer must never be
@@ -36,13 +36,13 @@ public sealed class BufferStore
     /// </summary>
     /// <remarks>
     /// Sizing a <see cref="StringBuilder"/> from the file length would allocate a
-    /// single array of that many chars up front — 128 MB for a file at the cap, on
+    /// single array of that many chars up front: 128 MB for a file at the cap, on
     /// the pre-first-frame startup path, to guard against an out-of-memory failure.
     /// Growing is slower and is the right trade here.
     /// </remarks>
     private const int MaxPreallocatedChars = 1 << 20;
 
-    /// <summary>UTF-8 with no preamble — see the read path for why the instance matters.</summary>
+    /// <summary>UTF-8 with no preamble: see the read path for why the instance matters.</summary>
     private static readonly UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
 
     private readonly EtchPaths _paths;
@@ -71,8 +71,8 @@ public sealed class BufferStore
     /// <remarks>
     /// The retained generation exists because this method runs unattended, on a
     /// debounce, with no human ever confirming a save. A single bad call from the
-    /// editor layer — an empty text change raised before a tab has finished
-    /// hydrating is the realistic one — would otherwise replace someone's notes with
+    /// editor layer, an empty text change raised before a tab has finished
+    /// hydrating is the realistic one, would otherwise replace someone's notes with
     /// nothing, permanently and silently. One extra rename per write buys the ability
     /// to get it back.
     /// </remarks>
@@ -108,7 +108,7 @@ public sealed class BufferStore
         var live = await ReadFileAsync(_paths.BufferFile(id), cancellationToken).ConfigureAwait(false);
 
         // A live file with content always wins. The generation is consulted when the live
-        // file is missing — a process that died inside the rename window — and also when
+        // file is missing, a process that died inside the rename window, and also when
         // it is present but empty, which is the signature of the bad write the generation
         // exists to survive. Without the second case the good revision sits on disk
         // permanently unreachable behind an empty tab.
@@ -124,7 +124,7 @@ public sealed class BufferStore
             return recovered with { RecoveredFromBackup = true };
         }
 
-        // Genuinely empty, or gone. An empty buffer is a legitimate state — a new tab —
+        // Genuinely empty, or gone. An empty buffer is a legitimate state, a new tab,
         // so the live result is returned as-is rather than treated as a failure.
         return live;
     }
@@ -141,7 +141,7 @@ public sealed class BufferStore
     /// Deletes live text outright, without trashing it.
     /// </summary>
     /// <remarks>
-    /// Not the close path — this exists to undo a write that lost a race with a close
+    /// Not the close path: this exists to undo a write that lost a race with a close
     /// or a suppression, where the file was recreated after the trash move. The
     /// retained generation goes with it: leaving it behind would resurrect the buffer
     /// on the next launch through the very fallback that makes a crash recoverable,
@@ -163,7 +163,7 @@ public sealed class BufferStore
     /// <remarks>
     /// This is what makes a lost or corrupt <c>session.json</c> survivable. The index
     /// records tab order and titles; the text is the part that actually matters, and
-    /// it can always be recovered by looking at what is really there — including a
+    /// it can always be recovered by looking at what is really there, including a
     /// buffer that exists only as a retained generation because the process died
     /// between the rotate and the publish.
     /// </remarks>
@@ -221,7 +221,7 @@ public sealed class BufferStore
 
                 var trashedAt = file.LastWriteTimeUtc;
 
-                // The 1601 sentinel means the timestamp could not be read — usually a
+                // The 1601 sentinel means the timestamp could not be read, usually a
                 // file that vanished mid-enumeration. Treating it as maximally old
                 // would hand it straight to the next prune.
                 if (trashedAt.Year <= 1601)
@@ -250,7 +250,7 @@ public sealed class BufferStore
     /// <param name="nowUtc">The moment of the close, which is when retention starts.</param>
     /// <returns>True when the buffer was trashed and can be reopened; false when it was deleted or absent.</returns>
     /// <remarks>
-    /// Closing must never fail loudly — it is bound to <c>Ctrl+W</c> and the user has
+    /// Closing must never fail loudly: it is bound to <c>Ctrl+W</c> and the user has
     /// already moved on. A buffer that cannot be moved is left where it is, which
     /// wastes disk but loses nothing.
     /// </remarks>
@@ -262,7 +262,7 @@ public sealed class BufferStore
 
         // Normally the live file. When it is missing but a retained generation is not,
         // the process died inside the rename window and that generation is the only
-        // copy of the text — trashing it is what keeps Ctrl+Shift+T honest in exactly
+        // copy of the text: trashing it is what keeps Ctrl+Shift+T honest in exactly
         // the case where the user is most likely to need it.
         var source = File.Exists(_paths.BufferFile(id)) ? _paths.BufferFile(id)
             : File.Exists(backup) ? backup
@@ -277,7 +277,7 @@ public sealed class BufferStore
         {
             // Deleted outright, so it is not reopenable. Reporting false here is what
             // stops the UI offering a "reopen closed tab" that would silently do
-            // nothing — the user chose zero retention and the interface has to agree.
+            // nothing: the user chose zero retention and the interface has to agree.
             TryDelete(source);
             TryDelete(backup);
             return false;
@@ -305,7 +305,7 @@ public sealed class BufferStore
 
         // Retention has to run from the close, not from the last edit. File.Move
         // preserves the last-write time, so without this stamp a note last touched
-        // nine days ago would already be expired the instant it was closed — and the
+        // nine days ago would already be expired the instant it was closed, and the
         // next launch would delete it. The buffers with the most time invested in
         // them would get the least protection, which is precisely backwards for the
         // mechanism that makes closing a tab safe to do without confirmation.
@@ -386,7 +386,7 @@ public sealed class BufferStore
     /// </para>
     /// <para>
     /// The session index is included because it holds tab titles and, for file
-    /// buffers, full paths — a tab called <c>prod-db-password</c> surviving a wipe
+    /// buffers, full paths: a tab called <c>prod-db-password</c> surviving a wipe
     /// would defeat the point. Quarantined indexes are included for the same reason:
     /// nothing else ever deletes them.
     /// </para>
@@ -394,7 +394,7 @@ public sealed class BufferStore
     /// <strong>This is not a secure erase.</strong> It unlinks files. The bytes remain
     /// until their blocks are reused, small files may live on inside the MFT, and
     /// shadow copies keep whole prior versions. Say so plainly wherever this is
-    /// offered — and note that the atomic write-and-rename strategy means every
+    /// offered, and note that the atomic write-and-rename strategy means every
     /// revision was written to fresh blocks, so there are more recoverable copies
     /// rather than fewer. The only real answer for a secret is not to write it at all.
     /// </para>
@@ -432,7 +432,7 @@ public sealed class BufferStore
 
             // The retained generation holds a full prior revision of the same text.
             // Wiping the live file and leaving that behind would defeat the point
-            // entirely — and it is precisely the copy a user would not think to look
+            // entirely, and it is precisely the copy a user would not think to look
             // for.
             Attempt(_paths.BufferBackupFile(id));
         }
@@ -512,11 +512,11 @@ public sealed class BufferStore
         await using (stream.ConfigureAwait(false))
         {
             // A byte-order-mark-free encoding instance, and that is what does the work
-            // here — not the detect flag. StreamReader sets its internal preamble check
+            // here, not the detect flag. StreamReader sets its internal preamble check
             // from the encoding's own preamble, independently of
             // detectEncodingFromByteOrderMarks, so passing Encoding.UTF8 would strip a
             // leading EF BB BF whatever the flag said. Etch writes these files without a
-            // mark, so any such bytes are the user's own text — a pasted U+FEFF — and the
+            // mark, so any such bytes are the user's own text, a pasted U+FEFF, and the
             // journal would write the stripped version straight back, losing the
             // character permanently.
             using var reader = new StreamReader(stream, Utf8NoBom, detectEncodingFromByteOrderMarks: false, BufferSize);
@@ -608,7 +608,7 @@ public sealed class BufferStore
 /// </param>
 /// <param name="RecoveredFromBackup">
 /// True when the live file was gone and the retained previous generation was read
-/// instead — the signature of a process that died inside the rename window. The text
+/// instead: the signature of a process that died inside the rename window. The text
 /// is one revision behind, which is worth a quiet line in the status bar and nothing
 /// more.
 /// </param>
@@ -626,7 +626,7 @@ public readonly record struct TrashedBuffer(BufferId Id, DateTimeOffset TrashedA
 /// <summary>The outcome of wiping stored data.</summary>
 /// <param name="Deleted">Files removed.</param>
 /// <param name="Failed">
-/// Files that could not be removed — locked by another process, or permission denied.
+/// Files that could not be removed: locked by another process, or permission denied.
 /// Non-zero means data the user asked to destroy is still on disk, and saying so is
 /// the whole reason this is not just a count.
 /// </param>

@@ -9,7 +9,7 @@ namespace Etch.Core.Text;
 /// <para>
 /// The framework's <c>Convert</c> methods are the right primitives but the wrong
 /// front door for a scratchpad. Base64 arrives wrapped at 76 characters from a PEM
-/// file, unpadded from a JWT, and with a trailing newline from a shell pipeline —
+/// file, unpadded from a JWT, and with a trailing newline from a shell pipeline,
 /// none of which is a reason to tell someone their input is invalid.
 /// </para>
 /// <para>
@@ -81,7 +81,7 @@ public static class Base64Text
     /// </summary>
     /// <remarks>
     /// Unpadded because that is what the specification that made this alphabet popular
-    /// — JSON Web Tokens, RFC 7515 — requires. A padded base64url value is accepted
+    /// (JSON Web Tokens, RFC 7515) requires. A padded base64url value is accepted
     /// everywhere but produced almost nowhere.
     /// </remarks>
     public static string EncodeUrl(ReadOnlySpan<byte> bytes)
@@ -195,7 +195,7 @@ public static class Base64Text
         }
 
         // A base64 group is four characters. One left over cannot be completed by any
-        // amount of padding — it encodes six bits, and no whole byte is six bits.
+        // amount of padding: it encodes six bits, and no whole byte is six bits.
         var remainder = written % 4;
 
         if (remainder == 1)

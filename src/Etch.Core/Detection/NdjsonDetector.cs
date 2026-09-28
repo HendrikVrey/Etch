@@ -8,7 +8,7 @@ namespace Etch.Core.Detection;
 /// <remarks>
 /// <para>
 /// The format log pipelines and bulk-import files actually arrive in, and the one most
-/// likely to be mistaken for broken JSON — which is precisely why it earns a detector.
+/// likely to be mistaken for broken JSON, which is precisely why it earns a detector.
 /// Without one, a 200-line NDJSON dump is a JSON document with a syntax error on line
 /// two, and every transform Etch offers for it is the wrong one.
 /// </para>
@@ -67,7 +67,7 @@ internal sealed class NdjsonDetector : IFormatDetector
 
             // No newline left. For a whole buffer this is the final line; for a prefix
             // it is a line the sample cut in half, which must not count against the
-            // file — the bytes that would have completed it were simply never read.
+            // file: the bytes that would have completed it were simply never read.
             if (breakAt < 0)
             {
                 if (!isComplete)

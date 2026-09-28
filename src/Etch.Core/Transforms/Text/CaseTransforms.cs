@@ -13,8 +13,8 @@ namespace Etch.Core.Transforms.Text;
 /// <para>
 /// <b>Line by line, not buffer at a time.</b> A case conversion applied to a whole document
 /// as one string would run the words of the last line into the first word of the next, and
-/// a column of identifiers — which is what people paste when they convert a list of
-/// database columns to properties — is the case this has to get right. One line in, one
+/// a column of identifiers, which is what people paste when they convert a list of
+/// database columns to properties, is the case this has to get right. One line in, one
 /// line out.
 /// </para>
 /// <para>
@@ -24,7 +24,7 @@ namespace Etch.Core.Transforms.Text;
 /// </para>
 /// <para>
 /// <b>Invariant casing, always.</b> Culture-aware upper-casing turns a Turkish <c>i</c>
-/// into <c>İ</c>, which is correct for Turkish prose and catastrophic for an identifier —
+/// into <c>İ</c>, which is correct for Turkish prose and catastrophic for an identifier:
 /// the resulting name does not compile and the reason is invisible. Identifiers are not
 /// words in a language.
 /// </para>
@@ -73,7 +73,7 @@ internal abstract class CaseTransform : ITransform
     /// </summary>
     /// <remarks>
     /// Split into words and recombined, which is right for the five identifier conventions
-    /// and wrong for Title Case — so Title Case overrides this rather than implementing
+    /// and wrong for Title Case, so Title Case overrides this rather than implementing
     /// <see cref="Combine"/>. A line with nothing alphanumeric in it comes back untouched.
     /// </remarks>
     protected virtual string ConvertLine(string line)
@@ -89,7 +89,7 @@ internal abstract class CaseTransform : ITransform
     /// <summary>Lower-cases a word and upper-cases its first letter.</summary>
     /// <remarks>
     /// The first <em>rune</em>, not the first char. Since <see cref="WordSplitter"/> started
-    /// keeping astral characters, a word can begin with a surrogate pair — and
+    /// keeping astral characters, a word can begin with a surrogate pair, and
     /// <c>word[1..]</c> after <c>char.ToUpperInvariant(word[0])</c> would cut one in half and
     /// produce two lone surrogates where a letter used to be.
     /// </remarks>
@@ -251,7 +251,7 @@ internal sealed class ToConstantCase : CaseTransform
 /// <para>
 /// <b>The one case transform that does not go through <see cref="WordSplitter"/>.</b> The
 /// others are converting identifiers, where dropping <c>_</c> and <c>-</c> is the entire
-/// point. This one is aimed at prose — its aliases are "capitalise" and "heading" — and
+/// point. This one is aimed at prose, its aliases are "capitalise" and "heading", and
 /// running prose through a splitter that discards every separator turns
 /// <c>Don't stop. It's fine!</c> into <c>Don T Stop It S Fine</c>: the apostrophes and the
 /// full stops are simply gone. Title Case must not move or delete a single character; it
@@ -259,7 +259,7 @@ internal sealed class ToConstantCase : CaseTransform
 /// </para>
 /// <para>
 /// Every word is capitalised, including the short ones. Real title case leaves articles and
-/// prepositions in lower case — "The Wind in the Willows" — but which words those are
+/// prepositions in lower case, "The Wind in the Willows", but which words those are
 /// depends on the style guide and on the language, and a transform that guessed would be
 /// wrong in a way that is tedious to undo.
 /// </para>
@@ -305,7 +305,7 @@ internal sealed class ToTitleCase : CaseTransform
 
             if (status != OperationStatus.Done)
             {
-                // A lone surrogate. Copied through untouched — it is not a letter, and it is
+                // A lone surrogate. Copied through untouched: it is not a letter, and it is
                 // not this transform's business to repair the buffer.
                 builder.Append(line[index]);
                 index++;

@@ -10,13 +10,13 @@ namespace Etch.Core.Text;
 /// </para>
 /// <list type="bullet">
 /// <item><b>A trailing newline is not an empty last line.</b> Splitting <c>"a\nb\n"</c> on
-/// LF produces three elements and the third is not a line — it is the far side of the last
+/// LF produces three elements and the third is not a line, it is the far side of the last
 /// break. Sorting it puts a blank at the top; deduplicating it deletes the file's final
 /// newline. Both are the sort of change that turns up in somebody's next commit rather than
 /// on their screen.</item>
 /// <item><b>CR is stripped on the way in and restored on the way out.</b> Splitting on LF
 /// alone leaves a CR at the end of every line of a CRLF buffer, where it silently becomes
-/// part of the text — <c>"b\r"</c> sorts before <c>"b"</c> and is not equal to it. The join
+/// part of the text: <c>"b\r"</c> sorts before <c>"b"</c> and is not equal to it. The join
 /// writes whichever ending the document asked for, so the buffer keeps its convention.</item>
 /// </list>
 /// <para>
@@ -56,7 +56,7 @@ internal static class TextLines
 
             // Exactly one CR, not TrimEnd('\r'). Join only ever restores one ending per
             // line, so a greedy trim destroys every CR beyond the first and cannot put it
-            // back — and "a\r\r\n" is a real thing that text-mode translation layers, MSYS
+            // back, and "a\r\r\n" is a real thing that text-mode translation layers, MSYS
             // pipes and serial captures produce. One character of somebody's buffer would
             // disappear on every line transform, silently.
             lines[i] = part.Length > 0 && part[^1] == '\r' ? part[..^1] : part;

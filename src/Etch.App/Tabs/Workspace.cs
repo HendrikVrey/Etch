@@ -18,7 +18,7 @@ namespace Etch.App.Tabs;
 /// <para>
 /// This is where Etch's central promise is actually kept: no save dialog, no
 /// unsaved-changes prompt, no destructive close. All three follow from the same
-/// three mechanisms — every edit is journaled, every close is a move to the trash,
+/// three mechanisms, every edit is journaled, every close is a move to the trash,
 /// and every launch restores whatever is on disk without asking. Nothing here should
 /// ever raise a question the user has to answer.
 /// </para>
@@ -35,8 +35,8 @@ internal sealed class Workspace : IAsyncDisposable
     /// How long <see cref="DisposeAsync"/> waits for an index write already in flight.
     /// </summary>
     /// <remarks>
-    /// Short on purpose. What is being waited for is the session index — tab order and
-    /// titles, never text — and the cost of waiting too long is an editor that will not
+    /// Short on purpose. What is being waited for is the session index (tab order and
+    /// titles, never text) and the cost of waiting too long is an editor that will not
     /// close.
     /// </remarks>
     private static readonly TimeSpan IndexDrainTimeout = TimeSpan.FromSeconds(2);
@@ -51,8 +51,8 @@ internal sealed class Workspace : IAsyncDisposable
     /// </summary>
     /// <remarks>
     /// Not readonly, because the settings panel can change two of them while Etch is
-    /// running. Both are read at the point of use rather than captured — retention on
-    /// every close, the size policy on every open — so replacing this record is enough
+    /// running. Both are read at the point of use rather than captured (retention on
+    /// every close, the size policy on every open) so replacing this record is enough
     /// to change the behaviour, and no tab has to be reloaded for it to take effect.
     /// <para>
     /// The journal's own options are the exception and stay fixed for the life of the
@@ -77,7 +77,7 @@ internal sealed class Workspace : IAsyncDisposable
     /// False until the restore has read what is on disk, not true. The window is shown
     /// before the restore runs and the dispatcher pumps input while it awaits, so a
     /// single Ctrl+N in that gap would otherwise rewrite <c>session.json</c> with one
-    /// record <em>before</em> the previous session had been read — destroying tab order,
+    /// record <em>before</em> the previous session had been read: destroying tab order,
     /// titles, pins and the active tab for every tab the user had open. The text would
     /// survive as orphans, and every tab would come back called "Recovered".
     /// </remarks>
@@ -93,7 +93,7 @@ internal sealed class Workspace : IAsyncDisposable
     /// <remarks>
     /// <para>
     /// <see cref="RequestSessionSave"/> already coalesces its own overlapping requests,
-    /// but shutdown writes the index too and does not go through it — so a background
+    /// but shutdown writes the index too and does not go through it, so a background
     /// save started a moment earlier could still be publishing when shutdown published
     /// over it. Two atomic writes to one path is a race whose loser is decided by the
     /// filesystem, and the loser was as likely to be the shutdown snapshot as the stale
@@ -117,7 +117,7 @@ internal sealed class Workspace : IAsyncDisposable
 
     /// <summary>
     /// Set once the shutdown snapshot has been taken, after which nothing may queue a
-    /// newer one — the tab list it would capture is the same, but it would land with
+    /// newer one: the tab list it would capture is the same, but it would land with
     /// <c>CleanShutdown: false</c> and turn an orderly exit into a reported crash.
     /// </summary>
     private bool _shutdownPrepared;
@@ -219,7 +219,7 @@ internal sealed class Workspace : IAsyncDisposable
         }
         finally
         {
-            // In a finally, and after the restore has read what is on disk — the journal
+            // In a finally, and after the restore has read what is on disk, the journal
             // must not publish over a buffer this process has not looked at yet, but it
             // must also start even when the restore failed, or auto-save is silently off
             // for the whole session while the status bar still says "Saving…".
@@ -255,7 +255,7 @@ internal sealed class Workspace : IAsyncDisposable
     /// <remarks>
     /// Separate from <see cref="RestoreAsync"/> so the window can be constructed and
     /// shown before anything is read. Restoring first would put a file read in front of
-    /// the first frame, which is the one thing the startup budget cannot afford — and
+    /// the first frame, which is the one thing the startup budget cannot afford, and
     /// the plan already calls for exactly this order: render, then hydrate.
     /// </remarks>
     public static Workspace Create(
@@ -282,7 +282,7 @@ internal sealed class Workspace : IAsyncDisposable
     /// The size policy is rebuilt rather than mutated, and it applies to documents opened
     /// from here on. Re-evaluating the tabs already open would mean revoking journaling
     /// from a buffer the user has been typing into on the strength of a number they just
-    /// changed — so a tab keeps the capabilities it was opened with until it is reopened,
+    /// changed, so a tab keeps the capabilities it was opened with until it is reopened,
     /// which is both simpler and the safer direction to be wrong in.
     /// </para>
     /// </remarks>
@@ -321,12 +321,12 @@ internal sealed class Workspace : IAsyncDisposable
     /// because a batch already taken by the writer would otherwise complete <em>after</em>
     /// the delete and put the text the user asked to destroy back on disk. The session
     /// index is the second: it is written by its own fire-and-forget loop, and a snapshot
-    /// taken before the wipe would republish <c>session.json</c> — which holds every
-    /// buffer's id and its <em>user-authored tab title</em> — over the file that had just
+    /// taken before the wipe would republish <c>session.json</c>, which holds every
+    /// buffer's id and its <em>user-authored tab title</em>, over the file that had just
     /// been deleted. Both are dealt with before a single file is unlinked.
     /// </para>
     /// <para>
-    /// Then every tab is detached — without trashing it, which is the one place in Etch
+    /// Then every tab is detached, without trashing it, which is the one place in Etch
     /// where closing a tab is destructive, and it is destructive because that is precisely
     /// what was asked for. Only then are the files unlinked, and a fresh empty tab created
     /// so the user is left with somewhere to type rather than an empty, disabled editor.
@@ -414,10 +414,10 @@ internal sealed class Workspace : IAsyncDisposable
         // An empty buffer file is written immediately rather than waiting for the first
         // keystroke. Without it a tab that is created and renamed but never typed into has
         // no text on disk, so the restore drops it as an index entry with nothing behind
-        // it — and the rename goes with it.
+        // it, and the rename goes with it.
         //
-        // Only when the index is writable, though. When it is not — a newer build's
-        // session file is on disk and this one must not overwrite it — every Ctrl+N would
+        // Only when the index is writable, though. When it is not, a newer build's
+        // session file is on disk and this one must not overwrite it, every Ctrl+N would
         // otherwise leave an empty file that no index will ever mention, and the next
         // launch would adopt each one as a bogus "Recovered" tab.
         if (_canSaveIndex)
@@ -441,7 +441,7 @@ internal sealed class Workspace : IAsyncDisposable
     /// </para>
     /// <para>
     /// Which makes comparing path strings the wrong test, because Windows hands the
-    /// same file back under several spellings — an 8.3 short name, a junction, a mapped
+    /// same file back under several spellings: an 8.3 short name, a junction, a mapped
     /// drive that is really a UNC share, a hard link. <see cref="FileIdentity"/> asks
     /// the filesystem instead. The path comparison is kept as a fallback for tabs whose
     /// identity was never established, which is what a session restore leaves behind.
@@ -468,7 +468,7 @@ internal sealed class Workspace : IAsyncDisposable
         DocumentLoadResult result;
 
         // Captured, not read at each use. The settings panel can change the thresholds
-        // mid-load — Ctrl+, works while a large file is being read — and a document
+        // mid-load (Ctrl+, works while a large file is being read) and a document
         // loaded under a 100 MB ceiling that was then evaluated against a 10 MB one would
         // be refused after it was already in memory. A tab keeps the policy it was opened
         // with, which is what ApplySettings promises.
@@ -562,7 +562,7 @@ internal sealed class Workspace : IAsyncDisposable
 
         await HydrateAsync(tab, cancellationToken).ConfigureAwait(true);
 
-        // Hydration still counts even when a newer request has overtaken this one — the
+        // Hydration still counts even when a newer request has overtaken this one: the
         // text is read and cached either way. Only the decision about what is in front
         // is stale.
         if (request != _activationSequence || !_tabs.Contains(tab))
@@ -717,7 +717,7 @@ internal sealed class Workspace : IAsyncDisposable
             var id = _reopenHistory[^1];
             _reopenHistory.RemoveAt(_reopenHistory.Count - 1);
 
-            // Already open — the same buffer can reach the stack twice if it was
+            // Already open: the same buffer can reach the stack twice if it was
             // closed, reopened by hand, and closed again.
             if (_tabs.Any(tab => tab.Id == id))
             {
@@ -726,14 +726,14 @@ internal sealed class Workspace : IAsyncDisposable
 
             // Before the restore, not after. Closing put the id in the journal's discard
             // set, and a write taken before the close that completes after this would see
-            // it there and delete the file that was just moved back out of the trash —
+            // it there and delete the file that was just moved back out of the trash,
             // where the only copy now lives, because Restore moves rather than copies.
             _journal.Revive(id);
 
             if (!_buffers.Restore(id))
             {
                 // Swept by retention, or removed from under us. Try the next one down
-                // rather than reporting a failure the user cannot act on — but put the
+                // rather than reporting a failure the user cannot act on, but put the
                 // discard back first, or a write taken before the close could still
                 // publish and leave an orphan for the next launch to adopt.
                 _journal.Discard(id);
@@ -741,7 +741,7 @@ internal sealed class Workspace : IAsyncDisposable
                 continue;
             }
 
-            // The record from this session's close when there is one — so a reopened file
+            // The record from this session's close when there is one, so a reopened file
             // tab is still a file tab, with its path and title. Across a restart there is
             // no record to recover, and it comes back as scratch holding the same text.
             var record = _closedRecords.Remove(id, out var closed)
@@ -777,7 +777,7 @@ internal sealed class Workspace : IAsyncDisposable
     /// <remarks>
     /// <para>
     /// A drag never crosses the pin boundary. Pinned tabs are a group that stays to the
-    /// left of the rest, so the target is clamped to the dragged tab's own group — letting
+    /// left of the rest, so the target is clamped to the dragged tab's own group: letting
     /// the drag pin or unpin as a side effect would make one gesture do two things, and
     /// the one the user did not intend is the one that survives into the next session.
     /// </para>
@@ -816,8 +816,8 @@ internal sealed class Workspace : IAsyncDisposable
     /// </summary>
     /// <remarks>
     /// The tab moves to join its new group rather than staying where it was. Leaving it in
-    /// place would break the invariant every other part of this relies on — that pinned
-    /// tabs occupy a contiguous run at the front — and the first drag afterwards would
+    /// place would break the invariant every other part of this relies on, that pinned
+    /// tabs occupy a contiguous run at the front, and the first drag afterwards would
     /// clamp against a boundary that does not match what is on screen.
     /// </remarks>
     public void SetPinned(BufferTab tab, bool pinned)
@@ -864,7 +864,7 @@ internal sealed class Workspace : IAsyncDisposable
     /// <remarks>
     /// Normally a no-op: the index is written in display order and pinned tabs are already
     /// at the front of it. It is not decoration, though. A session file written by an
-    /// older build, or edited by hand, can interleave them — and every subsequent drag
+    /// older build, or edited by hand, can interleave them, and every subsequent drag
     /// would then clamp against a boundary that does not exist on screen, which looks like
     /// tabs refusing to move for no reason.
     /// </remarks>
@@ -894,7 +894,7 @@ internal sealed class Workspace : IAsyncDisposable
     /// <remarks>
     /// Turning it on has to do three things, and doing two of them would be worse
     /// than doing none: stop the journal, delete what has already been written, and
-    /// keep the tab out of the session index — the index carries the title, and a tab
+    /// keep the tab out of the session index, the index carries the title, and a tab
     /// called <c>prod-db-password</c> surviving a restart would defeat the point on
     /// its own.
     /// </remarks>
@@ -929,7 +929,7 @@ internal sealed class Workspace : IAsyncDisposable
     /// </summary>
     /// <remarks>
     /// The only place Etch writes outside its own data directory, and the only write
-    /// the user explicitly asks for. Everything else journals to a shadow copy —
+    /// the user explicitly asks for. Everything else journals to a shadow copy:
     /// silently overwriting someone's <c>appsettings.json</c> because they scrolled
     /// through it is the one way continuous auto-save becomes a liability.
     /// </remarks>
@@ -979,7 +979,7 @@ internal sealed class Workspace : IAsyncDisposable
 
         // Re-read after the write, so the tab's idea of the file is Etch's own output.
         // Skipping this would make the next Ctrl+S report this save as somebody else's
-        // change — and a warning that cries wolf is worse than none, because the user
+        // change, and a warning that cries wolf is worse than none, because the user
         // learns to press through it.
         await RefreshFileStateAsync(tab, path, cancellationToken).ConfigureAwait(true);
 
@@ -1009,7 +1009,7 @@ internal sealed class Workspace : IAsyncDisposable
     /// session has no witness: the session index records a path and not a timestamp, and
     /// the text comes from the journal so the file is never read. A change made while
     /// Etch was <i>closed</i> is therefore not detected, and the first save after a
-    /// restore merely establishes the witness — which is a shame, because "changed while
+    /// restore merely establishes the witness, which is a shame, because "changed while
     /// the editor was shut" is the likelier case of the two. Closing it means persisting
     /// the witness in the session index, which is a schema change and is not attempted
     /// here rather than being approximated with the buffer's own edit time.
@@ -1056,7 +1056,7 @@ internal sealed class Workspace : IAsyncDisposable
     /// <remarks>
     /// A failure here clears the state rather than leaving the old one. The stale witness
     /// describes the file as it was <i>before</i> Etch's own save, so keeping it would
-    /// make the very next Ctrl+S report this write as somebody else's change — the
+    /// make the very next Ctrl+S report this write as somebody else's change: the
     /// failure this method exists to prevent, reached down its error path.
     /// </remarks>
     private static async Task RefreshFileStateAsync(BufferTab tab, string path, CancellationToken cancellationToken)
@@ -1105,7 +1105,7 @@ internal sealed class Workspace : IAsyncDisposable
     /// </summary>
     /// <remarks>
     /// Identity when both sides have one, path otherwise. The fallback is reached by
-    /// tabs restored from a session index, which records a path and not an identity —
+    /// tabs restored from a session index, which records a path and not an identity,
     /// and by files on a filesystem that will not supply an id.
     /// </remarks>
     private static bool IsSameFile(BufferTab tab, string path, FileIdentity identity)
@@ -1117,7 +1117,7 @@ internal sealed class Workspace : IAsyncDisposable
 
         // Either test is enough, and the path is not merely a fallback for when the
         // identity is unknown. A file id does not survive delete-and-recreate, and
-        // rename-over-temp is how almost everything saves — git checkout, VS Code,
+        // rename-over-temp is how almost everything saves: git checkout, VS Code,
         // Notepad, most build tools. Stopping at "both ids known and different" would
         // therefore open a second tab over a path already open the moment another tool
         // wrote to it, which is the two-tabs-one-file race this method exists to stop,
@@ -1162,7 +1162,7 @@ internal sealed class Workspace : IAsyncDisposable
     /// Writes the session index, coalescing overlapping requests.
     /// </summary>
     /// <remarks>
-    /// Structural changes — new tab, close, activate, rename, pin — are user-paced,
+    /// Structural changes (new tab, close, activate, rename, pin) are user-paced,
     /// so this does not need a debounce timer. It does need to not overlap with
     /// itself: holding Ctrl+Tab would otherwise start a write per frame, and two
     /// concurrent atomic writes to one path is a race with no winner worth having.
@@ -1198,7 +1198,7 @@ internal sealed class Workspace : IAsyncDisposable
         catch (Exception ex)
         {
             // Nothing awaits this task, so an escaping exception would surface as an
-            // unobserved one at some arbitrary later garbage collection — attributed
+            // unobserved one at some arbitrary later garbage collection: attributed
             // to nothing, and long after the thing that caused it.
             DiagnosticLog.WriteFailure("session-save-loop", ex);
         }
@@ -1216,7 +1216,7 @@ internal sealed class Workspace : IAsyncDisposable
     /// is usually an antivirus scanner holding a handle and is fixed by the retry, and
     /// interrupting someone's typing for it would be worse than useless. A run of them
     /// means auto-save is genuinely not working, and the entire premise of the app is
-    /// that the user does not have to think about saving — so at that point they have
+    /// that the user does not have to think about saving, so at that point they have
     /// to be told.
     /// </remarks>
     private void OnJournalFailure(JournalFailure failure)
@@ -1273,13 +1273,13 @@ internal sealed class Workspace : IAsyncDisposable
     /// </summary>
     /// <remarks>
     /// Synchronous and UI-thread-only, because it reads UI state. Separated from the
-    /// write so that the write itself needs nothing from this thread — see
+    /// write so that the write itself needs nothing from this thread: see
     /// <see cref="_indexGate"/>.
     /// </remarks>
     private (long Revision, SessionSnapshot Snapshot) CaptureIndex(bool cleanShutdown)
     {
         // Ephemeral tabs are excluded outright. The index holds titles and, for file
-        // tabs, full paths — exactly the kind of thing someone marks a tab ephemeral
+        // tabs, full paths: exactly the kind of thing someone marks a tab ephemeral
         // to keep off the disk.
         var records = _tabs
             .Where(static tab => !tab.IsEphemeral)
@@ -1309,7 +1309,7 @@ internal sealed class Workspace : IAsyncDisposable
     private async Task WriteIndexAsync(long revision, SessionSnapshot snapshot, CancellationToken cancellationToken)
     {
         // Before the wait, not only after it. DisposeAsync gives up on a wedged write
-        // after a bounded interval and leaves it running, still holding the gate — so a
+        // after a bounded interval and leaves it running, still holding the gate, so a
         // caller arriving afterwards would queue behind exactly the write that was
         // already judged not worth waiting for.
         if (Volatile.Read(ref _disposed) == 1)
@@ -1332,7 +1332,7 @@ internal sealed class Workspace : IAsyncDisposable
             // Handed to the pool rather than awaited from here, and that is structural
             // rather than stylistic. An uncontended WaitAsync completes synchronously,
             // so without this the write would begin on the UI thread with the
-            // dispatcher context installed, holding the gate — and the only thing
+            // dispatcher context installed, holding the gate, and the only thing
             // stopping a continuation from posting back to a thread that is blocked
             // waiting for this gate would be that every await two assemblies away
             // happens to say ConfigureAwait(false). Task.Run makes that a property of
@@ -1367,7 +1367,7 @@ internal sealed class Workspace : IAsyncDisposable
             // text. Failing loudly would be out of proportion to the harm.
             //
             // The revision still advances. It means "nothing older than this may land",
-            // not "this reached the disk" — and if a failed shutdown write left it
+            // not "this reached the disk", and if a failed shutdown write left it
             // behind, the older snapshot queued underneath would then be free to publish
             // cleanShutdown false over an orderly exit, which is the outcome this whole
             // mechanism exists to prevent, arriving down the error path.
@@ -1384,8 +1384,8 @@ internal sealed class Workspace : IAsyncDisposable
     /// Flushes everything and records that this shutdown was orderly.
     /// </summary>
     /// <remarks>
-    /// The clean-shutdown flag changes nothing about what the next launch does — it
-    /// restores either way — so it is a diagnostic, not a branch. That is deliberate:
+    /// The clean-shutdown flag changes nothing about what the next launch does, it
+    /// restores either way, so it is a diagnostic, not a branch. That is deliberate:
     /// a recovery path taken only after a crash is a recovery path that has never
     /// been tested when it matters.
     /// </remarks>
@@ -1402,7 +1402,7 @@ internal sealed class Workspace : IAsyncDisposable
     /// <remarks>
     /// The split exists for the session-end path. Taking a document snapshot has thread
     /// affinity and reading the tab list is UI state, but everything after that is file
-    /// I/O — and when Windows is logging the user off, the caller has to block the
+    /// I/O, and when Windows is logging the user off, the caller has to block the
     /// dispatcher while that I/O finishes. Blocking on a task whose continuations post
     /// back to the dispatcher deadlocks, so the two halves have to be separable: this one
     /// is synchronous and touches only UI state, and
@@ -1492,7 +1492,7 @@ internal sealed class Workspace : IAsyncDisposable
 
         // Then wait out any index write still in flight. RequestSessionSave is
         // fire-and-forget, so without this a disposed workspace can still be renaming a
-        // file over session.json — which a caller that goes on to read that file, or to
+        // file over session.json, which a caller that goes on to read that file, or to
         // delete the directory, has no way to have anticipated.
         //
         // Bounded, and the bound is not decoration. Background index writes carry
@@ -1500,7 +1500,7 @@ internal sealed class Workspace : IAsyncDisposable
         // FlushFileBuffers; against a redirected profile directory on a share that has
         // gone away, that blocks for as long as the network stack takes to give up. An
         // unbounded wait here would be the last thing on the close path, so Etch would
-        // simply never quit — and the write it is waiting for is the session index, the
+        // simply never quit, and the write it is waiting for is the session index, the
         // cheapest thing it stores.
         //
         // Acquired and released rather than disposed: a SemaphoreSlim that never handed
@@ -1571,8 +1571,8 @@ internal sealed class Workspace : IAsyncDisposable
 
     private void SetActive(BufferTab? tab)
     {
-        // Bumped here rather than only in ActivateAsync, so that a *direct* activation —
-        // a new tab, an opened file, the tab that follows a close — also invalidates any
+        // Bumped here rather than only in ActivateAsync, so that a *direct* activation
+        // (a new tab, an opened file, the tab that follows a close) also invalidates any
         // slower activation still in flight. Otherwise pressing Ctrl+N while an awaited
         // tab switch is in progress lets the older request win and swap the document out
         // from under someone who has already started typing.

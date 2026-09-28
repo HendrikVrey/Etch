@@ -8,15 +8,15 @@ namespace Etch.Persistence.Journal;
 /// <para>
 /// This indirection exists for one reason, and it is a performance budget rather
 /// than a matter of taste. The editor raises a change event on every keystroke, and
-/// the obvious implementation hands the journal <c>document.Text</c> — which walks
+/// the obvious implementation hands the journal <c>document.Text</c>, which walks
 /// the whole rope and allocates the entire buffer as a string, on the UI thread,
 /// between the key going down and the frame going out. At a megabyte that is a
 /// two-megabyte allocation straight onto the large object heap, per character
 /// typed, against a 16 ms keystroke-to-frame budget.
 /// </para>
 /// <para>
-/// A deferred content object lets the caller capture something O(1) instead — an
-/// immutable snapshot of the document — and pay for materialising it once, on the
+/// A deferred content object lets the caller capture something O(1) instead, an
+/// immutable snapshot of the document, and pay for materialising it once, on the
 /// journal's own thread, after the debounce has already collapsed a burst of typing
 /// into a single write. That is precisely the affordance the plan's threading model
 /// is built around.
@@ -54,7 +54,7 @@ public abstract class BufferContent
     /// </summary>
     /// <param name="materialise">
     /// Called on the journal's thread. Must be safe to call from a thread that does
-    /// not own the editor, and must return the same text however often it is called —
+    /// not own the editor, and must return the same text however often it is called,
     /// so it has to close over an immutable snapshot, never over the live document.
     /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="materialise"/> is null.</exception>

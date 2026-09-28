@@ -13,8 +13,8 @@ namespace Etch.App.Views;
 /// <para>
 /// Chords are resolved on the way <em>down</em>, in <see cref="OnPreviewKeyDown"/>,
 /// rather than through WPF's <c>InputBindings</c>. That is the whole point of this file.
-/// Input bindings are matched in <c>PostProcessInput</c> — after the focused control has
-/// already had the key, and after <c>KeyboardNavigation</c> has had its look at Tab — so
+/// Input bindings are matched in <c>PostProcessInput</c> (after the focused control has
+/// already had the key, and after <c>KeyboardNavigation</c> has had its look at Tab) so
 /// whether <c>Ctrl+Tab</c> reached the window at all depended on ordering between two
 /// framework components Etch does not control, and <c>Ctrl+Enter</c> was one missed
 /// <c>Handled</c> away from also inserting a newline. Tunnelling from the window makes
@@ -48,8 +48,8 @@ public partial class MainWindow
     /// </summary>
     /// <remarks>
     /// <b>The pending state must not outlive the hint that explains it.</b> Without this, a
-    /// Ctrl+K pressed and then forgotten leaves the window looking completely normal — the
-    /// hint has faded — while the next key typed into the editor is silently swallowed, and
+    /// Ctrl+K pressed and then forgotten leaves the window looking completely normal, the
+    /// hint has faded, while the next key typed into the editor is silently swallowed, and
     /// the next Escape cancels the invisible sequence instead of closing the find bar. A
     /// tunnelling key handler that takes keys nobody knows it is waiting for is precisely
     /// what this whole file exists to avoid.
@@ -110,7 +110,7 @@ public partial class MainWindow
     /// <remarks>
     /// The palette is checked before the find bar because it is drawn on top of
     /// everything: when both are open, Escape has to dismiss the thing the user is
-    /// actually looking at. Escape means nothing when neither is open — the editor keeps
+    /// actually looking at. Escape means nothing when neither is open: the editor keeps
     /// it, which is what lets a future modal-free feature claim it in turn.
     /// </remarks>
     private bool TryDismiss()
@@ -152,7 +152,7 @@ public partial class MainWindow
     {
         // The palette owns the keyboard while it is up. Its query box drives Enter, the
         // arrows and Escape itself, and a global chord firing underneath would act on a
-        // buffer the user cannot currently see — the palette is drawn over it.
+        // buffer the user cannot currently see: the palette is drawn over it.
         if (IsPaletteOpen)
         {
             // A sequence cannot survive the palette opening over it. Left pending, the next
@@ -163,7 +163,7 @@ public partial class MainWindow
         }
 
         // The settings panel owns the keyboard while it is up, exactly as the palette
-        // does. Every shortcut here acts on a buffer the overlay is covering — Ctrl+T
+        // does. Every shortcut here acts on a buffer the overlay is covering: Ctrl+T
         // would silently create tabs behind it, and Ctrl+Enter would rewrite text the
         // user cannot currently see. Escape still works: TryDismiss runs before this.
         if (IsSettingsOpen)
@@ -196,7 +196,7 @@ public partial class MainWindow
         }
 
         // A text box has the keyboard: the find inputs, or a tab caption being renamed.
-        // Only Ctrl chords are taken from it. Everything else — F2 included — is typing or
+        // Only Ctrl chords are taken from it. Everything else, F2 included, is typing or
         // navigation that belongs to the box, and an editor that steals keys out of its own
         // search field is worse than one with no shortcuts at all.
         if (Keyboard.FocusedElement is TextBox && (shortcut.Modifiers & ModifierKeys.Control) == 0)
@@ -259,7 +259,7 @@ public partial class MainWindow
     /// </summary>
     /// <remarks>
     /// <para>
-    /// While a sequence is in progress the window owns the keyboard outright — the focus
+    /// While a sequence is in progress the window owns the keyboard outright: the focus
     /// rules that let a text box keep its own keys are suspended, exactly as they are for
     /// the palette. Someone who has pressed <c>Ctrl+K</c> is addressing the application, not
     /// whatever happens to have the caret.
@@ -273,7 +273,7 @@ public partial class MainWindow
     /// </remarks>
     private bool CompleteChord(Shortcut second)
     {
-        // Pressing Ctrl or Shift is not the second key of anything — it is the user holding
+        // Pressing Ctrl or Shift is not the second key of anything: it is the user holding
         // the modifier down on their way to pressing it. Treating a modifier as an unknown
         // key would cancel the sequence for anyone who does not let go of Ctrl in between,
         // which is most people.

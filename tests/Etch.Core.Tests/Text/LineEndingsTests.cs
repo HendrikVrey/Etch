@@ -86,7 +86,7 @@ public class LineEndingsTests
     public void Detection_only_inspects_the_sample()
     {
         // The first 4 characters are LF-terminated; everything after is CRLF.
-        // A bounded detector must answer from the prefix alone — that is the whole
+        // A bounded detector must answer from the prefix alone, that is the whole
         // reason detection stays constant-cost on a 50 MB file.
         var text = "a\nb\n" + string.Concat(Enumerable.Repeat("x\r\n", 500));
 

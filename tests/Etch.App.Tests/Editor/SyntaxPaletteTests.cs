@@ -46,7 +46,7 @@ public class SyntaxPaletteTests
         {
             if (role == SyntaxRole.Unmapped)
             {
-                // Has no colour of its own by definition — it is the signal to keep the
+                // Has no colour of its own by definition: it is the signal to keep the
                 // grammar's, which Rescue is responsible for and is covered below.
                 Assert.Null(SyntaxPalette.ForRole(role, dark));
                 continue;
@@ -68,7 +68,7 @@ public class SyntaxPaletteTests
     /// </summary>
     /// <remarks>
     /// Well below the palette's actual minimum, which is around 58. The number is a
-    /// tripwire for a collision, not a design constraint — asserting the real separation
+    /// tripwire for a collision, not a design constraint: asserting the real separation
     /// would turn every deliberate adjustment into a failing test, which is how a test
     /// stops being read and starts being edited until it passes.
     /// </remarks>
@@ -114,7 +114,7 @@ public class SyntaxPaletteTests
     /// </summary>
     /// <remarks>
     /// The "redmean" weighting rather than a plain distance through RGB, because a plain
-    /// one badly overstates how different two blues are and understates two greens — which
+    /// one badly overstates how different two blues are and understates two greens, which
     /// would let the exact collision this guards against slip through between two hues the
     /// eye cannot separate. Approximate on purpose: the assertion is that two colours are
     /// not the same, and that does not need a colour-appearance model.
@@ -171,7 +171,7 @@ public class SyntaxPaletteTests
     /// A <c>[Fact]</c> holding a table, not a <c>[Theory]</c> with one row per case, and the
     /// reason is a language rule rather than a preference: <see cref="SyntaxRole"/> is
     /// <c>internal</c>, and <c>InternalsVisibleTo</c> grants <em>access</em> without granting
-    /// <em>accessibility</em> — so a public method may use the type inside its body but may
+    /// <em>accessibility</em>, so a public method may use the type inside its body but may
     /// not name it in its signature. xUnit requires test methods to be public, which makes
     /// <c>[Theory] … (string, SyntaxRole)</c> a CS0051 rather than a design choice.
     /// </remarks>
@@ -209,7 +209,7 @@ public class SyntaxPaletteTests
     {
         // Twenty-odd of the hundred and sixteen names the built-in grammars use are some
         // flavour of keyword. The suffix rule is a claim about how these files are named,
-        // which is more durable than an inventory of them — and these are real names, read
+        // which is more durable than an inventory of them, and these are real names, read
         // out of the shipped .xshd resources rather than invented here.
         Assert.Equal(SyntaxRole.Keyword, SyntaxPalette.RoleOf(name));
     }

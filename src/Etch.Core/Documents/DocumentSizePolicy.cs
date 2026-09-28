@@ -104,7 +104,7 @@ public sealed class DocumentSizePolicy
 
     /// <summary>
     /// Formats a byte count for a status-bar message ("9.4 MB", "512 KB", "27 bytes").
-    /// Binary units, decimal-ish labels — matching what Windows itself shows.
+    /// Binary units, decimal-ish labels: matching what Windows itself shows.
     /// </summary>
     /// <remarks>
     /// Invariant culture: this string goes into diagnostic logs that get compared

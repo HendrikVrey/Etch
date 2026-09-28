@@ -63,8 +63,8 @@ internal static class JsonRewriter
         catch (Exception ex) when (ex is JsonException or ArgumentException)
         {
             // ArgumentException as well as JsonException: Parse(string) transcodes to
-            // UTF-8 first, and a lone surrogate in the buffer fails there — before the
-            // parser has an opinion — with "Cannot transcode invalid UTF-16". A transform
+            // UTF-8 first, and a lone surrogate in the buffer fails there, before the
+            // parser has an opinion, with "Cannot transcode invalid UTF-16". A transform
             // is contracted to report bad input by returning a failure, and pasted text
             // is exactly where a stray surrogate comes from.
             //
@@ -105,7 +105,7 @@ internal static class JsonRewriter
     /// </para>
     /// <para>
     /// Recursion is bounded by <see cref="MaxDepth"/>, which the parse has already
-    /// enforced — a document deep enough to overflow the stack here could not have been
+    /// enforced: a document deep enough to overflow the stack here could not have been
     /// parsed in the first place.
     /// </para>
     /// </remarks>

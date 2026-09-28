@@ -103,7 +103,7 @@ public static class Jwt
         }
 
         // No try around this: Encoding.UTF8 uses the replacement fallback, so invalid
-        // bytes become U+FFFD rather than an exception — and a segment that decoded to
+        // bytes become U+FFFD rather than an exception, and a segment that decoded to
         // replacement characters will fail the JSON parse below anyway.
         var text = Encoding.UTF8.GetString(bytes);
 

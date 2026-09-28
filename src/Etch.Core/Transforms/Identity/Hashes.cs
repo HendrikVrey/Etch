@@ -11,7 +11,7 @@ namespace Etch.Core.Transforms.Identity;
 /// <remarks>
 /// <para>
 /// <b>UTF-8, unconditionally, and it is worth being loud about.</b> A hash is a function of
-/// bytes, and text does not become bytes until an encoding says so — so "the SHA-256 of
+/// bytes, and text does not become bytes until an encoding says so, so "the SHA-256 of
 /// this string" is only a well-defined question once the encoding is fixed. UTF-8 is what
 /// every other tool the answer will be compared against uses. The alternative, following
 /// the document's own encoding, would mean the same visible text hashed to two different
@@ -63,8 +63,8 @@ internal abstract class HashTransform : ITransform
 /// <remarks>
 /// The name says <em>legacy</em> where the palette can see it, which is the whole reason
 /// this is not just another row in a list. MD5 has been collision-broken since 2004 and
-/// anyone reaching for it to protect something needs to be told so at the moment they reach
-/// — not in documentation they will not read. It stays in the catalogue because verifying
+/// anyone reaching for it to protect something needs to be told so at the moment they reach,
+/// not in documentation they will not read. It stays in the catalogue because verifying
 /// an MD5 someone else published is a real and blameless task.
 /// </remarks>
 internal sealed class HashMd5 : HashTransform

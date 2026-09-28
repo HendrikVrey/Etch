@@ -5,14 +5,14 @@ using Xunit;
 namespace Etch.App.Tests.Views;
 
 /// <summary>
-/// <see cref="SettingsThresholds"/> — where three strings a user is halfway through
+/// <see cref="SettingsThresholds"/>, where three strings a user is halfway through
 /// typing become the arguments to <c>DocumentSizePolicy</c>'s constructor, which throws
 /// on a set that does not ascend.
 /// </summary>
 /// <remarks>
 /// Every decimal literal here is built through <see cref="SettingsThresholds.Format"/>
-/// rather than written out, because the panel parses with the current culture — a German
-/// user types "0,0625" and expects it to work — and because a formatter and a parser that
+/// rather than written out, because the panel parses with the current culture (a German
+/// user types "0,0625" and expects it to work) and because a formatter and a parser that
 /// disagree is exactly the defect <see cref="The_panel_can_round_trip_its_own_floor"/>
 /// exists to catch. Whole numbers need no such care.
 /// </remarks>
@@ -59,7 +59,7 @@ public class SettingsThresholdTests
     public void Anything_the_panel_displays_the_panel_accepts(long size)
     {
         // The bug this replaced a stricter version of: Format used to round to two
-        // decimals, so the smallest legal threshold — 64 KiB, or 0.0625 MB exactly — was
+        // decimals, so the smallest legal threshold (64 KiB, or 0.0625 MB exactly) was
         // displayed as "0.06" and parsed back as 62,914 bytes, below the floor. The panel
         // then rejected the value it had written into the box one field earlier.
         //
@@ -79,7 +79,7 @@ public class SettingsThresholdTests
                 out _),
             $"{text} MB was formatted by the panel and then refused by it.");
 
-        // Still legal afterwards, even where it is not identical — which is the part that
+        // Still legal afterwards, even where it is not identical, which is the part that
         // would actually hurt, because an illegal value reaches a constructor that throws.
         Assert.InRange(reduced, EtchSettings.MinThresholdBytes, EtchSettings.MaxThresholdBytes);
     }
@@ -90,7 +90,7 @@ public class SettingsThresholdTests
     {
         // The property that replaces exact round-tripping, and the one that actually
         // protects the user. A value may lose precision once, the first time it passes
-        // through the box — but it must not keep moving every time the panel is reopened,
+        // through the box, but it must not keep moving every time the panel is reopened,
         // or a threshold would walk a little further away on each visit.
         var once = SettingsThresholds.Format(size);
 
@@ -110,7 +110,7 @@ public class SettingsThresholdTests
     public void An_untouched_box_is_recognised_as_untouched(long size)
     {
         // What stops the drift the two tests above tolerate. The panel re-reads the size
-        // boxes only when one has actually been typed in — otherwise editing the retention
+        // boxes only when one has actually been typed in, otherwise editing the retention
         // field beside them would silently rewrite 102,400 bytes as 102,445.
         Assert.True(SettingsThresholds.IsUnchanged(SettingsThresholds.Format(size), size));
     }
@@ -119,7 +119,7 @@ public class SettingsThresholdTests
     public void An_edited_box_is_recognised_as_edited()
     {
         // The other direction, so that "unchanged" cannot be satisfied by a method that
-        // always says yes — which would freeze the size boxes completely while looking
+        // always says yes, which would freeze the size boxes completely while looking
         // like nothing was wrong at all.
         var size = EtchSettings.Default.ReducedThresholdBytes;
         var text = SettingsThresholds.Format(size);
@@ -162,7 +162,7 @@ public class SettingsThresholdTests
     public void A_negative_size_is_refused()
     {
         // The sign is allowed through the parse deliberately, so that this reads as out
-        // of range rather than as unparseable — but it must still be refused, because a
+        // of range rather than as unparseable, but it must still be refused, because a
         // negative reduced threshold ascends perfectly well towards a positive one.
         Assert.False(SettingsThresholds.TryParse("-2", TenMegabytes, HundredMegabytes, out _, out _, out _));
     }
@@ -171,7 +171,7 @@ public class SettingsThresholdTests
     public void A_size_beyond_the_ceiling_is_refused_without_overflowing()
     {
         // The trap this guards. A double past long's range converts, in an unchecked
-        // context, to an unspecified value — long.MinValue in practice — which would then
+        // context, to an unspecified value, long.MinValue in practice, which would then
         // sail through the ascending check as a plausible-looking negative threshold.
         //
         // Equal to zero rather than merely non-negative: TryParse zeroes its outputs on
@@ -206,7 +206,7 @@ public class SettingsThresholdTests
     public void The_floor_and_the_ceiling_are_themselves_accepted()
     {
         // Boundaries are inclusive on both ends. A range whose stated limits are rejected
-        // is a range whose message is a lie — and the panel's message names both of these
+        // is a range whose message is a lie, and the panel's message names both of these
         // numbers.
         Assert.True(SettingsThresholds.TryParse(
             SettingsThresholds.Format(EtchSettings.MinThresholdBytes),

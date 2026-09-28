@@ -7,7 +7,7 @@ namespace Etch.Core.Palette;
 /// <para>
 /// A subsequence match with bonuses, which is what every palette worth using does:
 /// <c>fj</c> finds "Format JSON", <c>b64d</c> finds "Base64 decode". The bonuses are
-/// what separate a useful ordering from an arbitrary one — a match on the initials of
+/// what separate a useful ordering from an arbitrary one: a match on the initials of
 /// each word beats a match on adjacent letters in the middle of one.
 /// </para>
 /// <para>

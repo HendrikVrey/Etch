@@ -58,14 +58,14 @@ internal enum SyntaxRole
 /// AvalonEdit's built-in grammars carry their own colours and every one of them was chosen
 /// for a white page: comments are <c>Green</c>, strings are <c>Blue</c>, several are plain
 /// <c>Black</c>. Over Etch's dark editor those are somewhere between muddy and invisible.
-/// They also cannot be corrected in place — <c>HighlightingLoader</c> freezes every
+/// They also cannot be corrected in place: <c>HighlightingLoader</c> freezes every
 /// <see cref="ICSharpCode.AvalonEdit.Highlighting.HighlightingColor"/> it produces, and the
 /// definitions are process-wide singletons, so writing to them would be both impossible
 /// and, if it were possible, a global side effect of opening one tab.
 /// </para>
 /// <para>
-/// So the grammars are kept for what they are genuinely good at — knowing that <c>catch</c>
-/// is a keyword and that <c>#</c> starts a directive — and the colours are replaced at
+/// So the grammars are kept for what they are genuinely good at, knowing that <c>catch</c>
+/// is a keyword and that <c>#</c> starts a directive, and the colours are replaced at
 /// render time. Two rules, in order:
 /// </para>
 /// <list type="number">
@@ -81,7 +81,7 @@ internal enum SyntaxRole
 /// <b>The one place this promise is weaker than it sounds.</b> The ratio is against the
 /// editor's page, which is what text sits on nearly all of the time. Inside a selection it
 /// sits on §24's derived fill instead, which is by construction somewhere between the page
-/// and the ink — so contrast there is lower than the number below. That is the cost of
+/// and the ink, so contrast there is lower than the number below. That is the cost of
 /// §24's decision to leave <c>SelectionForeground</c> null so that highlighting survives
 /// being selected at all, and it is a better trade than flattening every colour to one.
 /// </para>
@@ -92,7 +92,7 @@ internal static class SyntaxPalette
     /// Contrast every syntax colour must reach against the page.
     /// </summary>
     /// <remarks>
-    /// WCAG 2.1 AA for body text. Source code <em>is</em> body text — it is read
+    /// WCAG 2.1 AA for body text. Source code <em>is</em> body text: it is read
     /// continuously for hours, which is a stronger case for the full ratio than most
     /// interface text has, not a weaker one. Applied to Etch's own choices below as well as
     /// to inherited ones, so the constants are a starting point rather than a promise the
@@ -106,7 +106,7 @@ internal static class SyntaxPalette
     /// <remarks>
     /// Hues rather than final values. Each is passed through
     /// <see cref="EditorColours.Legible"/> against the actual page, so what ships is
-    /// whichever nearby colour clears the ratio — which means these can be chosen for how
+    /// whichever nearby colour clears the ratio, which means these can be chosen for how
     /// they look and read beside each other, and the contrast requirement is met by
     /// construction instead of by inspection.
     /// </remarks>
@@ -121,7 +121,7 @@ internal static class SyntaxPalette
         (SyntaxRole.Function, Rgb(0xDC, 0xDC, 0xAA), Rgb(0x79, 0x5E, 0x26)),
         (SyntaxRole.Preprocessor, Rgb(0xC5, 0x86, 0xC0), Rgb(0xAF, 0x00, 0xDB)),
         // Lighter than Keyword rather than equal to it. The obvious choice for a markup tag
-        // is the same blue keywords get — that is what the editors these hues come from do,
+        // is the same blue keywords get, that is what the editors these hues come from do,
         // because no language shows both at once. Etch does: HTML embeds JavaScript, and
         // ASP/XHTML embeds four things. Two roles resolving to one colour was caught by the
         // distinctness test rather than by looking at it, which is the point of having one.
@@ -137,7 +137,7 @@ internal static class SyntaxPalette
     /// Taken from the grammars rather than guessed at: these are the names that actually
     /// occur, read out of the <c>.xshd</c> resources. Names appearing in several grammars
     /// are here; the long tail that appears once is left to the fallback, which is the
-    /// right place for it — <c>JavaScriptGlobalFunctions</c> is a distinction one grammar
+    /// right place for it: <c>JavaScriptGlobalFunctions</c> is a distinction one grammar
     /// wanted to draw and Etch has no view on.
     /// </remarks>
     private static readonly Dictionary<string, SyntaxRole> ByName = new(StringComparer.OrdinalIgnoreCase)
@@ -220,9 +220,9 @@ internal static class SyntaxPalette
     /// Names ending in one of these are keywords, whatever else they say.
     /// </summary>
     /// <remarks>
-    /// Twenty-odd of the hundred and sixteen names are some flavour of keyword —
-    /// <c>GotoKeywords</c>, <c>ExceptionKeywords</c>, <c>AccessKeywords</c>,
-    /// <c>ControlStatements</c>, <c>IterationStatements</c> — and listing each one would be
+    /// Twenty-odd of the hundred and sixteen names are some flavour of keyword
+    /// (<c>GotoKeywords</c>, <c>ExceptionKeywords</c>, <c>AccessKeywords</c>,
+    /// <c>ControlStatements</c>, <c>IterationStatements</c>) and listing each one would be
     /// a table that goes stale the moment a grammar is added. The suffixes are a rule about
     /// how these files are named, which is more durable than an inventory of them.
     /// </remarks>
@@ -288,7 +288,7 @@ internal static class SyntaxPalette
     /// <remarks>
     /// The fallback for the long tail of names. <c>Legible</c> returns the colour untouched
     /// when it already clears the ratio, so a grammar that happens to have picked something
-    /// readable is left exactly as its author wrote it — which is the outcome to want.
+    /// readable is left exactly as its author wrote it, which is the outcome to want.
     /// </remarks>
     /// <param name="original">The colour the grammar asked for.</param>
     /// <param name="dark">Whether the dark theme is in use.</param>
@@ -300,7 +300,7 @@ internal static class SyntaxPalette
     /// </summary>
     /// <remarks>
     /// The same surfaces §24 uses, and for the same reason: the editor is transparent over
-    /// Mica, so there is no literal page colour to read — these are the application
+    /// Mica, so there is no literal page colour to read, these are the application
     /// backgrounds WPF-UI tints Mica towards, and they are the closest honest stand-in for
     /// a contrast calculation. Alpha is dropped because a page is by definition what
     /// everything else composites onto.

@@ -9,8 +9,8 @@ namespace Etch.App.Editor;
 /// <remarks>
 /// <see cref="SelectionForeground"/> and <see cref="SelectionBorder"/> are nullable and
 /// the current-line pair is not, and that asymmetry is deliberate. AvalonEdit's
-/// <c>SelectionColorizer</c> documents and handles a null foreground — it leaves the
-/// text's own colour alone — and <c>SelectionLayer</c> passes a null border straight to
+/// <c>SelectionColorizer</c> documents and handles a null foreground, it leaves the
+/// text's own colour alone, and <c>SelectionLayer</c> passes a null border straight to
 /// <c>DrawGeometry</c>, which accepts one. Nothing upstream says what a null current-line
 /// brush or pen does, so where Etch wants no current-line decoration it passes a
 /// transparent brush rather than betting on the unverified case.
@@ -29,7 +29,7 @@ internal sealed record EditorColourScheme(
 /// <para>
 /// AvalonEdit's defaults do not survive this window. Its selection is the system
 /// highlight colour at 70% opacity with the selected text forced to <c>HighlightText</c>,
-/// which over an opaque editor background is fine — but Etch's editor is transparent over
+/// which over an opaque editor background is fine, but Etch's editor is transparent over
 /// Mica, so the fill composites against a blurred wallpaper nobody chose for its contrast.
 /// In dark mode the result sinks into the page; in light mode white on 70% blue lands
 /// around 2.9:1, below any readable threshold. The current-line default is worse: a
@@ -37,7 +37,7 @@ internal sealed record EditorColourScheme(
 /// rendering fault rather than a feature.
 /// </para>
 /// <para>
-/// So the colours are derived rather than picked — from the user's accent and the theme,
+/// So the colours are derived rather than picked, from the user's accent and the theme,
 /// against two stated thresholds. Deriving them is the point: it lets a test assert the
 /// promise for every accent a user could possibly choose, where a hand-picked pair would
 /// only ever be an opinion about one.
@@ -52,7 +52,7 @@ internal static class EditorColours
     /// <summary>Contrast the selection must reach against the page around it.</summary>
     /// <remarks>
     /// Deliberately below the 3:1 that WCAG asks of a UI component: the selection is not
-    /// the only thing marking itself out — it also carries an accent outline, which is
+    /// the only thing marking itself out, it also carries an accent outline, which is
     /// held to 3:1 separately. Asking 3:1 of the fill as well squeezes the feasible band
     /// to roughly four percentage points of luminance, which is a tighter constraint than
     /// the problem deserves and leaves nothing for the accent's own hue to show through.
@@ -82,7 +82,7 @@ internal static class EditorColours
     /// </summary>
     /// <remarks>
     /// Constants rather than a resource lookup, for two reasons. The surface the selection
-    /// actually composites against is Mica, which is no resource at all — these are the
+    /// actually composites against is Mica, which is no resource at all: these are the
     /// application background colours WPF-UI tints it towards, and they are the closest
     /// honest stand-in. And reading <c>TextFillColorPrimaryBrush</c> live would make the
     /// result depend on whether the theme dictionaries had been re-merged yet at the
@@ -106,7 +106,7 @@ internal static class EditorColours
     /// <remarks>
     /// A high-contrast theme is a declaration by the user about what they can see, and
     /// <c>Highlight</c> paired with <c>HighlightText</c> is the only selection pairing it
-    /// guarantees — so this is the one case where the selected text's own colour is
+    /// guarantees, so this is the one case where the selected text's own colour is
     /// overridden. The current line is turned off rather than reinvented: extra washes and
     /// outlines are precisely the decoration a high-contrast theme exists to remove.
     /// </remarks>
@@ -119,7 +119,7 @@ internal static class EditorColours
 
     private static EditorColourScheme Build(Color surface, Color text, Color accent)
     {
-        // The page is opaque by definition — it is what everything else composites onto.
+        // The page is opaque by definition, it is what everything else composites onto.
         var page = Color.FromRgb(surface.R, surface.G, surface.B);
 
         // WPF-UI's light-theme foreground carries alpha, so the ink has to be flattened
@@ -142,7 +142,7 @@ internal static class EditorColours
             // forces selected text to a single colour, which would flatten syntax
             // highlighting to one shade the moment a selection touched it. The fill above is
             // built to be readable against the text's own colour instead. The cost is stated
-            // on SyntaxPalette — inside a selection, syntax colours sit on this fill rather
+            // on SyntaxPalette: inside a selection, syntax colours sit on this fill rather
             // than on the page, so they clear less than the 4.5:1 that palette promises.
             SelectionForeground: null,
 
@@ -189,14 +189,14 @@ internal static class EditorColours
     /// <summary>Leaves a colour alone if it already contrasts, and moves it if it does not.</summary>
     /// <remarks>
     /// <para>
-    /// The accent as the user chose it, whenever it is legible as-is — a derived colour
+    /// The accent as the user chose it, whenever it is legible as-is, a derived colour
     /// that quietly replaces a perfectly good accent is a worse answer than no derivation.
     /// </para>
     /// <para>
     /// When it does have to move, the search tests the ratio against the <em>rounded</em>
     /// colour and carries the last blend known to clear it. Solving for the luminance the
     /// ratio implies and rounding to bytes afterwards lands on whichever side of the
-    /// boundary the eighth bit falls — a coin toss against a requirement, and it came up
+    /// boundary the eighth bit falls: a coin toss against a requirement, and it came up
     /// tails for about a fifth of the accent space. Carrying a known-good bound makes the
     /// answer satisfy the ratio by construction rather than by luck.
     /// </para>
@@ -211,8 +211,8 @@ internal static class EditorColours
         // Whichever of black and white is further from the page. Not "brighter if the page
         // is dark": a mid-grey page is closer to white than 3:1 in one direction while
         // being ten times that in the other, so the direction has to be measured, not
-        // assumed. Whichever wins clears at least 4.58:1 against any page there is — that
-        // is the ratio at the crossover — so it is always a valid answer to fall back on.
+        // assumed. Whichever wins clears at least 4.58:1 against any page there is, that
+        // is the ratio at the crossover, so it is always a valid answer to fall back on.
         var anchor = Contrast(Colors.White, page) >= Contrast(Colors.Black, page)
             ? Colors.White
             : Colors.Black;
@@ -247,7 +247,7 @@ internal static class EditorColours
     /// well inside the rounding error of a byte, and no special case is needed for a
     /// colour that is already grey, black or white. The blend runs in sRGB rather than
     /// linear light because what is being adjusted is the accent's appearance, not its
-    /// energy — mixing towards white in linear space washes the hue out much faster than
+    /// energy: mixing towards white in linear space washes the hue out much faster than
     /// anyone expects a tint to.
     /// </remarks>
     private static Color AtLuminance(Color seed, double target)

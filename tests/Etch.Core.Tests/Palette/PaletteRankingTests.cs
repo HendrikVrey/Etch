@@ -105,8 +105,8 @@ public class PaletteRankingTests
     public void Neither_half_of_a_reversible_pair_answers_to_the_others_bare_noun()
     {
         // The defect this pins cost a test failure and was invisible in either file alone:
-        // both transforms listed "epoch", so both scored 97, and Precedence — a value that
-        // exists to settle Ctrl+Enter on a detected buffer — silently decided what a typed
+        // both transforms listed "epoch", so both scored 97, and Precedence, a value that
+        // exists to settle Ctrl+Enter on a detected buffer, silently decided what a typed
         // word meant. A shared alias between inverses is a tie by construction.
         var epochToIso = TransformRegistry.All.Single(static t => t.Id == "time.epochToIso");
         var isoToEpoch = TransformRegistry.All.Single(static t => t.Id == "time.isoToEpoch");

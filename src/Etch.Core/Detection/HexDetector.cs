@@ -14,7 +14,7 @@ namespace Etch.Core.Detection;
 /// </para>
 /// <para>
 /// <b>But separated groups must all be the same width.</b> Without that rule this
-/// detector fires — with full confidence — on <c>2026-07-31</c>, because every decimal
+/// detector fires, with full confidence, on <c>2026-07-31</c>, because every decimal
 /// digit is a hex digit and <c>-</c> is a separator. Every ISO date in the world would
 /// be offered "Hex to text" as its <c>Ctrl+Enter</c> action, and that key does not ask
 /// first: it would silently rewrite the date as four bytes of control characters.
@@ -98,7 +98,7 @@ internal sealed class HexDetector : IFormatDetector
     /// </summary>
     /// <returns>False when this group's width differs from the ones before it.</returns>
     /// <remarks>
-    /// Runs of separators produce empty groups — <c>"de: ad"</c>, a trailing newline —
+    /// Runs of separators produce empty groups (<c>"de: ad"</c>, a trailing newline)
     /// and those are punctuation rather than evidence, so they are skipped.
     /// </remarks>
     private static bool CloseGroup(ref int currentGroup, ref int groups, ref int groupWidth)

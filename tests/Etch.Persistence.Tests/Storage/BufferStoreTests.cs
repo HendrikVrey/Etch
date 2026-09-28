@@ -89,7 +89,7 @@ public class BufferStoreTests
     {
         // Guid.TryParseExact trims whitespace and accepts uppercase, and both are
         // legal in an NTFS name. If such a file were adopted, its id would rebuild a
-        // *different* canonical path — so the prune would delete a file it never
+        // *different* canonical path, so the prune would delete a file it never
         // looked at and leave the one it did.
         using var workspace = TemporaryWorkspace.Create();
         var real = BufferId.New();
@@ -131,7 +131,7 @@ public class BufferStoreTests
         // The bug this guards: File.Move preserves the last-write time, so a note
         // last typed in nine days ago would be expired the instant it was closed and
         // deleted on the next launch. The tabs with the most time invested in them
-        // would get the least protection — precisely backwards.
+        // would get the least protection: precisely backwards.
         using var workspace = TemporaryWorkspace.Create();
         var id = BufferId.New();
 
@@ -241,7 +241,7 @@ public class BufferStoreTests
     public async Task Wiping_removes_buffers_trash_and_the_session_index()
     {
         // The privacy affordance. Leaving session.json behind would defeat it: it
-        // holds tab titles and, for file buffers, full paths — a tab called
+        // holds tab titles and, for file buffers, full paths, a tab called
         // "prod-db-password" surviving a wipe is the whole problem.
         using var workspace = TemporaryWorkspace.Create();
         var live = BufferId.New();

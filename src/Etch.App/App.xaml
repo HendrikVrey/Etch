@@ -8,7 +8,7 @@
         window construction phase explicitly.
 
         These two dictionaries are the whole XAML cost of the app. Keep the list at
-        exactly this length — every dictionary merged here is paid on every cold
+        exactly this length, every dictionary merged here is paid on every cold
         start, by every user, forever.
     -->
     <Application.Resources>

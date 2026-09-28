@@ -17,7 +17,7 @@ namespace Etch.App.Views;
 /// without reaching for a style trigger. The trigger version needs
 /// <c>BasedOn="{StaticResource {x:Type MenuItem}}"</c> to avoid throwing away the theme's
 /// own menu template, which makes a right-click depend on a resource key belonging to
-/// another library — and a missing key there is a crash, not a cosmetic problem.
+/// another library, and a missing key there is a crash, not a cosmetic problem.
 /// </para>
 /// <para>
 /// Public for the same reason the other converter is: XAML names it.

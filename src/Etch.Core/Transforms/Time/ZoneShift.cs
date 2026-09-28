@@ -9,13 +9,13 @@ namespace Etch.Core.Transforms.Time;
 /// <remarks>
 /// <para>
 /// Both directions share this because they differ in one line and are wrong in the same
-/// three ways if they drift apart. The output keeps its offset — <c>+02:00</c> rather than
-/// a bare local time — because a timestamp that has been moved into a zone and then lost
+/// three ways if they drift apart. The output keeps its offset, <c>+02:00</c> rather than
+/// a bare local time, because a timestamp that has been moved into a zone and then lost
 /// the record of which zone is worse than the one that came in.
 /// </para>
 /// <para>
 /// <b>Input with no offset is read as UTC</b>, matching <see cref="IsoToEpoch"/>. The
-/// alternative — the machine's zone — would make "convert to local" a no-op on some
+/// alternative, the machine's zone, would make "convert to local" a no-op on some
 /// machines and a real shift on others, from identical text.
 /// </para>
 /// </remarks>
@@ -35,7 +35,7 @@ internal abstract class ZoneShift : ITransform
 
     /// <inheritdoc />
     /// <remarks>
-    /// Offered for an ISO-8601 buffer but never the suggested action — <see cref="IsoToEpoch"/>
+    /// Offered for an ISO-8601 buffer but never the suggested action: <see cref="IsoToEpoch"/>
     /// claims that. Both of these are reachable in two keystrokes from the palette, and
     /// keeping Ctrl+Enter a predictable toggle is worth more than saving one of them.
     /// </remarks>
@@ -69,7 +69,7 @@ internal abstract class ZoneShift : ITransform
     /// <remarks>
     /// Seven fractional digits in both implementations, so nothing is lost on the way
     /// through, and capital <c>F</c> so the digits and their decimal point disappear
-    /// together — a whole second reads <c>12:34:56+02:00</c> rather than
+    /// together: a whole second reads <c>12:34:56+02:00</c> rather than
     /// <c>12:34:56.0000000+02:00</c>. What differs is the zone: a literal <c>Z</c> for UTC,
     /// a real offset for anywhere else.
     /// </remarks>
@@ -116,7 +116,7 @@ internal sealed class ToUtc : ZoneShift
 /// <remarks>
 /// The one transform in the catalogue whose output depends on the machine it runs on, which
 /// is exactly what makes it useful: the question it answers is "what time was this
-/// <em>here</em>". The zone is named in the message so the answer carries its own context —
+/// <em>here</em>". The zone is named in the message so the answer carries its own context:
 /// a result of <c>11:15+02:00</c> pasted into a ticket means nothing without knowing what
 /// produced it.
 /// </remarks>
@@ -140,8 +140,8 @@ internal sealed class ToLocalTime : ZoneShift
     /// <inheritdoc />
     /// <remarks>
     /// The zone is read fresh each time rather than cached. <c>TimeZoneInfo.Local</c> can
-    /// change while a process is running — a laptop crossing a border, or the twice-yearly
-    /// daylight-saving switch — and a cached name would then describe the wrong offset.
+    /// change while a process is running (a laptop crossing a border, or the twice-yearly
+    /// daylight-saving switch) and a cached name would then describe the wrong offset.
     /// </remarks>
     protected override string Describe(DateTimeOffset shifted) =>
         $"Converted to {TimeZoneInfo.Local.StandardName}.";

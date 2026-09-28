@@ -35,7 +35,7 @@ internal static class SystemThemeReader
     /// <remarks>
     /// Light is Windows' own default when <c>AppsUseLightTheme</c> is absent, so
     /// that is what Etch defaults to. Matching the user's system is worth more than
-    /// the dictionary swap it costs — optimising the other way would render a
+    /// the dictionary swap it costs: optimising the other way would render a
     /// group-policy-locked machine dark against its owner's setting.
     /// </remarks>
     public static SystemThemeMode Detect()

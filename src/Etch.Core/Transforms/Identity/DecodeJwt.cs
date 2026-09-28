@@ -11,7 +11,7 @@ namespace Etch.Core.Transforms.Identity;
 /// <remarks>
 /// <para>
 /// <b>Decode only. The signature is never verified, and the output says so.</b> That
-/// banner is not decoration — a tool that renders a token's claims as though they were
+/// banner is not decoration: a tool that renders a token's claims as though they were
 /// established facts is teaching its users to trust attacker-controlled input, and the
 /// people using a JWT decoder are exactly the people who will act on what it shows
 /// them. The plan makes this a security requirement; it is implemented as the first
@@ -84,7 +84,7 @@ internal sealed class DecodeJwt : ITransform
         foreach (var claim in claims)
         {
             // ValueKind is checked before TryGetInt64, which only suppresses malformed
-            // *numbers* — on a string it throws. Tokens in the wild really do carry
+            // *numbers*, on a string it throws. Tokens in the wild really do carry
             // "exp":"1516239022", and this decoder's whole job is reading input nobody
             // vouched for.
             if (!document.RootElement.TryGetProperty(claim, out var element)

@@ -11,7 +11,7 @@ namespace Etch.Persistence.Tests.Journal;
 /// Three callers need this and all three are correctness rather than preference: a tab
 /// the user marked ephemeral, a buffer read back truncated (writing it would make the
 /// truncation permanent), and a document past the journaling size threshold.
-/// Suppression is deliberately distinct from discarding — a discarded buffer revives
+/// Suppression is deliberately distinct from discarding: a discarded buffer revives
 /// the moment it is recorded again, which is what makes reopening a closed tab work,
 /// and would silently defeat all three of these.
 /// </remarks>
@@ -97,7 +97,7 @@ public class SuppressionTests
         Assert.True(scheduler.IsSuppressed(id));
         Assert.True(scheduler.IsDiscarded(id));
 
-        // Recording clears the discard — a reopened tab must start saving again — but
+        // Recording clears the discard, a reopened tab must start saving again, but
         // must not clear the suppression.
         scheduler.Record(id, "reopened", T0);
 

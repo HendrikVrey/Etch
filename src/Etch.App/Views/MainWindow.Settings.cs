@@ -23,7 +23,7 @@ namespace Etch.App.Views;
 /// </para>
 /// <para>
 /// <b>Every control here changes something.</b> That was the acceptance criterion for
-/// this panel rather than a pleasant property of it — a settings screen accumulates
+/// this panel rather than a pleasant property of it: a settings screen accumulates
 /// knobs that do nothing faster than any other part of an application, and each one
 /// teaches the user that the rest might be lying too. Retention reaches the trash sweep,
 /// ligatures reach the editor's typeface, the thresholds reach the size policy every
@@ -44,7 +44,7 @@ public partial class MainWindow
     /// <remarks>
     /// The wipe is the one irreversible action in Etch, so it is the one place a second
     /// press is required. Long enough to read the warning, short enough that the armed
-    /// state cannot be inherited by whoever sits down next — the same failure the
+    /// state cannot be inherited by whoever sits down next: the same failure the
     /// <c>Ctrl+K</c> prefix had, fixed the same way, with a timer that puts the button
     /// back rather than a check that silently re-arms it.
     /// </remarks>
@@ -87,7 +87,7 @@ public partial class MainWindow
     /// </summary>
     /// <remarks>
     /// Held rather than shown immediately. Settings are read before the session restore,
-    /// which is before <see cref="OnStartupCompleted"/> — so a message shown here would be
+    /// which is before <see cref="OnStartupCompleted"/>, so a message shown here would be
     /// overwritten by the startup summary a few milliseconds later, and "your settings file
     /// is broken" would flash past unread.
     /// </remarks>
@@ -157,7 +157,7 @@ public partial class MainWindow
         SettingsOverlay.Visibility = Visibility.Visible;
 
         // After a layout pass, exactly as the palette does it. Focusing an element in the
-        // same call stack that made its parent visible does not stick — and a settings
+        // same call stack that made its parent visible does not stick, and a settings
         // panel that opens without focus is worse than one you have to click, because the
         // keyboard is still pointed at the editor behind the backdrop and typing goes into
         // a document the user cannot see.
@@ -245,7 +245,7 @@ public partial class MainWindow
     /// <remarks>
     /// Every child of <c>AssociationList</c> is expected to carry an extension in its
     /// <c>Tag</c>, because that is what the loop above reads. The "Open with Etch"
-    /// checkbox is therefore deliberately outside that panel — see the comment beside it
+    /// checkbox is therefore deliberately outside that panel: see the comment beside it
     /// in <c>MainWindow.xaml</c>.
     /// </remarks>
     private IEnumerable<CheckBox> AssociationCheckBoxes() => AssociationList.Children.OfType<CheckBox>();
@@ -309,7 +309,7 @@ public partial class MainWindow
 
         // Only when one of the three boxes has actually been typed in. Reading them back
         // otherwise would rewrite every threshold at display precision the moment somebody
-        // edited the retention field beside them — 102,400 bytes becoming 102,445 — because
+        // edited the retention field beside them (102,400 bytes becoming 102,445) because
         // Format cannot represent an arbitrary byte count in four decimal places of MB.
         // All three are taken together or none is, so a mixture can never produce a set
         // that fails to ascend.
@@ -350,8 +350,8 @@ public partial class MainWindow
     /// </summary>
     /// <remarks>
     /// One answer for all three rather than one each. A per-box decision would let a
-    /// touched box and two untouched ones combine into a set that no longer ascends —
-    /// which <c>DocumentSizePolicy</c> throws on — and there is no reading of "the user
+    /// touched box and two untouched ones combine into a set that no longer ascends,
+    /// which <c>DocumentSizePolicy</c> throws on, and there is no reading of "the user
     /// edited the thresholds" under which two of them should keep sub-display precision
     /// while the third does not.
     /// </remarks>
@@ -364,8 +364,8 @@ public partial class MainWindow
     /// Reads the retention box, reporting whether it held a usable value.
     /// </summary>
     /// <remarks>
-    /// The flag is the point. Silently keeping the previous value is right — see
-    /// <see cref="ApplyPanelValues"/> — but doing it without saying so is how a settings
+    /// The flag is the point. Silently keeping the previous value is right, see
+    /// <see cref="ApplyPanelValues"/>, but doing it without saying so is how a settings
     /// box comes to look broken, and every other rejected input in this panel explains
     /// itself.
     /// </remarks>
@@ -465,7 +465,7 @@ public partial class MainWindow
     /// </summary>
     /// <remarks>
     /// One place decides, so the two flush paths cannot disagree about whether a write is
-    /// outstanding — and stopping the timer here means neither of them can leave it to
+    /// outstanding, and stopping the timer here means neither of them can leave it to
     /// fire a second write afterwards.
     /// </remarks>
     private EtchSettings? TakePendingSettingsSave()
@@ -525,7 +525,7 @@ public partial class MainWindow
             case AssociationResult.OverriddenByWindows:
                 // Not a failure. The checkbox is corrected rather than left showing a
                 // state Windows is not honouring, and the message names the page where
-                // the choice can actually be made — the user cannot fix this from inside
+                // the choice can actually be made: the user cannot fix this from inside
                 // Etch and there is no point implying otherwise.
                 SetChecked(checkBox, false);
 
@@ -578,8 +578,8 @@ public partial class MainWindow
     /// </summary>
     /// <remarks>
     /// Correcting a checkbox from inside its own handler re-raises <c>Checked</c> or
-    /// <c>Unchecked</c>, which would take the registry action a second time and — for the
-    /// failure arm — in the opposite direction.
+    /// <c>Unchecked</c>, which would take the registry action a second time and, for the
+    /// failure arm, in the opposite direction.
     /// </remarks>
     private void SetChecked(CheckBox checkBox, bool value)
     {

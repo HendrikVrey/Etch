@@ -16,9 +16,9 @@ internal readonly record struct KeyAction(EtchCommandId Command, int Argument = 
 /// </summary>
 /// <remarks>
 /// <para>
-/// This exists because the map used to live in four places at once — key bindings in
+/// This exists because the map used to live in four places at once (key bindings in
 /// XAML, a loop in the window's constructor, command bindings riding on
-/// <c>ApplicationCommands</c>' default gestures, and per-control key handlers — and no
+/// <c>ApplicationCommands</c>' default gestures, and per-control key handlers) and no
 /// single place said what the keyboard did. That is how <c>Ctrl+T</c> came to be missing
 /// while every individual mechanism looked correct.
 /// </para>
@@ -26,12 +26,12 @@ internal readonly record struct KeyAction(EtchCommandId Command, int Argument = 
 /// The table is also the reason the shortcuts can be resolved during the window's
 /// <em>tunnelling</em> key pass rather than through WPF's input bindings. Input bindings
 /// are matched in <c>PostProcessInput</c>, which is after the focused control has had the
-/// key and after <c>KeyboardNavigation</c> has had a look at Tab — so <c>Ctrl+Tab</c> and
+/// key and after <c>KeyboardNavigation</c> has had a look at Tab, so <c>Ctrl+Tab</c> and
 /// <c>Ctrl+Enter</c> were both at the mercy of ordering Etch does not control. Resolving
 /// against this table on the way down makes that ordering irrelevant.
 /// </para>
 /// <para>
-/// Chords deliberately absent: everything AvalonEdit's text area owns — cut, copy, paste,
+/// Chords deliberately absent: everything AvalonEdit's text area owns, cut, copy, paste,
 /// undo, redo, select-all, the caret and selection movement keys, Tab and Shift+Tab for
 /// indentation, and Enter. Taking any of those here would break editing.
 /// </para>
@@ -50,7 +50,7 @@ internal static class KeyMap
     /// sits next to <c>Ctrl+Enter</c>, which rewrites the buffer without asking;
     /// <c>Ctrl+Alt+P</c> is AltGr on European layouts, where it would fire while someone was
     /// typing an ordinary character; <c>Ctrl+P</c> is too loaded to take. A sequence
-    /// sidesteps the whole search — <c>Ctrl+K</c> is unclaimed by Etch and by AvalonEdit,
+    /// sidesteps the whole search: <c>Ctrl+K</c> is unclaimed by Etch and by AvalonEdit,
     /// and it is where an editor user already expects the second-tier commands to live.
     /// </para>
     /// <para>
@@ -90,8 +90,8 @@ internal static class KeyMap
         // it is precisely the failure this type exists to make impossible.
         var map = new Dictionary<Shortcut, KeyAction>
         {
-            // Tabs. Ctrl+T is the primary — it is what every browser and every editor has
-            // trained people to press — and Ctrl+N stays as an alias rather than being
+            // Tabs. Ctrl+T is the primary, it is what every browser and every editor has
+            // trained people to press, and Ctrl+N stays as an alias rather than being
             // taken away from anyone who already has it in their fingers.
             { new Shortcut(Key.T, Ctrl), new(EtchCommandId.NewTab) },
             { new Shortcut(Key.N, Ctrl), new(EtchCommandId.NewTab) },
@@ -102,7 +102,7 @@ internal static class KeyMap
             { new Shortcut(Key.Tab, CtrlShift), new(EtchCommandId.PreviousTab) },
 
             // The browser aliases. AvalonEdit owns PageUp and PageDown unmodified and with
-            // Shift, so only the Ctrl forms are free — which is exactly the pair every
+            // Shift, so only the Ctrl forms are free, which is exactly the pair every
             // tabbed application uses.
             { new Shortcut(Key.PageDown, Ctrl), new(EtchCommandId.NextTab) },
             { new Shortcut(Key.PageUp, Ctrl), new(EtchCommandId.PreviousTab) },
@@ -124,8 +124,8 @@ internal static class KeyMap
 
             // Settings. Key.OemComma alone is correct on every layout, not just this
             // author's: Windows defines VK_OEM_COMMA as "the ',' key" for any country or
-            // region, so the layout that puts the comma somewhere else — AZERTY, where it
-            // is under QWERTY's M — still reports it here.
+            // region, so the layout that puts the comma somewhere else (AZERTY, where it
+            // is under QWERTY's M) still reports it here.
             { new Shortcut(Key.OemComma, Ctrl), new(EtchCommandId.OpenSettings) },
         };
 

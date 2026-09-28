@@ -13,7 +13,7 @@ internal static class DocumentLoader
 
     /// <summary>
     /// Upper bound on the buffer pre-allocated for a read. Beyond this the builder
-    /// grows in chunks instead — slower, but it cannot be turned into an
+    /// grows in chunks instead: slower, but it cannot be turned into an
     /// out-of-memory failure by an over-generous size policy.
     /// </summary>
     private const long MaxPreallocatedChars = 128L * 1024 * 1024;
@@ -38,7 +38,7 @@ internal static class DocumentLoader
     /// The size decision is made here, from the length of the handle actually being
     /// read, and nowhere else. A <c>FileInfo</c> check before the open would be a
     /// time-of-check/time-of-use gap: between the two the file can grow, be
-    /// replaced, or have a junction retargeted — and the most likely input for this
+    /// replaced, or have a junction retargeted, and the most likely input for this
     /// editor is a log file that something else still holds open for writing.
     /// </remarks>
     /// <exception cref="IOException">The file could not be read.</exception>
@@ -82,7 +82,7 @@ internal static class DocumentLoader
 
         // The fallback is a private byte-order-mark-free instance, not Encoding.UTF8.
         // StreamReader only replaces its encoding when it actually detects a mark, and
-        // for UTF-8 it replaces it with the Encoding.UTF8 singleton — whose GetPreamble()
+        // for UTF-8 it replaces it with the Encoding.UTF8 singleton, whose GetPreamble()
         // is three bytes long. Passing that singleton in as the fallback makes the two
         // cases indistinguishable afterwards, and the write-through path would then
         // prepend EF BB BF to every ordinary UTF-8 file it saves. With this instance,

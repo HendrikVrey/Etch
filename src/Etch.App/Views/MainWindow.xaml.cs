@@ -33,7 +33,7 @@ namespace Etch.App.Views;
 /// <para>
 /// One editor control, not one per tab. Switching tabs swaps
 /// <see cref="ICSharpCode.AvalonEdit.TextEditor.Document"/>, which is cheap and keeps
-/// memory flat as tabs accumulate — twenty AvalonEdit instances, each with its own
+/// memory flat as tabs accumulate: twenty AvalonEdit instances, each with its own
 /// text view, margins and render layers, would not fit inside the plan's idle
 /// footprint. The price is that caret and scroll position belong to the control rather
 /// than to the tab, so they are read back into the tab on the way out and restored on
@@ -51,7 +51,7 @@ namespace Etch.App.Views;
     "Design",
     "CA1001:Types that own disposable fields should be disposable",
     Justification =
-        "A WPF Window has no disposal story to implement — nothing calls Dispose on one, " +
+        "A WPF Window has no disposal story to implement, nothing calls Dispose on one, " +
         "and making it IDisposable would advertise a contract the framework never honours. " +
         "OnClosed is where a Window's deterministic cleanup belongs, and that is where " +
         "_editorTheme and _syntax are disposed, alongside the timers and the event " +
@@ -112,7 +112,7 @@ public partial class MainWindow : FluentWindow
         CloseTabCommand = new RelayCommand<BufferTab>(tab => Run(CloseAsync(tab)));
         ActivateTabCommand = new RelayCommand<BufferTab>(tab => Run(ActivateAsync(tab)));
         // Deliberately ungated. Guarding this on CanReopenClosed made Ctrl+Shift+T do
-        // nothing at all with an empty stack, which reads as a broken shortcut — and it
+        // nothing at all with an empty stack, which reads as a broken shortcut, and it
         // made the workspace's own "there is nothing left to reopen" message unreachable.
         // A key that explains itself beats a key that is silently disabled.
         ReopenClosedCommand = new RelayCommand(() => Run(_workspace.ReopenLastClosedAsync()));
@@ -124,8 +124,8 @@ public partial class MainWindow : FluentWindow
 
         // Before InitializeComponent, like every other command: the XAML binds to these
         // properties, and a binding evaluated against a null command is a control that
-        // silently does nothing. The keyboard no longer depends on this — chords resolve
-        // through Etch.App.Input.KeyMap when they are pressed — but the tab strip and the
+        // silently does nothing. The keyboard no longer depends on this, chords resolve
+        // through Etch.App.Input.KeyMap when they are pressed, but the tab strip and the
         // palette's row list still do.
         InitialisePalette();
         InitialiseSettings();
@@ -134,7 +134,7 @@ public partial class MainWindow : FluentWindow
 
         // After InitializeComponent, because it needs the editor to exist, and before the
         // window is shown, because AvalonEdit's own selection colours are what it replaces.
-        // The application refreshes it again once the theme has been applied — see Refresh.
+        // The application refreshes it again once the theme has been applied: see Refresh.
         _editorTheme = new EditorTheme(Editor);
 
         // Constructed here but deliberately inert: it touches HighlightingManager only when
@@ -165,8 +165,8 @@ public partial class MainWindow : FluentWindow
         Bind(_workspace.Active);
     }
 
-    // There is deliberately no parameterless constructor. One is not required — App.xaml
-    // has no StartupUri and BAML calls InitializeComponent from the constructor above —
+    // There is deliberately no parameterless constructor. One is not required, App.xaml
+    // has no StartupUri and BAML calls InitializeComponent from the constructor above,
     // and adding one back would mean a window with no workspace, which is a window that
     // silently discards everything typed into it. The only casualty is the Visual Studio
     // XAML design surface.
@@ -214,7 +214,7 @@ public partial class MainWindow : FluentWindow
     /// </remarks>
     internal void OnStartupCompleted(StartupReport? report)
     {
-        // Hooks WM_SETTINGCHANGE — event-driven, no polling timer, so idle CPU stays
+        // Hooks WM_SETTINGCHANGE: event-driven, no polling timer, so idle CPU stays
         // at zero.
         SystemThemeWatcher.Watch(this);
 
@@ -227,7 +227,7 @@ public partial class MainWindow : FluentWindow
             ShowMessage(summary, StartupResultDuration);
 
             // A file named on the command line is opened next, and its message would
-            // overwrite this one inside the same dispatcher turn — so `Etch --diag
+            // overwrite this one inside the same dispatcher turn, so `Etch --diag
             // <file>`, the documented large-file procedure, would never show its
             // startup number. Carry it forward into the next message instead.
             _pendingStartupSummary = _fileToOpen is null ? null : summary;
@@ -256,8 +256,8 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     /// <remarks>
     /// Called by the application immediately after it applies the WPF-UI theme. The window
-    /// is constructed before that happens — deliberately, so <c>Application.MainWindow</c>
-    /// is assigned in time for the DWM dark-mode attribute — which means the colours picked
+    /// is constructed before that happens (deliberately, so <c>Application.MainWindow</c>
+    /// is assigned in time for the DWM dark-mode attribute) which means the colours picked
     /// during construction were picked against a theme that had not been applied yet.
     /// </remarks>
     internal void RefreshEditorTheme()
@@ -330,7 +330,7 @@ public partial class MainWindow : FluentWindow
 
         // Stop taking hand-offs the moment shutdown begins. Otherwise a second launch in
         // this window is told its file was accepted, and the file is opened into a window
-        // that is closing — so the user double-clicks something and nothing happens, with
+        // that is closing, so the user double-clicks something and nothing happens, with
         // no error anywhere.
         _closing?.Invoke();
 
@@ -348,8 +348,8 @@ public partial class MainWindow : FluentWindow
     /// The cancel-then-reclose dance above cannot help here: <c>Application.Shutdown</c>
     /// closes windows with cancellation ignored and then shuts the dispatcher down, so a
     /// queued continuation never runs and up to one latency ceiling of typing is lost on
-    /// every Windows Update restart. Blocking is legitimate at this point — the message
-    /// loop is about to die — and it is bounded so a wedged disk cannot stall a logoff.
+    /// every Windows Update restart. Blocking is legitimate at this point, the message
+    /// loop is about to die, and it is bounded so a wedged disk cannot stall a logoff.
     /// </remarks>
     internal void FlushForSessionEnd()
     {
@@ -363,8 +363,8 @@ public partial class MainWindow : FluentWindow
 
         try
         {
-            // Split deliberately. The first half needs the UI thread — a document snapshot
-            // has thread affinity — and the second half must not touch it at all, because
+            // Split deliberately. The first half needs the UI thread, a document snapshot
+            // has thread affinity, and the second half must not touch it at all, because
             // this thread is about to block waiting for it. Handing the second half to the
             // thread pool, where every await is ConfigureAwait(false), is what makes that
             // block safe rather than a deadlock that hangs the user's logoff and loses the
@@ -458,7 +458,7 @@ public partial class MainWindow : FluentWindow
         _foldingTimer = null;
 
         // Stopped only. The flush that matters happens in ShutdownThenCloseAsync, where
-        // it can be awaited — starting a write here, after Close has been called, would
+        // it can be awaited: starting a write here, after Close has been called, would
         // hand a task to a dispatcher that is about to stop pumping.
         _settingsSaveTimer?.Stop();
         _settingsSaveTimer = null;
@@ -525,7 +525,7 @@ public partial class MainWindow : FluentWindow
     /// <remarks>
     /// The event suppression is not defensive padding. Assigning
     /// <c>Editor.Document</c> raises <c>TextChanged</c>, and moves the caret to offset
-    /// zero of the new document before the restore below runs — so without it, every
+    /// zero of the new document before the restore below runs, so without it, every
     /// tab switch would write a bogus caret position into the tab being switched
     /// <em>to</em>, and would enqueue a journal write for a tab nobody has edited.
     /// </remarks>
@@ -536,8 +536,8 @@ public partial class MainWindow : FluentWindow
             return;
         }
 
-        // Every route that changes the active tab converges here — the tab strip,
-        // Ctrl+Tab, Ctrl+N, reopening a closed tab, opening a file — so this is the one
+        // Every route that changes the active tab converges here (the tab strip,
+        // Ctrl+Tab, Ctrl+N, reopening a closed tab, opening a file) so this is the one
         // place the outgoing tab's caret and scroll can be captured without every caller
         // having to remember to.
         CaptureViewState();
@@ -547,7 +547,7 @@ public partial class MainWindow : FluentWindow
 
         // Before the document is replaced, not after. AvalonEdit requires the folding
         // manager to be uninstalled while it is still bound to the document it was
-        // installed against — uninstalling afterwards dereferences a height tree the
+        // installed against: uninstalling afterwards dereferences a height tree the
         // document swap has already disposed. EditorSyntax.DetachFolding says why at
         // length; ApplySyntax reinstalls against the new document a few lines below.
         _syntax.DetachFolding();
@@ -596,7 +596,7 @@ public partial class MainWindow : FluentWindow
         {
             _suppressEditorEvents = false;
 
-            // In the finally, so the null-document branch above refreshes them too —
+            // In the finally, so the null-document branch above refreshes them too,
             // otherwise the status bar and the match count would both keep describing the
             // previous tab beside an empty, disabled editor.
             UpdateStatus();
@@ -623,16 +623,16 @@ public partial class MainWindow : FluentWindow
     /// <remarks>
     /// <para>
     /// The precedence rule lives in <see cref="LanguageSelector.Select"/> and not here.
-    /// It was written in both places to begin with and the two disagreed — this one asked
+    /// It was written in both places to begin with and the two disagreed (this one asked
     /// detection only for a tab with no file at all, while the tested one asked whenever
-    /// the extension said nothing — which is the ordinary way a rule with two homes goes
+    /// the extension said nothing) which is the ordinary way a rule with two homes goes
     /// wrong: the tested statement of it was not the one that shipped.
     /// </para>
     /// <para>
     /// Detection is passed as a callback rather than a value so that a file whose extension
     /// already answers never pays for a scan. <c>DetectNow</c> is bounded to a 64 KB sample
     /// and returns a cached answer when the buffer has not moved, so it is affordable on a
-    /// bind — but not being called at all is cheaper still, and a 10 MB log opened by name
+    /// bind, but not being called at all is cheaper still, and a 10 MB log opened by name
     /// is exactly the case where it would have been wasted.
     /// </para>
     /// </remarks>
@@ -648,7 +648,7 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Not <c>ScrollToLine</c>, which only brings a line <i>into view</i> — if it is
+    /// Not <c>ScrollToLine</c>, which only brings a line <i>into view</i>, if it is
     /// already visible anywhere on screen that method does nothing at all. Restoring a
     /// tab scrolled to line 400 would leave it wherever the previous document had
     /// happened to be, and a tab scrolled to line 3 would not move from the top.
@@ -745,7 +745,7 @@ public partial class MainWindow : FluentWindow
         UpdateSaveStatus();
 
         // Debounced and off-thread. This is the only line on the keystroke path that
-        // detection costs — and above the reduced-size threshold it is not paid at all,
+        // detection costs, and above the reduced-size threshold it is not paid at all,
         // which is what DocumentCapabilities.DetectOnEdit has been asking for since M1.
         // The result from load time stays on the chip, which is the honest answer: it is
         // what the buffer was, and nothing has claimed otherwise.
@@ -774,7 +774,7 @@ public partial class MainWindow : FluentWindow
     /// </para>
     /// <para>
     /// Slower than detection's 150 ms on purpose. A fold marker appearing beside the line
-    /// being typed is a distraction, and unlike the format chip nobody is waiting for it —
+    /// being typed is a distraction, and unlike the format chip nobody is waiting for it:
     /// whereas a margin that flickers on every pause is the thing people turn folding off
     /// to escape.
     /// </para>
@@ -831,7 +831,7 @@ public partial class MainWindow : FluentWindow
     /// Handles <c>Ctrl+S</c>.
     /// </summary>
     /// <remarks>
-    /// A scratch tab is already saved — continuously, to Etch's own storage — so
+    /// A scratch tab is already saved (continuously, to Etch's own storage) so
     /// <c>Ctrl+S</c> on one cannot mean "save it". It means "give this a home of my
     /// choosing", which is the only reading under which showing a file dialog is not a
     /// broken promise.
@@ -918,7 +918,7 @@ public partial class MainWindow : FluentWindow
         UpdateSaveStatus();
 
         // The format chip belongs to detection now, not to the size policy. Detection
-        // still runs on a large document — it is sampled rather than skipped — so there
+        // still runs on a large document, it is sampled rather than skipped, so there
         // is no tier here that wants a different answer.
         //
         // Above the early return, deliberately: closing the last tab binds null, and if
@@ -952,7 +952,7 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     /// <remarks>
     /// Both are maintained by the document in O(1), which is why this can run on every
-    /// keystroke. A word count cannot — it needs a full scan of an off-thread snapshot.
+    /// keystroke. A word count cannot: it needs a full scan of an off-thread snapshot.
     /// </remarks>
     private void UpdateCounts()
     {
@@ -1053,7 +1053,7 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     /// <remarks>
     /// Command handlers cannot return a task, so without this a fault becomes an
-    /// unobserved exception surfaced at some arbitrary later collection — attributed to
+    /// unobserved exception surfaced at some arbitrary later collection: attributed to
     /// nothing, long after the click that caused it.
     /// </remarks>
     private async void Run(Task work)

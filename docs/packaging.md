@@ -1,7 +1,7 @@
 # Packaging `Etch.Core`
 
-`Etch.Core` — format detection, the transform catalogue, palette ranking, and the
-text utilities behind them — is published as a NuGet package so that
+`Etch.Core` (format detection, the transform catalogue, palette ranking, and the
+text utilities behind them) is published as a NuGet package so that
 [Sling](https://github.com/HendrikVrey/Sling), the HTTP client that runs the same
 transform chain over response bodies, can depend on a version of it rather than on a
 submodule or a copied folder.
@@ -17,7 +17,7 @@ trying to pack a WPF application and three test projects.
 
 `LICENSE` §3(b) forbids distributing, publishing or otherwise making the Software or
 any part of it available to a third party. A package on nuget.org does exactly that,
-and worse — it *advertises* it as something to take a dependency on. Every consumer's
+and worse: it *advertises* it as something to take a dependency on. Every consumer's
 build output embeds `Etch.Core.dll`, so shipping their application would redistribute
 it, which the licence does not permit. Publishing a package nobody is licensed to use
 would be a broken thing to publish, and unlisting it later does not un-publish it:
@@ -42,7 +42,7 @@ visibility is its own and does **not** follow the visibility of the repository i
 linked to. That is what allows a private package to be published from this public
 repository.
 
-**Making a package public in GitHub Packages is a one-way door — it cannot be made
+**Making a package public in GitHub Packages is a one-way door: it cannot be made
 private again.** After the first publish, check
 `github.com/users/HendrikVrey/packages/nuget/package/Etch.Core` and confirm it reads
 Private. If it does not, the fix is to delete the package and republish, not to
@@ -66,11 +66,11 @@ is already there.
 ## Publishing
 
 Automatic. `.github/workflows/release.yml` packs and pushes on every run, after the
-test gate and before the installer — so a package only ever exists for a build whose
+test gate and before the installer, so a package only ever exists for a build whose
 suite was green. It authenticates with the workflow's own `GITHUB_TOKEN` and the
 `packages: write` permission; no personal access token is involved.
 
-To publish by hand — which should be rare:
+To publish by hand, which should be rare:
 
 ```bash
 dotnet pack src/Etch.Core/Etch.Core.csproj -c Release -p:Version=1.0.1 -o packages
@@ -79,7 +79,7 @@ dotnet nuget push "packages/Etch.Core.1.0.1.nupkg" --source https://nuget.pkg.gi
 
 **The token must be a classic personal access token with `write:packages`.** GitHub
 Packages does not support fine-grained tokens, so Linda's fine-grained PAT (see the
-Linda mind, `memories/github.md`) cannot do this — and it lacks the scope anyway.
+Linda mind, `memories/github.md`) cannot do this, and it lacks the scope anyway.
 
 ## Consuming it
 

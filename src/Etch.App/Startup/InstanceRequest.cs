@@ -71,7 +71,7 @@ internal abstract record InstanceRequest
     /// <remarks>
     /// Every failure returns false. This is untrusted input from another process, and
     /// the only correct response to a message that is not exactly right is to ignore
-    /// it — the running instance has the user's unsaved text in it and must not be
+    /// it: the running instance has the user's unsaved text in it and must not be
     /// taken down by a malformed byte sequence.
     /// </remarks>
     public static bool TryParse(ReadOnlySpan<byte> message, [NotNullWhen(true)] out InstanceRequest? request)
@@ -120,7 +120,7 @@ internal abstract record InstanceRequest
 
         // Validated here rather than trusted, with the same rules the command line gets.
         // The sender is another process running as this user, so this is not a privilege
-        // boundary — but it is the difference between a bug in the sender producing an
+        // boundary, but it is the difference between a bug in the sender producing an
         // ignored message and it producing a device-path open.
         if (!PathGuard.TryResolve(candidate, out var path, out _))
         {
@@ -128,7 +128,7 @@ internal abstract record InstanceRequest
         }
 
         // And it must already have been absolute. Resolution happens against the working
-        // directory, and the two processes do not share one — a relative path that
+        // directory, and the two processes do not share one: a relative path that
         // "worked" here would silently open a different file from the one the other
         // process meant. Every legitimate sender has already resolved it.
         if (!string.Equals(path, candidate, StringComparison.Ordinal))

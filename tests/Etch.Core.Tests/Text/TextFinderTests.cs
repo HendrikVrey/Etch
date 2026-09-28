@@ -7,8 +7,8 @@ namespace Etch.Core.Tests.Text;
 /// Find and replace.
 /// </summary>
 /// <remarks>
-/// This is the component whose failures are silent and destructive — a replace-all
-/// that drifts by a character corrupts a file and says nothing — so the awkward cases
+/// This is the component whose failures are silent and destructive, a replace-all
+/// that drifts by a character corrupts a file and says nothing, so the awkward cases
 /// are asserted here rather than discovered by clicking: patterns that match the empty
 /// string, replacements containing the pattern, regex metacharacters in a literal
 /// search, and wrapping at both ends.
@@ -99,7 +99,7 @@ public class TextFinderTests
         Assert.Equal(new SearchMatch(4, 1), search.FindNext(Text, 3));
 
         // Past the last match, so it comes back to the top rather than reporting
-        // nothing — repeated Enter has to keep cycling.
+        // nothing: repeated Enter has to keep cycling.
         Assert.Equal(new SearchMatch(0, 1), search.FindNext(Text, 5));
     }
 

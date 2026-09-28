@@ -37,12 +37,12 @@ public class AtomicFileTests
         using var workspace = TemporaryWorkspace.Create();
         var path = Path.Combine(workspace.Root, "encoding.txt");
 
-        await AtomicFile.WriteAllTextAsync(path, "héllo — ünïcode ✓", cancellationToken: TestContext.Current.CancellationToken);
+        await AtomicFile.WriteAllTextAsync(path, "héllo, ünïcode ✓", cancellationToken: TestContext.Current.CancellationToken);
 
         var bytes = await File.ReadAllBytesAsync(path, TestContext.Current.CancellationToken);
 
         Assert.False(bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF);
-        Assert.Equal("héllo — ünïcode ✓", Encoding.UTF8.GetString(bytes));
+        Assert.Equal("héllo, ünïcode ✓", Encoding.UTF8.GetString(bytes));
     }
 
     [Fact]

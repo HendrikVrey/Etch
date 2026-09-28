@@ -10,7 +10,7 @@ namespace Etch.Core.Transforms.Lines;
 /// <para>
 /// <b>The delimiter is a comma, and that is a limitation rather than a decision.</b> The
 /// plan asks for "join/split by delimiter", which needs somewhere for the user to type the
-/// delimiter — and the palette has a query box, not an argument box. Inventing one is a
+/// delimiter, and the palette has a query box, not an argument box. Inventing one is a
 /// feature in its own right and it is the same feature that regex find-and-replace needs,
 /// so both wait for it together. Until then, the comma is what people paste a column of
 /// values into an <c>IN (…)</c> clause with, which is the request this actually serves.
@@ -70,7 +70,7 @@ internal sealed class JoinLinesWithCommas : LineTransform
 /// </para>
 /// <para>
 /// <b>Not a CSV parser, and it does not pretend to be.</b> Quoting and embedded commas are
-/// real CSV, and real CSV needs a real parser with a real detector behind it — that is a
+/// real CSV, and real CSV needs a real parser with a real detector behind it, that is a
 /// v1.1 item in the plan. This splits on commas. Text where that is the wrong answer is
 /// text where the user can see it is the wrong answer immediately, which is the honest
 /// failure mode for a transform this simple.
@@ -106,7 +106,7 @@ internal sealed class SplitOnCommas : LineTransform
             cancellationToken.ThrowIfCancellationRequested();
 
             // A line with no comma passes through untouched rather than being trimmed. The
-            // trim exists to undo the space in ", " — applying it to a line this transform
+            // trim exists to undo the space in ", ": applying it to a line this transform
             // did not split would silently strip the indentation off a block while the
             // status bar said "there were no commas to split on".
             if (!line.Contains(',', StringComparison.Ordinal))

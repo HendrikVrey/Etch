@@ -14,7 +14,7 @@ namespace Etch.App.Editor;
 /// junction or symlink, through a mapped drive that is really a UNC share, and through
 /// a hard link with an entirely different name in a different directory. Every one of
 /// those defeats <see cref="string.Equals(string, string, StringComparison)"/>, and
-/// each produced a second tab over one file — two shadow copies journaling the same
+/// each produced a second tab over one file: two shadow copies journaling the same
 /// buffer and then racing each other on <c>Ctrl+S</c>, with no way for the user to
 /// tell which write won.
 /// </para>
@@ -23,7 +23,7 @@ namespace Etch.App.Editor;
 /// string so that equality is ordinary string equality and the hash code is consistent
 /// with it by construction. A type that compares by file id "when available" and by
 /// path otherwise has two modes, and mixed comparisons between them are not
-/// transitive — which is exactly the kind of defect that survives every test and then
+/// transitive, which is exactly the kind of defect that survives every test and then
 /// loses somebody's file.
 /// </para>
 /// <para>
@@ -33,7 +33,7 @@ namespace Etch.App.Editor;
 /// ReFS genuinely uses more than 64 and truncating them invents collisions.
 /// </para>
 /// <para>
-/// When the filesystem cannot supply an id — some network redirectors do not — the key
+/// When the filesystem cannot supply an id, some network redirectors do not, the key
 /// falls back to the canonical path from <c>GetFinalPathNameByHandle</c>, which still
 /// resolves short names, junctions, symlinks and mapped drives. That is strictly better
 /// than the raw path it replaces; only hard links slip through it.
@@ -116,7 +116,7 @@ internal readonly partial record struct FileIdentity
         return new FileIdentity($"path:{canonical.ToUpperInvariant()}");
     }
 
-    /// <summary>Best-effort absolute path, never throwing — this is already the fallback.</summary>
+    /// <summary>Best-effort absolute path, never throwing, this is already the fallback.</summary>
     private static string SafeFullPath(string path)
     {
         try
@@ -151,8 +151,8 @@ internal readonly partial record struct FileIdentity
         high = info.FileIdHigh;
 
         // An all-zero id is not an identity, it is the absence of one, and treating it
-        // as a real value would make every file on that volume identical to every other
-        // — so the second file opened from such a share would silently activate the
+        // as a real value would make every file on that volume identical to every other,
+        // so the second file opened from such a share would silently activate the
         // first one's tab and never open at all.
         //
         // The volume serial is deliberately not part of this test. Some network
@@ -246,7 +246,7 @@ internal readonly partial record struct FileIdentity
         /// <summary><c>FILE_NAME_NORMALIZED</c>.</summary>
         public const uint FileNameNormalized = 0x0;
 
-        /// <summary><c>VOLUME_NAME_DOS</c> — a drive letter, or a UNC path for a mapped drive.</summary>
+        /// <summary><c>VOLUME_NAME_DOS</c>: a drive letter, or a UNC path for a mapped drive.</summary>
         public const uint VolumeNameDos = 0x0;
 
         [LibraryImport("kernel32.dll", SetLastError = true)]
@@ -273,7 +273,7 @@ internal readonly partial record struct FileIdentity
 /// <para>
 /// Held so that <c>Ctrl+S</c> can notice somebody else changed the file since it was
 /// opened. Without it the one write Etch makes outside its own data directory is a
-/// silent overwrite of another editor's work — and it is silent in the worst way,
+/// silent overwrite of another editor's work, and it is silent in the worst way,
 /// because the user asked for a save and got one.
 /// </para>
 /// <para>
@@ -321,7 +321,7 @@ internal readonly record struct FileWitness(long Length, DateTime LastWriteUtc)
 }
 
 /// <summary>
-/// What is at a path right now — including the possibility that nothing is.
+/// What is at a path right now, including the possibility that nothing is.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -380,6 +380,6 @@ internal enum DiskPresence
     /// <summary>The file was opened and measured.</summary>
     Present,
 
-    /// <summary>Something is there but it could not be opened — a lock, or a denial.</summary>
+    /// <summary>Something is there but it could not be opened: a lock, or a denial.</summary>
     Unreadable,
 }

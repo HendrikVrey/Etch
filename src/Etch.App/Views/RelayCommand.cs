@@ -28,8 +28,8 @@ internal sealed class RelayCommand<T> : ICommand
     /// <inheritdoc />
     /// <remarks>
     /// Routed through <see cref="CommandManager.RequerySuggested"/>, which WPF raises
-    /// whenever focus or input state changes. That is sufficient here — every command
-    /// in Etch is enabled by state the user has just altered — and it avoids each
+    /// whenever focus or input state changes. That is sufficient here, every command
+    /// in Etch is enabled by state the user has just altered, and it avoids each
     /// command owning a subscription that has to be torn down.
     /// </remarks>
     public event EventHandler? CanExecuteChanged
@@ -57,7 +57,7 @@ internal sealed class RelayCommand<T> : ICommand
     /// <remarks>
     /// A binding that resolves to nothing delivers null, and a template applied to the
     /// wrong item type delivers something else entirely. Both are bugs, but neither is
-    /// worth an unhandled cast exception on a button click — the command simply does
+    /// worth an unhandled cast exception on a button click: the command simply does
     /// not run, and the button appears disabled. Null is rejected along with the rest:
     /// every command here acts on a tab, and "act on no tab" has no meaning.
     /// </remarks>

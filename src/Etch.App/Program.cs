@@ -34,8 +34,8 @@ internal static class Program
     /// How long to wait for a lock held by an instance that answered "I am closing".
     /// </summary>
     /// <remarks>
-    /// Sized to cover the closing instance's own budget — its final flush plus the
-    /// journal's shutdown timeout — with slack. It is only ever spent when the holder has
+    /// Sized to cover the closing instance's own budget, its final flush plus the
+    /// journal's shutdown timeout, with slack. It is only ever spent when the holder has
     /// explicitly said it is on the way out, so waiting is the right thing to do.
     /// </remarks>
     private static readonly TimeSpan ClosingHolderWait = TimeSpan.FromSeconds(20);
@@ -174,7 +174,7 @@ internal static class Program
             {
                 // Blocking here is safe and necessary: the message loop has already
                 // returned, so there is no dispatcher left to deadlock against, and the
-                // accept loop has to stop before the lock file handle is released — or a
+                // accept loop has to stop before the lock file handle is released, or a
                 // second instance could claim the directory while this one is still
                 // listening on its channel.
                 channel.DisposeAsync().AsTask().GetAwaiter().GetResult();
@@ -196,7 +196,7 @@ internal static class Program
     /// survives contact with daily use.
     /// <para>
     /// The three-way answer matters. An instance that took the file is done. One that
-    /// replied "closing" is worth waiting properly for — quitting Etch and immediately
+    /// replied "closing" is worth waiting properly for: quitting Etch and immediately
     /// relaunching it is an ordinary thing to do, and it holds the lock for its whole
     /// final flush. One that said nothing at all is probably wedged, and the user is
     /// waiting on a file, so it gets a much shorter grace period before being told.

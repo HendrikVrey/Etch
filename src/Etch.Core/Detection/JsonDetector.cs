@@ -9,7 +9,7 @@ namespace Etch.Core.Detection;
 /// <remarks>
 /// <para>
 /// <b>Only objects and arrays count.</b> A bare <c>42</c> or <c>"hello"</c> is legal
-/// JSON and is almost never what someone pasting into a scratchpad meant — <c>42</c>
+/// JSON and is almost never what someone pasting into a scratchpad meant: <c>42</c>
 /// is a Unix timestamp far more often than it is a JSON document. Narrowing here is
 /// what stops the format chip from being wrong in the most common case of all.
 /// </para>
@@ -18,7 +18,7 @@ namespace Etch.Core.Detection;
 /// well-formed-so-far but not valid, and reporting plain text for it would make the
 /// chip flicker on every keystroke. So a strict parse gives
 /// <see cref="DetectionConfidence.Certain"/>, and text that merely runs out of input
-/// gives <see cref="DetectionConfidence.Weak"/> — enough to offer "Format JSON"
+/// gives <see cref="DetectionConfidence.Weak"/>: enough to offer "Format JSON"
 /// without claiming the document is valid.
 /// </para>
 /// </remarks>
@@ -68,7 +68,7 @@ internal sealed class JsonDetector : IFormatDetector
     /// </summary>
     /// <param name="utf8">The transcoded sample.</param>
     /// <param name="isFinalBlock">
-    /// False to treat running out of data as an ordinary stop rather than an error —
+    /// False to treat running out of data as an ordinary stop rather than an error,
     /// which is exactly the distinction between "truncated" and "malformed".
     /// </param>
     internal static bool Parses(ReadOnlySpan<byte> utf8, bool isFinalBlock)
@@ -77,7 +77,7 @@ internal sealed class JsonDetector : IFormatDetector
         {
             // Generous about what it accepts, because this is a developer's scratchpad
             // and the JSON that arrives in one has come from a config file as often as
-            // from an API. Note that formatting such a buffer drops the comments — the
+            // from an API. Note that formatting such a buffer drops the comments: the
             // transform says so.
             AllowTrailingCommas = true,
             CommentHandling = JsonCommentHandling.Skip,

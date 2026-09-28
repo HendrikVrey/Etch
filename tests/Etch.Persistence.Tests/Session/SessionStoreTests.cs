@@ -101,7 +101,7 @@ public class SessionStoreTests
         Assert.Contains("\"Scratch\"", json, StringComparison.Ordinal);
         Assert.Contains("cleanShutdown", json, StringComparison.Ordinal);
 
-        // Indented. Asserting on "\n" rather than Environment.NewLine deliberately —
+        // Indented. Asserting on "\n" rather than Environment.NewLine deliberately:
         // the assertion is "this is not one long line", not a claim about which
         // line ending the serialiser happens to pick on this platform.
         Assert.Contains("\n", json, StringComparison.Ordinal);
@@ -196,7 +196,7 @@ public class SessionStoreTests
     [Fact]
     public async Task A_session_with_no_buffers_key_does_not_crash_startup()
     {
-        // System.Text.Json passes default — null — for a constructor parameter the
+        // System.Text.Json passes default, null, for a constructor parameter the
         // payload omits. Before the record normalised it, this five-line file threw a
         // NullReferenceException out of LoadAsync and Etch would not start until the
         // user found and deleted a file they had never heard of.

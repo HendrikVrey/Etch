@@ -76,8 +76,8 @@
             underline is what visually attaches the front tab to the editor beneath it.
 
             The whole tab lives in the control template rather than in the data
-            template's content, so that every visual state — active, pinned, ephemeral,
-            renaming, hovered — is expressed as one list of triggers in one place. A
+            template's content, so that every visual state (active, pinned, ephemeral,
+            renaming, hovered) is expressed as one list of triggers in one place. A
             ControlTemplate trigger can be a DataTrigger, and the templated button's
             DataContext is the BufferTab, which is what makes that possible.
         -->
@@ -249,7 +249,7 @@
 
         <!--
             The tab's context menu. It is the only route to pinning, which is the one tab
-            capability with no chord yet — and it costs nothing until it is opened, which
+            capability with no chord yet, and it costs nothing until it is opened, which
             is the part of "no feature gets its own chrome" that actually matters.
 
             The DataContext is taken from the placement target explicitly rather than left
@@ -281,7 +281,7 @@
     <!--
         There are deliberately no InputBindings and no CommandBindings here. Etch's whole
         keyboard map lives in Etch.App.Input.KeyMap and is resolved on the window's
-        tunnelling key pass — see MainWindow.Keys.cs for why. Adding a KeyBinding here
+        tunnelling key pass: see MainWindow.Keys.cs for why. Adding a KeyBinding here
         would reintroduce the second source of truth that let Ctrl+T go missing.
     -->
     <Grid>
@@ -511,14 +511,14 @@
 
                 The grid this replaced put the status items in an Auto column, and WPF
                 never compresses an Auto column. So below roughly 600 px the group simply
-                ran past the settings gear — an Auto column of its own, placed after it —
+                ran past the settings gear (an Auto column of its own, placed after it)
                 and pushed the gear off the right-hand edge of the window, while the
                 transient message in the star column between them collapsed to nothing.
                 Both are load-bearing: the gear is the only pointer route to the settings
                 panel, and the message is where "That did not work", the Ctrl+K hint and
                 every workspace notice appear. Worse, the width the group wanted changed
-                with the tab — the format chip alone is about 62 px for "Plain text" and
-                twice that for "URL-encoded (sampled)" — so the whole bar shifted and the
+                with the tab, the format chip alone is about 62 px for "Plain text" and
+                twice that for "URL-encoded (sampled)", so the whole bar shifted and the
                 gear came and went as tabs were switched.
 
                 A DockPanel measures and arranges its children in declaration order, and a
@@ -528,7 +528,7 @@
                 fill child: they take whatever is left and are clipped to it.
 
                 That the fill child's arranged width does not depend on its own content is
-                what makes this stable rather than merely better — nothing in the group can
+                what makes this stable rather than merely better, nothing in the group can
                 feed back into the width it was given, so there is no arrangement here that
                 can oscillate.
             -->
@@ -564,7 +564,7 @@
 
                 <!--
                     Second, so a message outranks the status items but never the gear. The
-                    cap is what stops a long one — a file-system error carries the path —
+                    cap is what stops a long one, a file-system error carries the path,
                     from taking the whole bar on a narrow window; past it the ellipsis says
                     there is more, and the full text is in the diagnostic log.
                 -->
@@ -584,7 +584,7 @@
                     big it is, and then the two that are worth knowing once and rarely
                     looked at again. Save status was last here and so was the first thing
                     to disappear on a narrow window, which is the worst possible choice in
-                    an editor whose entire premise is that you never think about saving —
+                    an editor whose entire premise is that you never think about saving:
                     an ephemeral tab would have shown no warning at all.
                 -->
                 <StackPanel
@@ -603,7 +603,7 @@
                         Grouped with its separator so that the two are hidden together when
                         no tab is bound. Left ungrouped, closing the last tab would leave a
                         separator floating between the chip and the caret with nothing after
-                        it — which the old layout did, at the end of the row where it was
+                        it, which the old layout did, at the end of the row where it was
                         merely untidy rather than in the middle where it looks broken.
                     -->
                     <StackPanel x:Name="SaveGroup" Orientation="Horizontal">
@@ -625,7 +625,7 @@
 
         <!--
             The command palette. A centred overlay over everything, dismissed on Esc or
-            by clicking away — not a window, because a second window would take focus
+            by clicking away, not a window, because a second window would take focus
             off the editor and put it back somewhere the caret has to be hunted for.
             Collapsed until Ctrl+Shift+P, so it costs a template and nothing else.
         -->
@@ -726,7 +726,7 @@
             Settings, on Ctrl+,. An overlay rather than a window, for the same reasons
             the palette is one: the plan bans modals, and a second window would move
             focus off the editor. Collapsed until it is asked for, so it costs a
-            template and nothing else — the same bargain the palette and the find bar
+            template and nothing else: the same bargain the palette and the find bar
             make.
 
             Every control in here is wired to something that reads it. See

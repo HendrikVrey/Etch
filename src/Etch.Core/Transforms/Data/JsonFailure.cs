@@ -18,8 +18,8 @@ namespace Etch.Core.Transforms.Data;
 /// The framework's message is kept rather than replaced with something tidier. It already
 /// names the line and the position in prose, and rewriting it would mean maintaining a
 /// worse copy of a good message. What is added is the
-/// <see cref="TransformResult.ErrorOffset"/> beside it, because prose cannot move a caret
-/// — and on a minified document, where the whole payload is line one, "line 1, position
+/// <see cref="TransformResult.ErrorOffset"/> beside it, because prose cannot move a caret,
+/// and on a minified document, where the whole payload is line one, "line 1, position
 /// 20143" is not an answer anybody can act on.
 /// </para>
 /// </remarks>
@@ -37,7 +37,7 @@ internal static class JsonFailure
     /// <param name="parsedText">The exact text handed to the parser, for resolving that position.</param>
     /// <param name="shift">
     /// Added to the resolved offset to move it from <paramref name="parsedText"/>'s
-    /// coordinates into the caller's. Non-zero only when the two differ — see
+    /// coordinates into the caller's. Non-zero only when the two differ: see
     /// <see cref="UnescapeJsonString"/>, which parses a trimmed and quoted copy of the
     /// buffer rather than the buffer itself.
     /// </param>
@@ -56,8 +56,8 @@ internal static class JsonFailure
     {
         var message = $"{prefix} - {exception.Message}";
 
-        // ArgumentException — a lone surrogate failing to transcode before the parser has
-        // an opinion — carries no position at all, and neither does a JsonException built
+        // ArgumentException, a lone surrogate failing to transcode before the parser has
+        // an opinion, carries no position at all, and neither does a JsonException built
         // without one. Null is the honest answer; an invented zero would send the caret to
         // the top of the document for no reason.
         if (exception is not JsonException { LineNumber: { } line, BytePositionInLine: { } bytePosition }

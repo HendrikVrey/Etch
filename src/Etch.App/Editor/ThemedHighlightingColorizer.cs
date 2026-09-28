@@ -18,8 +18,8 @@ namespace Etch.App.Editor;
 /// <para>
 /// <b>Only the foreground is replaced.</b> Bold, italic and the rest are the grammar's
 /// judgement about emphasis, not about colour, and they read the same in either theme. A
-/// grammar colour with no foreground at all — <c>Punctuation</c> in the C# definition is
-/// one — is passed straight through untouched rather than being given one, because
+/// grammar colour with no foreground at all, <c>Punctuation</c> in the C# definition is
+/// one, is passed straight through untouched rather than being given one, because
 /// inventing a colour where the author deliberately left the text alone would be a change
 /// to the grammar rather than to the palette.
 /// </para>
@@ -33,15 +33,15 @@ internal sealed class ThemedHighlightingColorizer : HighlightingColorizer
     /// <para>
     /// <see cref="ApplyColorToElement"/> runs once per highlighted run per redraw, so this
     /// is on the path of every keystroke and every scroll. The colours arriving are a small
-    /// fixed set of shared instances — a grammar has a few dozen and hands out the same
-    /// objects for ever — so a cache here turns a bisection search per run into a dictionary
+    /// fixed set of shared instances, a grammar has a few dozen and hands out the same
+    /// objects for ever, so a cache here turns a bisection search per run into a dictionary
     /// probe.
     /// </para>
     /// <para>
     /// Keyed by <em>reference</em> deliberately.
     /// <see cref="HighlightingColor.GetHashCode"/> hashes the brushes and the font
     /// properties, which is both slower and, more to the point, would merge two colours that
-    /// happen to agree today into one entry — harmless now, and exactly the sort of
+    /// happen to agree today into one entry: harmless now, and exactly the sort of
     /// aliasing that becomes a puzzle later. The instances are stable, so reference identity
     /// is the cheaper and the more honest key.
     /// </para>
@@ -65,7 +65,7 @@ internal sealed class ThemedHighlightingColorizer : HighlightingColorizer
     /// <remarks>
     /// The cache is cleared rather than rebuilt: it is rebuilt lazily by the very next
     /// redraw, and a theme change already costs a full repaint. Returns whether anything
-    /// changed so the caller can skip a redraw it does not need — WPF-UI raises its theme
+    /// changed so the caller can skip a redraw it does not need: WPF-UI raises its theme
     /// event for accent changes too, which do not affect any of this.
     /// </remarks>
     /// <param name="dark">Whether the dark theme is now in use.</param>
@@ -118,7 +118,7 @@ internal sealed class ThemedHighlightingColorizer : HighlightingColorizer
         if (color.Foreground is not { } foreground)
         {
             // Nothing to recolour. Weight and style still apply, so the grammar's emphasis
-            // survives — this is a colour that only ever meant "make this bold".
+            // survives: this is a colour that only ever meant "make this bold".
             return null;
         }
 
@@ -132,8 +132,8 @@ internal sealed class ThemedHighlightingColorizer : HighlightingColorizer
         }
         else
         {
-            // A null context is the supported case — HighlightingBrush.GetColor documents
-            // it as "context can be null!" — so this is not a gamble. A null *answer*
+            // A null context is the supported case: HighlightingBrush.GetColor documents
+            // it as "context can be null!", so this is not a gamble. A null *answer*
             // still is a real possibility: only SimpleHighlightingBrush is guaranteed to
             // resolve without a text view, and a colour that will not say what it is
             // cannot be made legible. Left alone, which at worst leaves one run in the

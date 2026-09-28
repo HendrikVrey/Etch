@@ -10,8 +10,8 @@ namespace Etch.App.Tests.Input;
 /// <remarks>
 /// <para>
 /// This file exists because <c>Ctrl+T</c> was missing for the whole of M1 and M2 without
-/// anything noticing. Nothing was broken in the ordinary sense — every mechanism that
-/// existed worked — the map was simply spread across XAML key bindings, a loop in the
+/// anything noticing. Nothing was broken in the ordinary sense, every mechanism that
+/// existed worked, the map was simply spread across XAML key bindings, a loop in the
 /// window's constructor, and the default gestures riding on <c>ApplicationCommands</c>,
 /// so no single artefact said what the keyboard did and no reviewer could see the gap.
 /// </para>
@@ -19,7 +19,7 @@ namespace Etch.App.Tests.Input;
 /// The table below is deliberately a second, hand-written copy of
 /// <see cref="KeyMap"/>'s. A test that derived its expectations from the code would agree
 /// with any change, including a wrong one. This one has to be edited on purpose, which is
-/// the same act as editing the README's shortcut table — and those two staying in step is
+/// the same act as editing the README's shortcut table, and those two staying in step is
 /// the actual thing being protected.
 /// </para>
 /// </remarks>
@@ -106,7 +106,7 @@ public class KeyMapTests
     {
         // A single-key binding on Ctrl+K would fire before the sequence ever got its second
         // key, and the sequence would simply stop working. KeyMap throws while building if
-        // this is ever violated, so merely touching the table proves it — the assertion is
+        // this is ever violated, so merely touching the table proves it: the assertion is
         // here so the reason is written down next to the rule.
         Assert.False(KeyMap.TryResolve(KeyMap.ChordPrefix, out _));
         Assert.Equal(new Shortcut(Key.K, Ctrl), KeyMap.ChordPrefix);
@@ -116,7 +116,7 @@ public class KeyMapTests
     public void An_unbound_second_key_means_nothing_rather_than_something_else()
     {
         // The window swallows it and says so. What must not happen is a second key falling
-        // through to a single-key binding — Ctrl+K then Ctrl+W would close the tab, which is
+        // through to a single-key binding: Ctrl+K then Ctrl+W would close the tab, which is
         // not what anyone who started a sequence was asking for.
         Assert.False(KeyMap.TryResolveChord(new Shortcut(Key.W, Ctrl), out _));
         Assert.False(KeyMap.TryResolveChord(new Shortcut(Key.T, Ctrl), out _));
@@ -169,7 +169,7 @@ public class KeyMapTests
     {
         // Chords are resolved on the window's tunnelling pass, which means a shortcut
         // added here wins outright over the text area beneath it. Taking any of these
-        // would break editing itself, and it would do so silently — the key would simply
+        // would break editing itself, and it would do so silently: the key would simply
         // stop working, with no error anywhere.
         Assert.False(KeyMap.TryResolve(new Shortcut(key, modifiers), out _));
     }
@@ -201,7 +201,7 @@ public class KeyMapTests
     public void No_single_key_shortcut_uses_K()
     {
         // The prefix has to be free in Etch's own table or the sequence never gets its
-        // second key — KeyMap throws while building if it is not, and this says why.
+        // second key: KeyMap throws while building if it is not, and this says why.
         //
         // Whether AvalonEdit claims it is a separate question that no assertion here can
         // answer; it was checked against the library's own command handlers and the answer is

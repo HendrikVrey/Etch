@@ -10,7 +10,7 @@ using ICSharpCode.AvalonEdit.Document;
 namespace Etch.App.Tabs;
 
 /// <summary>
-/// One tab: its identity, its metadata, and — once hydrated — its text.
+/// One tab: its identity, its metadata, and, once hydrated, its text.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -73,7 +73,7 @@ public sealed class BufferTab : INotifyPropertyChanged
     /// statement about the file that is on disk right now, and the one recorded last
     /// week may since have been deleted and recreated. It is established when the file
     /// is opened and left unknown until then, so a restored tab de-duplicates on its
-    /// path — a weaker guarantee, honestly held, rather than a stale strong one.
+    /// path: a weaker guarantee, honestly held, rather than a stale strong one.
     /// </remarks>
     internal FileIdentity Identity { get; private set; }
 
@@ -185,8 +185,8 @@ public sealed class BufferTab : INotifyPropertyChanged
     /// </summary>
     /// <remarks>
     /// Set through <see cref="Workspace.SetEphemeral"/> rather than here, because
-    /// turning it on has to suppress the journal and delete anything already written
-    /// — and a property setter that quietly performs I/O is how that ends up being
+    /// turning it on has to suppress the journal and delete anything already written,
+    /// and a property setter that quietly performs I/O is how that ends up being
     /// called from somewhere it should not be.
     /// </remarks>
     public bool IsEphemeral
@@ -387,8 +387,8 @@ public sealed class BufferTab : INotifyPropertyChanged
     /// <summary>Turns a scratch tab into one backed by a file the user chose.</summary>
     /// <remarks>
     /// The path is validated by <see cref="BufferRecord"/> at the next session save,
-    /// which is too late to be useful, so it is validated here as well — by round
-    /// tripping it through the same rules — before anything is written to it.
+    /// which is too late to be useful, so it is validated here as well, by round
+    /// tripping it through the same rules, before anything is written to it.
     /// </remarks>
     /// <exception cref="ArgumentException">The path is not a legitimate save target.</exception>
     public void PromoteToFile(string filePath, Encoding encoding)
@@ -429,8 +429,8 @@ public sealed class BufferTab : INotifyPropertyChanged
     /// Takes an immutable, thread-safe view of the text for the journal to write.
     /// </summary>
     /// <remarks>
-    /// <see cref="TextDocument.CreateSnapshot()"/> is O(1) — the rope is shared, not
-    /// copied — which is what allows this to be called on every keystroke without
+    /// <see cref="TextDocument.CreateSnapshot()"/> is O(1) (the rope is shared, not
+    /// copied) which is what allows this to be called on every keystroke without
     /// touching the frame budget. Materialising the string happens later, on the
     /// journal's thread, after the debounce has collapsed a burst of typing into one
     /// write.
@@ -444,7 +444,7 @@ public sealed class BufferTab : INotifyPropertyChanged
 
         var snapshot = document.CreateSnapshot();
 
-        // A closure, not `snapshot.Text.ToString` — that reads the property here and
+        // A closure, not `snapshot.Text.ToString`, that reads the property here and
         // hands back a delegate over an already-materialised string, which is the
         // exact cost this method exists to defer.
         return () => snapshot.Text;
