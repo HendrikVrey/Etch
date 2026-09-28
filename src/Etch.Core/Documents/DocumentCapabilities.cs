@@ -14,8 +14,10 @@ namespace Etch.Core.Documents;
 /// once at load time only.
 /// </param>
 /// <param name="Journaling">
-/// Whether the buffer is continuously written to disk. Disabled for very large
-/// buffers, where the disk thrash costs more than the safety is worth.
+/// Whether the buffer is continuously written to disk. Disabled for a file opened past the
+/// plain-text threshold, where the disk thrash costs more than the safety is worth because
+/// the file itself is a copy. Decided when the document is opened and never withdrawn
+/// afterwards: see <see cref="DocumentSizePolicy.Reassess"/>.
 /// </param>
 /// <param name="Notice">
 /// A short, user-facing explanation for any degradation, or null when nothing was

@@ -99,6 +99,17 @@ internal sealed class EditorSyntax : IDisposable
 
     private readonly TextEditor _editor;
 
+    /// <summary>
+    /// Stops a very long line being laid out in full. Installed for the life of the editor.
+    /// </summary>
+    /// <remarks>
+    /// Not switched by <see cref="Apply"/> like highlighting and folding are. It has to be in
+    /// place before the first frame after a paste, and the capabilities that would switch it
+    /// are only re-derived once the paste has landed; it also costs nothing on a line that is
+    /// not long, so there is nothing to gain by ever taking it out.
+    /// </remarks>
+    private readonly LongLineElementGenerator _longLines;
+
     private ThemedHighlightingColorizer? _colorizer;
     private FoldingManager? _folding;
 
@@ -117,6 +128,9 @@ internal sealed class EditorSyntax : IDisposable
     {
         _editor = editor ?? throw new ArgumentNullException(nameof(editor));
         _dark = dark;
+
+        _longLines = new LongLineElementGenerator(DocumentSizePolicy.LongLineLength, dark);
+        _editor.TextArea.TextView.ElementGenerators.Add(_longLines);
     }
 
     /// <summary>Whether format detection should re-run as the user types.</summary>
@@ -177,7 +191,12 @@ internal sealed class EditorSyntax : IDisposable
     {
         _dark = dark;
 
-        return _colorizer?.Retheme(dark) == true;
+        // Both asked, not short-circuited: each has to learn the new palette whether or not
+        // the other one changed.
+        var label = _longLines.Retheme(dark);
+        var highlighting = _colorizer?.Retheme(dark) == true;
+
+        return label || highlighting;
     }
 
     /// <summary>
@@ -311,6 +330,8 @@ internal sealed class EditorSyntax : IDisposable
 
         InstallHighlighting(SyntaxLanguage.None);
         DetachFolding();
+
+        _editor.TextArea.TextView.ElementGenerators.Remove(_longLines);
     }
 
     private void InstallHighlighting(SyntaxLanguage language)

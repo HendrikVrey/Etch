@@ -150,6 +150,17 @@ internal sealed class Workspace : IAsyncDisposable
     /// <summary>Raised when the active tab changes.</summary>
     public event Action<BufferTab?>? ActiveChanged;
 
+    /// <summary>
+    /// Raised on the UI thread when an edit moves a tab across a size threshold, or gives it
+    /// or takes away its last long line, so that what the editor switches on has to change.
+    /// </summary>
+    /// <remarks>
+    /// Raised from inside the edit, before the editor has drawn it. That ordering is the
+    /// point: a 100 MB paste has to lose its highlighting before the first frame, because
+    /// that frame is the one that reads every line above the caret.
+    /// </remarks>
+    public event Action<BufferTab>? CapabilitiesChanged;
+
     /// <summary>The open tabs, in display order.</summary>
     public ReadOnlyObservableCollection<BufferTab> Tabs { get; }
 
@@ -282,8 +293,9 @@ internal sealed class Workspace : IAsyncDisposable
     /// The size policy is rebuilt rather than mutated, and it applies to documents opened
     /// from here on. Re-evaluating the tabs already open would mean revoking journaling
     /// from a buffer the user has been typing into on the strength of a number they just
-    /// changed, so a tab keeps the capabilities it was opened with until it is reopened,
-    /// which is both simpler and the safer direction to be wrong in.
+    /// changed, so a tab keeps the thresholds it was opened with until it is reopened,
+    /// which is both simpler and the safer direction to be wrong in. What a tab switches on
+    /// still follows its own size as it is edited, measured against those kept thresholds.
     /// </para>
     /// </remarks>
     /// <exception cref="ArgumentOutOfRangeException">
@@ -406,7 +418,8 @@ internal sealed class Workspace : IAsyncDisposable
     {
         var tab = BufferTab.NewScratch(
             ScratchTitles.NextAvailable(_tabs.Select(existing => existing.Title)),
-            _time.GetUtcNow());
+            _time.GetUtcNow(),
+            _options.SizePolicy);
 
         Attach(tab);
         SetActive(tab);
@@ -509,8 +522,14 @@ internal sealed class Workspace : IAsyncDisposable
             lastModifiedUtc: _time.GetUtcNow());
 
         var tab = BufferTab.FromRecord(record);
-        tab.Hydrate(loaded.Text, loaded.Capabilities, loaded.WasTruncated, recoveredFromBackup: false);
-        tab.AdoptFileMetadata(loaded.Encoding, loaded.LineEnding, loaded.Capabilities);
+        tab.Hydrate(
+            loaded.Text,
+            sizePolicy,
+            loaded.SizeInBytes,
+            loaded.Capabilities.Journaling,
+            loaded.WasTruncated,
+            recoveredFromBackup: false);
+        tab.AdoptFileMetadata(loaded.Encoding, loaded.LineEnding);
         tab.AdoptFileState(loaded.Identity, loaded.Witness);
 
         Attach(tab);
@@ -527,8 +546,10 @@ internal sealed class Workspace : IAsyncDisposable
         {
             Announce($"{tab.Title} was truncated at the size ceiling - auto-save is off so the rest of the file is not at risk.");
         }
-        else if (loaded.Capabilities.Notice is { } notice)
+        else if (tab.Capabilities.Notice is { } notice)
         {
+            // The tab's own notice rather than the loader's: only the tab has looked at the
+            // lines, so only its sentence can say that some of them are shown in part.
             Announce(notice);
         }
 
@@ -612,9 +633,18 @@ internal sealed class Workspace : IAsyncDisposable
             Announce($"Could not read the text for {tab.Title}: {ex.Message}");
         }
 
+        // Journaled, whatever its size, because its text has just been read out of the
+        // journal: carrying on writing it is the only way that copy stays true. Deriving it
+        // from the size instead turned auto-save off for any restored tab past the
+        // plain-text threshold. For a scratch tab that copy is the only one there is, so
+        // everything typed into it after the restart was lost at the next exit; for a file
+        // tab the stale copy came back at the launch after that, as the file's text, one
+        // Ctrl+S away from being written over a newer file.
         tab.Hydrate(
             stored?.Text ?? string.Empty,
-            sizePolicy.Evaluate(stored?.SizeInBytes ?? 0),
+            sizePolicy,
+            stored?.SizeInBytes ?? 0,
+            journaling: true,
             stored?.WasTruncated ?? false,
             stored?.RecoveredFromBackup ?? false);
 
@@ -1140,6 +1170,44 @@ internal sealed class Workspace : IAsyncDisposable
         _journal.Enqueue(tab.Id, BufferContent.FromSnapshot(snapshot));
     }
 
+    /// <summary>
+    /// Re-derives what <paramref name="tab"/> may switch on from what it holds now.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Runs on every edit, so it is built to cost nothing when nothing moves: the size is a
+    /// multiplication, the long-line answer is kept up to date by the tab itself, and the
+    /// policy is arithmetic. Only a change to what is switched on is announced.
+    /// </para>
+    /// <para>
+    /// The comparison ignores the notice. It names the size, which changes with nearly every
+    /// keystroke on a large buffer, and rebuilding the editor's syntax for a new number in a
+    /// sentence would be work on the keystroke path for nothing.
+    /// </para>
+    /// </remarks>
+    private void Reassess(BufferTab tab)
+    {
+        if (!tab.IsHydrated)
+        {
+            return;
+        }
+
+        var current = tab.Capabilities;
+        var next = tab.SizePolicy.Reassess(tab.EstimatedBytes, tab.HasLongLines, current.Journaling);
+
+        if (next == current)
+        {
+            return;
+        }
+
+        tab.AdoptCapabilities(next);
+
+        if ((next with { Notice = null }) != (current with { Notice = null }))
+        {
+            CapabilitiesChanged?.Invoke(tab);
+        }
+    }
+
     /// <summary>Writes everything pending, now.</summary>
     public async Task FlushAsync(CancellationToken cancellationToken = default)
     {
@@ -1550,7 +1618,11 @@ internal sealed class Workspace : IAsyncDisposable
         // Held in a local and stored, rather than attached from a method group twice:
         // unsubscribing has to hand back a delegate equal to the one that went on, and
         // "equal" is a thing to be sure of rather than to reason about at a leak site.
-        EventHandler handler = (_, _) => Journal(tab);
+        EventHandler handler = (_, _) =>
+        {
+            Reassess(tab);
+            Journal(tab);
+        };
 
         _changeHandlers[tab.Id] = handler;
         document.TextChanged += handler;

@@ -19,15 +19,23 @@ public sealed class BufferStore
     /// Upper bound on a single buffer read, in characters.
     /// </summary>
     /// <remarks>
-    /// Live buffers are not journaled above the plain-text threshold, so a file here
-    /// should never approach this. The cap exists for the file that got there
-    /// anyway (hand-edited, restored from a backup, or written by a future build)
-    /// so that a startup restore cannot be turned into an out-of-memory failure by
-    /// something on disk. A read that hits it reports
-    /// <see cref="StoredBuffer.WasTruncated"/>, and a truncated buffer must never be
-    /// journaled: the write-back would make the truncation permanent.
+    /// <para>
+    /// Above the editor's default hard ceiling of 100 MiB, deliberately. A scratch tab is
+    /// journaled whatever its size, because the journal is the only copy it has, so a
+    /// buffer at the ceiling is an ordinary thing to find here, and the editor refuses to let
+    /// a journaled tab grow past this number so that what it writes always comes back whole.
+    /// The previous 64 Mi sat below the ceiling, so a 90 MB paste was saved and then restored
+    /// cut short.
+    /// </para>
+    /// <para>
+    /// The cap still exists for the file that gets past it anyway (hand-edited, restored
+    /// from a backup, or written by a build with a raised ceiling) so that a startup restore
+    /// cannot be turned into an out-of-memory failure by something on disk. A read that hits
+    /// it reports <see cref="StoredBuffer.WasTruncated"/>, and a truncated buffer must never
+    /// be journaled: the write-back would make the truncation permanent.
+    /// </para>
     /// </remarks>
-    public const int MaxBufferChars = 64 * 1024 * 1024;
+    public const int MaxBufferChars = 128 * 1024 * 1024;
 
     private const int BufferSize = 1 << 16;
 

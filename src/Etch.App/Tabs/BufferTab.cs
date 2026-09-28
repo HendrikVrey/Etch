@@ -1,10 +1,13 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Etch.App.Editor;
 using Etch.Core.Documents;
 using Etch.Core.Text;
 using Etch.Persistence.Model;
+using Etch.Persistence.Storage;
 using ICSharpCode.AvalonEdit.Document;
 
 namespace Etch.App.Tabs;
@@ -39,6 +42,7 @@ public sealed class BufferTab : INotifyPropertyChanged
     private bool _isPinned;
     private bool _isEphemeral;
     private TextDocument? _document;
+    private LongLineWatch? _longLines;
 
     private BufferTab(BufferRecord record)
     {
@@ -233,8 +237,87 @@ public sealed class BufferTab : INotifyPropertyChanged
     public DateTimeOffset LastModifiedUtc { get; set; }
 
     /// <summary>What the editor may switch on for a document this size.</summary>
+    /// <remarks>
+    /// Re-derived as the text changes (see <see cref="Workspace"/>), from the policy the tab
+    /// was opened under. A scratch tab is born empty, and when this was set once and never
+    /// again, everything later pasted into it was treated as though it were still empty.
+    /// </remarks>
     public DocumentCapabilities Capabilities { get; private set; } =
         DocumentSizePolicy.Default.Evaluate(0);
+
+    /// <summary>The thresholds in force when this tab was opened.</summary>
+    /// <remarks>
+    /// Kept rather than read from the workspace each time, which is the promise
+    /// <see cref="Workspace.ApplySettings"/> makes: a changed threshold applies to the next
+    /// document opened, and a tab somebody is typing into does not change under them.
+    /// </remarks>
+    internal DocumentSizePolicy SizePolicy { get; private set; } = DocumentSizePolicy.Default;
+
+    /// <summary>
+    /// Whether a line is longer than <see cref="DocumentSizePolicy.LongLineLength"/>.
+    /// </summary>
+    internal bool HasLongLines => _longLines?.Any == true;
+
+    /// <summary>
+    /// Roughly how many bytes the text would take on disk, for the size policy.
+    /// </summary>
+    /// <remarks>
+    /// Characters times the width of one in this tab's encoding: exact for ASCII in UTF-8,
+    /// which is what large pasted data almost always is, and a lower bound otherwise.
+    /// Encoding the whole buffer to measure it would be the very cost the policy exists to
+    /// avoid, and this is read on every keystroke.
+    /// </remarks>
+    internal long EstimatedBytes => EstimateBytes(_document?.TextLength ?? 0);
+
+    /// <summary>The estimate <see cref="EstimatedBytes"/> makes, for a length the text is not yet.</summary>
+    internal long EstimateBytes(long characters) => characters * Encoding.CodePage switch
+    {
+        1200 or 1201 => 2,
+        12000 or 12001 => 4,
+        _ => 1,
+    };
+
+    /// <summary>
+    /// Whether this tab may grow to <paramref name="characters"/> characters.
+    /// </summary>
+    /// <param name="characters">Its length afterwards.</param>
+    /// <param name="refusal">Why not, in a sentence for the status bar.</param>
+    /// <remarks>
+    /// <para>
+    /// The ceiling a file is refused at when it is opened, applied to text arriving by every
+    /// other route: a paste, a transform's result, a replace-all. Only opening was checked,
+    /// so a paste of any size went straight in, and a scratch tab a few hundred megabytes
+    /// long is several copies of that in memory at once (the document, its undo history, the
+    /// journal's snapshot as it is written) on a machine that may not have them to give.
+    /// </para>
+    /// <para>
+    /// A journaled tab is also held to what <see cref="BufferStore"/> reads back at startup.
+    /// Past that the text is restored cut short, safely but not whole, so a tab is not
+    /// allowed to get there in the first place.
+    /// </para>
+    /// </remarks>
+    internal bool Fits(long characters, [NotNullWhen(false)] out string? refusal)
+    {
+        var bytes = EstimateBytes(characters);
+        var ceiling = SizePolicy.HardCeiling;
+
+        if (bytes > ceiling)
+        {
+            refusal = $"That would make {Title} {DocumentSizePolicy.Describe(bytes)}, over the {DocumentSizePolicy.Describe(ceiling)} editor limit.";
+            return false;
+        }
+
+        if (IsJournaled && characters > BufferStore.MaxBufferChars)
+        {
+            refusal = string.Create(
+                CultureInfo.CurrentCulture,
+                $"That would make {Title} longer than the {BufferStore.MaxBufferChars:N0} characters Etch can bring back after a restart.");
+            return false;
+        }
+
+        refusal = null;
+        return true;
+    }
 
     /// <summary>The encoding to write back with, for a file tab.</summary>
     /// <remarks>
@@ -262,14 +345,17 @@ public sealed class BufferTab : INotifyPropertyChanged
     public bool IsJournaled => Capabilities.Journaling && !WasTruncated && !IsEphemeral;
 
     /// <summary>Creates a brand-new, empty scratch tab.</summary>
-    public static BufferTab NewScratch(string title, DateTimeOffset now)
+    /// <param name="title">The caption.</param>
+    /// <param name="now">When it was made.</param>
+    /// <param name="policy">The size thresholds in force, which the tab keeps.</param>
+    public static BufferTab NewScratch(string title, DateTimeOffset now, DocumentSizePolicy policy)
     {
         var tab = new BufferTab(BufferRecord.NewScratch(title, now));
 
         // A new tab has no text to read, so it is born hydrated. Leaving it otherwise
         // would make Ctrl+N asynchronous for no reason and put a read of a file that
         // does not exist on the fastest path in the product.
-        tab.Hydrate(string.Empty, DocumentSizePolicy.Default.Evaluate(0), wasTruncated: false, recoveredFromBackup: false);
+        tab.Hydrate(string.Empty, policy, sizeInBytes: 0, journaling: true, wasTruncated: false, recoveredFromBackup: false);
 
         return tab;
     }
@@ -286,7 +372,12 @@ public sealed class BufferTab : INotifyPropertyChanged
     /// Installs the text, making the tab usable.
     /// </summary>
     /// <param name="text">The contents read from disk.</param>
-    /// <param name="capabilities">What this size of document may switch on.</param>
+    /// <param name="policy">The size thresholds in force, which the tab keeps.</param>
+    /// <param name="sizeInBytes">The size the text was read at, as the policy measures it.</param>
+    /// <param name="journaling">
+    /// Whether the text is written to Etch's own storage. Decided by whoever read it and
+    /// never re-derived here: see <see cref="DocumentSizePolicy.Reassess"/>.
+    /// </param>
     /// <param name="wasTruncated">Whether the read hit the size cap.</param>
     /// <param name="recoveredFromBackup">Whether the text came from the retained generation.</param>
     /// <remarks>
@@ -296,18 +387,20 @@ public sealed class BufferTab : INotifyPropertyChanged
     /// </remarks>
     public void Hydrate(
         string text,
-        DocumentCapabilities capabilities,
+        DocumentSizePolicy policy,
+        long sizeInBytes,
+        bool journaling,
         bool wasTruncated,
         bool recoveredFromBackup)
     {
         ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(policy);
 
         if (IsHydrated)
         {
             return;
         }
 
-        Capabilities = capabilities;
         WasTruncated = wasTruncated;
         RecoveredFromBackup = recoveredFromBackup;
         LineEnding = LineEndings.Detect(text);
@@ -318,6 +411,14 @@ public sealed class BufferTab : INotifyPropertyChanged
         // Ctrl+Z would empty their restored tab.
         var document = new TextDocument(new StringTextSource(text));
 
+        // Before the capabilities, which depend on it, and before the document is handed to
+        // anything that could draw it: a restored tab holding one 3 MB line was otherwise
+        // highlighted on the first frame of every launch, and never drew that frame.
+        _longLines = new LongLineWatch(document, DocumentSizePolicy.LongLineLength);
+
+        SizePolicy = policy;
+        Capabilities = policy.Reassess(sizeInBytes, _longLines.Any, journaling);
+
         // A restored caret from a hand-edited or stale index can point past the end.
         CaretOffset = Math.Clamp(CaretOffset, 0, document.TextLength);
         FirstVisibleLine = Math.Clamp(FirstVisibleLine, 1, document.LineCount);
@@ -326,15 +427,33 @@ public sealed class BufferTab : INotifyPropertyChanged
         Raise(nameof(IsJournaled));
     }
 
-    /// <summary>Records the encoding and capabilities of a file this tab was opened from.</summary>
-    public void AdoptFileMetadata(Encoding encoding, LineEndingStyle lineEnding, DocumentCapabilities capabilities)
+    /// <summary>Records the encoding and line endings of a file this tab was opened from.</summary>
+    public void AdoptFileMetadata(Encoding encoding, LineEndingStyle lineEnding)
     {
         ArgumentNullException.ThrowIfNull(encoding);
 
         Encoding = encoding;
         LineEnding = lineEnding;
+    }
+
+    /// <summary>
+    /// Takes on capabilities re-derived from what the tab holds now.
+    /// </summary>
+    /// <remarks>
+    /// Journaling is refused a change here, deliberately and loudly, because the one caller
+    /// is only ever meant to move the view features. A tab that stopped journaling after it
+    /// had been would leave its shadow copy behind as it was, and restoring from that copy
+    /// is how a stale text ends up saved over a newer file.
+    /// </remarks>
+    /// <exception cref="ArgumentException">The capabilities change whether the tab is journaled.</exception>
+    internal void AdoptCapabilities(DocumentCapabilities capabilities)
+    {
+        if (capabilities.Journaling != Capabilities.Journaling)
+        {
+            throw new ArgumentException("Journaling is decided when a tab is opened and is not changed afterwards.", nameof(capabilities));
+        }
+
         Capabilities = capabilities;
-        Raise(nameof(IsJournaled));
     }
 
     /// <summary>

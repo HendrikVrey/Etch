@@ -1,4 +1,6 @@
 using System.Windows.Media;
+using Etch.Core.Documents;
+using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Highlighting;
 using ICSharpCode.AvalonEdit.Rendering;
 
@@ -81,6 +83,34 @@ internal sealed class ThemedHighlightingColorizer : HighlightingColorizer
         _translated.Clear();
 
         return true;
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// <para>
+    /// A line past <see cref="DocumentSizePolicy.LongLineLength"/> is left uncoloured. The
+    /// grammar would read all of it and then split the line's elements once per token, and
+    /// on a 2 MB line of minified JSON that did not finish in three minutes. Only the start of
+    /// such a line is laid out in any case (see <see cref="LongLineElementGenerator"/>).
+    /// </para>
+    /// <para>
+    /// A backstop rather than the mechanism. The base class still brings its highlighting
+    /// state up to date across a line it did not colour, which is one pass of the grammar
+    /// over it, so a document holding such a line is not highlighted at all:
+    /// <see cref="DocumentSizePolicy.Reassess"/> says so, and this only covers the moment
+    /// before that has been asked.
+    /// </para>
+    /// </remarks>
+    protected override void ColorizeLine(DocumentLine line)
+    {
+        ArgumentNullException.ThrowIfNull(line);
+
+        if (line.Length > DocumentSizePolicy.LongLineLength)
+        {
+            return;
+        }
+
+        base.ColorizeLine(line);
     }
 
     /// <inheritdoc/>

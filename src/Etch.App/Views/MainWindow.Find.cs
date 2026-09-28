@@ -314,7 +314,7 @@ public partial class MainWindow
     /// </remarks>
     private void OnReplaceAllClick(object sender, RoutedEventArgs e)
     {
-        if (_search is null || Editor.Document is not { } document || !TryReadDocument(out var text))
+        if (_search is null || _bound is not { } tab || Editor.Document is not { } document || !TryReadDocument(out var text))
         {
             return;
         }
@@ -342,9 +342,23 @@ public partial class MainWindow
             // half-rewritten.
             replacements = new string[matches.Count];
 
+            // Checked as the expansions are built, not once they all exist. A replacement is
+            // the user's own text and can be as large as the document ("$_" is the whole of
+            // it), so a hundred thousand of them held at once is the out-of-memory failure
+            // this check exists to refuse, and the expansions stop at the first one past it.
+            var projected = (long)text.Length;
+
             for (var i = 0; i < matches.Count; i++)
             {
                 replacements[i] = _search.Expand(text, matches[i], replaceWith);
+                projected += replacements[i].Length - matches[i].Length;
+
+                if (!tab.Fits(projected, out var refusal))
+                {
+                    SetFindStatus("The result would be too large");
+                    ShowMessage($"Nothing was replaced. {refusal}", null);
+                    return;
+                }
             }
         }
         catch (RegexMatchTimeoutException)

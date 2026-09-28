@@ -48,19 +48,19 @@ through a website you had to trust with the payload.
 
 ## Download
 
-**[Download Etch-Setup.exe](https://github.com/HendrikVrey/Etch/releases/download/latest/Etch-Setup.exe)**
+**[Download Etch-Setup.exe](https://github.com/HendrikVrey/Etch/releases/latest/download/Etch-Setup.exe)**
 - one installer carrying both `win-x64` and `win-arm64`.
 
-That link is permanent and always serves the newest build of `master`. Every merge
-rebuilds it, and nothing is published unless the test suite passes, so a broken commit
-leaves the previous installer in place rather than replacing it. The version it reports
-looks like `0.1.0-dev.47`, which is the base version plus the build that produced it.
+That link is permanent and always serves the newest versioned release from the
+[Releases](https://github.com/HendrikVrey/Etch/releases) page.
 
-> **Etch has not been tagged yet**, so there is no fixed release to pin to yet. Once
-> there is, versioned releases will appear on the
-> [Releases](https://github.com/HendrikVrey/Etch/releases) page and
-> `releases/latest/download/Etch-Setup.exe` will serve the newest of those - GitHub's
-> `/latest/` deliberately skips prereleases, which is what keeps the two links apart.
+For the newest build of `master` instead, use
+[the rolling build](https://github.com/HendrikVrey/Etch/releases/download/latest/Etch-Setup.exe).
+Every merge rebuilds it, and nothing is published unless the test suite passes, so a broken
+commit leaves the previous installer in place rather than replacing it. The version it
+reports looks like `1.0.3-dev.47`: the next version, plus the build that produced it. The two
+links are a word apart and mean different things, because GitHub's `/latest/` deliberately
+skips prereleases.
 
 The installer is **per-user**. It asks for no administrator rights and shows no UAC
 prompt, it installs to `%LOCALAPPDATA%\Programs\Etch`, and everything it writes to the
@@ -179,12 +179,22 @@ Brace folding for the C family and JSON; XML and HTML fold as markup.
 |---|---|
 | up to 2 MiB | everything on |
 | 2–10 MiB | folding off, detection stops re-running as you type |
-| 10–100 MiB | plain text, and **auto-save off** |
-| over 100 MiB | refused, with the size in the message |
+| 10–100 MiB | plain text; a **file opened** this large is not auto-saved |
+| over 100 MiB | a file is refused, and a paste or transform that would get there is not applied |
 
-The 10 MiB tier is the one worth knowing: above it Etch stops journaling, so the promise
-at the top of this page no longer holds - and the status bar says so plainly rather than
-quietly dropping it.
+The tiers follow the text as it changes: pasting into a tab, or formatting what is in it,
+moves it between them just as opening a file does.
+
+The 10 MiB tier is the one worth knowing. A file opened above it is not journaled, because
+the file on disk is its copy, so the promise at the top of this page does not hold for it,
+and the status bar says so plainly rather than quietly dropping it. A scratch tab is always
+journaled whatever its size, because the journal is the only copy it has.
+
+**Long lines.** A line longer than 10,000 characters, which is what a minified JSON response
+is, is shown up to that point and then says how much more there is, and a document holding
+one is neither highlighted nor folded. Laying out the whole line is what used to freeze the
+window. The text is all there: copy, find, save and every transform see every character, and
+`Ctrl+Enter` on minified JSON formats it into lines you can read.
 
 <p align="center">
   <img src="docs/screenshots/find-sampled.png" alt="Etch's find bar open at the bottom of the window with a match count, over a large JSON document whose status bar reads JSON (sampled)" width="900">
@@ -223,6 +233,9 @@ Everything the text area owns - cut, copy, paste, undo, redo, select all, caret 
 selection keys, `Tab` for indentation - is left alone deliberately. The whole map is one
 table in `Etch.App.Input.KeyMap`, and a test asserts both that it matches this list and
 that it claims nothing the editor owns.
+
+`Tab` indents with spaces, but tabs you paste stay tabs: tab-separated values and Makefiles
+arrive exactly as they were copied.
 
 ---
 

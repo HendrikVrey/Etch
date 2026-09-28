@@ -459,6 +459,15 @@ public partial class MainWindow
                 return;
             }
 
+            // The limit a file is refused at on opening, applied to a result. Formatting a
+            // minified document triples it, and one past the limit is the same several copies
+            // in memory that a file past it would have been, arriving by a different door.
+            if (!tab.Fits((long)document.TextLength - length + replacement.Length, out var refusal))
+            {
+                ShowMessage($"{transform.Name} was not applied. {refusal}", null);
+                return;
+            }
+
             Replace(document, start, length, replacement, hasSelection);
 
             // Recorded only on success, so a transform that never worked does not climb

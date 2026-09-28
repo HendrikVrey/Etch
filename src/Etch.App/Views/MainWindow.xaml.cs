@@ -64,14 +64,32 @@ public partial class MainWindow : FluentWindow
     private static readonly TimeSpan StartupResultDuration = TimeSpan.FromSeconds(8);
 
     /// <summary>
-    /// How long the final flush may take before the window closes anyway.
+    /// How long the final flush may take before the window closes anyway, before the size of
+    /// what there is to write is taken into account.
     /// </summary>
     /// <remarks>
     /// Generous enough for a slow disk or an antivirus scanner holding a handle, short
     /// enough that a genuinely wedged volume does not produce an editor that will not
-    /// quit. Anything unwritten at that point is at most one debounce window old.
+    /// quit. <see cref="ShutdownBudget"/> adds to it for large tabs.
     /// </remarks>
     private static readonly TimeSpan ShutdownTimeout = TimeSpan.FromSeconds(8);
+
+    /// <summary>The most the final flush is ever given, however much text is open.</summary>
+    private static readonly TimeSpan MaxShutdownTimeout = TimeSpan.FromMinutes(2);
+
+    /// <summary>How much the budget has to grow before the wait is worth a sentence.</summary>
+    private static readonly TimeSpan NoticeableFlush = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// The write speed the flush budget assumes, in bytes a second: deliberately slow.
+    /// </summary>
+    /// <remarks>
+    /// Measured on 2026-09-28 on Hendrik's machine, where the virus scanner reads every new
+    /// file: a 56 MB journal write took about fifteen seconds end to end, near 4 MB a
+    /// second. Half that leaves room for a slower disk. It is only the ceiling on the wait;
+    /// a fast flush still closes the window the moment it finishes.
+    /// </remarks>
+    private const double AssumedFlushBytesPerSecond = 2.0 * 1024 * 1024;
 
     /// <summary>
     /// How long the flush may take when Windows is ending the session.
@@ -148,8 +166,12 @@ public partial class MainWindow : FluentWindow
         // for why it is the TextArea and not the TextEditor.
         InitialiseContextMenu();
 
+        // Same reason: the pasting hook hangs off Editor.TextArea as well.
+        InitialisePaste();
+
         _workspace.Notice += OnWorkspaceNotice;
         _workspace.ActiveChanged += OnActiveChanged;
+        _workspace.CapabilitiesChanged += OnCapabilitiesChanged;
 
         // Selection changes move the caret, so Caret.PositionChanged alone covers both.
         // Subscribing to SelectionChanged as well would do the same work twice per
@@ -405,7 +427,17 @@ public partial class MainWindow : FluentWindow
         {
             CaptureViewState();
 
-            using var deadline = new CancellationTokenSource(ShutdownTimeout);
+            var budget = ShutdownBudget();
+
+            // Said while the window is still up, because with a large tab the wait is long
+            // enough to look like a window that will not close. Only then: for a few notes
+            // the flush is over before anyone could read the sentence.
+            if (budget >= ShutdownTimeout + NoticeableFlush)
+            {
+                ShowMessage("Saving your tabs before closing…", budget);
+            }
+
+            using var deadline = new CancellationTokenSource(budget);
             await _workspace.ShutdownAsync(deadline.Token).ConfigureAwait(true);
         }
         catch (Exception ex)
@@ -426,15 +458,44 @@ public partial class MainWindow : FluentWindow
         Close();
     }
 
+    /// <summary>
+    /// How long the final flush may take, given how much text it may have to write.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A flat eight seconds was sized for notes. With a 50 MB scratch tab the last journal
+    /// write took about fifteen seconds, so it was cancelled part of the way through, begun
+    /// again from nothing in the journal's own five-second shutdown window, cut off again,
+    /// and the window closed with the last few seconds of typing unwritten: measured, on the
+    /// machine Etch is built on.
+    /// </para>
+    /// <para>
+    /// Counted over every journaled tab rather than only the ones with changes, because the
+    /// journal does not say how large its pending writes are. That makes this a ceiling on
+    /// the wait and not the wait itself: a flush that finishes sooner closes the window
+    /// sooner. Capped, so a volume that has genuinely stopped answering still cannot hold
+    /// the editor open indefinitely.
+    /// </para>
+    /// </remarks>
+    private TimeSpan ShutdownBudget()
+    {
+        var bytes = _workspace.Tabs.Where(static tab => tab.IsJournaled).Sum(static tab => tab.EstimatedBytes);
+        var budget = ShutdownTimeout + TimeSpan.FromSeconds(bytes / AssumedFlushBytesPerSecond);
+
+        return budget < MaxShutdownTimeout ? budget : MaxShutdownTimeout;
+    }
+
     /// <inheritdoc />
     protected override void OnClosed(EventArgs e)
     {
         _workspace.Notice -= OnWorkspaceNotice;
         _workspace.ActiveChanged -= OnActiveChanged;
+        _workspace.CapabilitiesChanged -= OnCapabilitiesChanged;
 
         Editor.TextArea.Caret.PositionChanged -= OnCaretPositionChanged;
         Editor.TextChanged -= OnEditorTextChanged;
         Editor.TextArea.ContextMenuOpening -= OnEditorContextMenuOpening;
+        DataObject.RemovePastingHandler(Editor.TextArea, OnEditorPasting);
 
         // Deliberately not SystemThemeWatcher.UnWatch: it throws InvalidOperationException
         // for a window that is no longer loaded, which is exactly what this one is by the
@@ -516,6 +577,31 @@ public partial class MainWindow : FluentWindow
     private Task<BufferTab?> OpenAsync(string path) => _workspace.OpenFileAsync(path);
 
     private void OnActiveChanged(BufferTab? tab) => Bind(tab);
+
+    /// <summary>
+    /// Puts the editor's features in line with what an edit made the tab.
+    /// </summary>
+    /// <remarks>
+    /// Raised from inside the edit that caused it, so this runs before the editor draws the
+    /// result. A paste that makes the tab too large to highlight therefore never gets a
+    /// highlighted frame: that frame was the nineteen-second one, because the grammar reads
+    /// every line above the caret and the caret lands at the end of the paste.
+    /// </remarks>
+    private void OnCapabilitiesChanged(BufferTab tab)
+    {
+        if (!ReferenceEquals(tab, _bound))
+        {
+            return;
+        }
+
+        ApplySyntax(tab);
+        UpdateSaveStatus();
+
+        if (tab.Capabilities.Notice is { } notice)
+        {
+            ShowMessage(notice, null);
+        }
+    }
 
     private void OnWorkspaceNotice(string message) => ShowMessage(message, null);
 

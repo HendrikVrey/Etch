@@ -120,6 +120,121 @@ public class DocumentSizePolicyTests
     }
 
     [Theory]
+    [InlineData(64 * Kib)]
+    [InlineData(5 * Mib)]
+    [InlineData(50 * Mib)]
+    public void Without_long_lines_both_ways_of_asking_agree(long sizeInBytes)
+    {
+        // The overload without the line length is the old API. It has to go on meaning
+        // exactly what it meant, notice text included, or every existing caller's
+        // behaviour moved when a parameter was added beside it.
+        Assert.Equal(
+            DocumentSizePolicy.Default.Evaluate(sizeInBytes),
+            DocumentSizePolicy.Default.Evaluate(sizeInBytes, hasLongLines: false));
+    }
+
+    [Theory]
+    [InlineData(64 * Kib)]
+    [InlineData(5 * Mib)]
+    public void A_long_line_turns_highlighting_and_folding_off_whatever_the_size(long sizeInBytes)
+    {
+        // The measured failure: a 2 MB line of minified JSON is well inside the full tier,
+        // and highlighting it did not finish in three minutes.
+        var plain = DocumentSizePolicy.Default.Evaluate(sizeInBytes);
+        var capabilities = DocumentSizePolicy.Default.Evaluate(sizeInBytes, hasLongLines: true);
+
+        Assert.False(capabilities.SyntaxHighlighting);
+        Assert.False(capabilities.Folding);
+
+        // Only the view is affected: the tier, detection and auto-save are about how much
+        // text there is, and a long line is not more text.
+        Assert.Equal(plain.Tier, capabilities.Tier);
+        Assert.Equal(plain.DetectOnEdit, capabilities.DetectOnEdit);
+        Assert.Equal(plain.Journaling, capabilities.Journaling);
+        Assert.True(capabilities.CanOpen);
+    }
+
+    [Fact]
+    public void A_long_line_says_what_was_taken_away_and_where_the_limit_is()
+    {
+        var notice = DocumentSizePolicy.Default.Evaluate(64 * Kib, hasLongLines: true).Notice;
+
+        Assert.NotNull(notice);
+        Assert.Contains("10,000", notice!, StringComparison.Ordinal);
+        Assert.Contains("highlighting", notice!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_long_line_in_a_large_document_keeps_the_size_sentence_too()
+    {
+        var notice = DocumentSizePolicy.Default.Evaluate(5 * Mib, hasLongLines: true).Notice;
+
+        Assert.NotNull(notice);
+        Assert.StartsWith(DocumentSizePolicy.Default.Evaluate(5 * Mib).Notice!, notice!, StringComparison.Ordinal);
+        Assert.Contains("10,000", notice!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reassess_follows_the_size_for_what_the_editor_switches_on()
+    {
+        // A scratch tab that has been pasted into: the tier moves with the text, which is the
+        // whole point, because the tab was born empty and in the full tier.
+        var capabilities = DocumentSizePolicy.Default.Reassess(50 * Mib, hasLongLines: false, journaling: true);
+
+        Assert.Equal(DocumentTier.PlainText, capabilities.Tier);
+        Assert.False(capabilities.SyntaxHighlighting);
+        Assert.False(capabilities.Folding);
+        Assert.False(capabilities.DetectOnEdit);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Reassess_carries_journaling_through_whatever_the_size(bool journaling)
+    {
+        // Withdrawing it from a tab that grew would leave a stale shadow copy behind, and
+        // granting it to one that shrank buys nothing. Either way it is not the size's call.
+        foreach (var size in new[] { 0L, 5 * Mib, 50 * Mib, 250 * Mib })
+        {
+            Assert.Equal(journaling, DocumentSizePolicy.Default.Reassess(size, hasLongLines: false, journaling).Journaling);
+        }
+    }
+
+    [Fact]
+    public void A_journaled_plain_text_document_is_not_told_its_auto_save_is_off()
+    {
+        // The plain-text sentence used to say "auto-save off" unconditionally, which is
+        // false of a scratch tab: it is journaled whatever its size.
+        var notice = DocumentSizePolicy.Default.Reassess(50 * Mib, hasLongLines: false, journaling: true).Notice;
+
+        Assert.NotNull(notice);
+        Assert.DoesNotContain("auto-save", notice!, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void An_open_document_past_the_ceiling_is_reassessed_rather_than_refused()
+    {
+        // A buffer restored after the ceiling was lowered is already on screen; refusing it
+        // is not an option any more, and it must not keep features the ceiling exists to
+        // withhold.
+        var capabilities = DocumentSizePolicy.Default.Reassess(250 * Mib, hasLongLines: false, journaling: true);
+
+        Assert.Equal(DocumentTier.Rejected, capabilities.Tier);
+        Assert.False(capabilities.SyntaxHighlighting);
+        Assert.False(capabilities.Folding);
+        Assert.False(capabilities.DetectOnEdit);
+        Assert.True(capabilities.Journaling);
+        Assert.False(string.IsNullOrWhiteSpace(capabilities.Notice));
+    }
+
+    [Fact]
+    public void Reassess_rejects_negative_sizes()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => DocumentSizePolicy.Default.Reassess(-1, hasLongLines: false, journaling: true));
+    }
+
+    [Theory]
     [InlineData(0, "0 bytes")]
     [InlineData(512, "512 bytes")]
     [InlineData(1024, "1 KB")]
