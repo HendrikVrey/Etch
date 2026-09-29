@@ -298,9 +298,15 @@ are refused, nothing reaches a shell, hyperlink detection in the editor is off, 
 bounded, and the instance hand-off uses a named pipe restricted to the current user with
 every path revalidated on arrival.
 
-**Etch initiates no network requests** - no telemetry, no update check, no crash
-reporting, nothing. Opening a UNC path does SMB I/O exactly as any Windows file open
-does; that is your request, not Etch reaching out. Command-line parsing touches no
+**Etch sends none of your text anywhere.** No telemetry, no crash reporting, no
+account. The one network request it can make is the **update check, and only if you
+allow it**: the first time you run a version that has it, Etch asks. If you say yes, it
+asks `api.github.com` once a day for the newest release of Etch, carrying Etch's version
+in the `User-Agent` and nothing else. When a newer version exists, a strip at the bottom
+says so; nothing is downloaded until you press **Update**, and the installer is checked
+against the SHA-256 GitHub publishes before it is run. Change your answer, or check by
+hand, under **Updates** in <kbd>Ctrl</kbd>+<kbd>,</kbd>. Opening a UNC path does SMB I/O
+exactly as any Windows file open does; that is your request, not Etch reaching out. Command-line parsing touches no
 filesystem at all, so a hostile path cannot hang startup on a network timeout before the
 window even exists.
 

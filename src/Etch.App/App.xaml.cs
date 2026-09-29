@@ -74,7 +74,7 @@ public partial class App : Application
         // session, because the plan's order is render then hydrate and a settings read
         // in front of the first frame would be exactly the kind of small disk cost the
         // startup budget is spent avoiding.
-        _window = new EtchWindow(_workspace, _settings, _mode.FileToOpen);
+        _window = new EtchWindow(_workspace, _settings, new UpdateStateStore(_paths), _mode.FileToOpen);
         _window.OnClosingStarted(_channel.StopAccepting);
         StartupTimeline.Mark("window-constructed");
 

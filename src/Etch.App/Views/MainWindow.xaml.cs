@@ -117,10 +117,11 @@ public partial class MainWindow : FluentWindow
     private bool _shutdownComplete;
     private Action? _closing;
 
-    internal MainWindow(Workspace workspace, SettingsStore settingsStore, string? fileToOpen)
+    internal MainWindow(Workspace workspace, SettingsStore settingsStore, UpdateStateStore updateStore, string? fileToOpen)
     {
         _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
         _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
+        _updateStore = updateStore ?? throw new ArgumentNullException(nameof(updateStore));
         _fileToOpen = fileToOpen;
 
         NewTabCommand = new RelayCommand(() => _ = _workspace.NewScratch());
@@ -264,6 +265,9 @@ public partial class MainWindow : FluentWindow
         // is worth more than a timing number, and it is the only one of the two the user
         // can act on.
         ShowPendingSettingsNotice();
+
+        // After the settings, because whether the user has allowed update checks is one.
+        StartUpdates();
     }
 
     /// <summary>Opens a file at the request of a second launch of Etch.</summary>
@@ -349,6 +353,11 @@ public partial class MainWindow : FluentWindow
         }
 
         _shutdownStarted = true;
+
+        // A check or download in flight has nobody left to show its answer to, and the
+        // flush below can take seconds; stopping it now is what keeps a download finishing
+        // during that flush from starting an installer nobody asked for.
+        StopUpdates();
 
         // Stop taking hand-offs the moment shutdown begins. Otherwise a second launch in
         // this window is told its file was accepted, and the file is opened into a window
@@ -526,6 +535,8 @@ public partial class MainWindow : FluentWindow
 
         _wipeTimer?.Stop();
         _wipeTimer = null;
+
+        StopUpdates();
 
         StopCounting();
         _countTimer = null;

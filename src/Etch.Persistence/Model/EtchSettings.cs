@@ -20,6 +20,11 @@ namespace Etch.Persistence.Model;
 /// <param name="ReducedThresholdBytes">Size above which folding is switched off.</param>
 /// <param name="PlainTextThresholdBytes">Size above which highlighting and auto-save are switched off.</param>
 /// <param name="HardCeilingBytes">Size above which a document is refused.</param>
+/// <param name="CheckForUpdates">
+/// Whether Etch may ask GitHub once a day for a new version. Null until the user has been
+/// asked, which is what makes Etch ask: the check is opt-in, so no answer is never taken
+/// as a yes. Optional in the constructor so a file written before it existed still reads.
+/// </param>
 /// <remarks>
 /// <para>
 /// <b>Primitives, not the policy types they configure.</b> Storing a
@@ -49,7 +54,8 @@ public sealed record EtchSettings(
     bool Ligatures,
     long ReducedThresholdBytes,
     long PlainTextThresholdBytes,
-    long HardCeilingBytes)
+    long HardCeilingBytes,
+    bool? CheckForUpdates = null)
 {
     /// <summary>The schema version this build writes.</summary>
     public const int CurrentVersion = 1;
@@ -84,7 +90,8 @@ public sealed record EtchSettings(
         Ligatures: true,
         ReducedThresholdBytes: 2L * 1024 * 1024,
         PlainTextThresholdBytes: 10L * 1024 * 1024,
-        HardCeilingBytes: 100L * 1024 * 1024);
+        HardCeilingBytes: 100L * 1024 * 1024,
+        CheckForUpdates: null);
 
     /// <summary>
     /// True when this file was written by a build newer than this one.

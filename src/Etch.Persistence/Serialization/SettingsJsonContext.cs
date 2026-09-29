@@ -34,6 +34,7 @@ namespace Etch.Persistence.Serialization;
     ReadCommentHandling = JsonCommentHandling.Skip,
     AllowTrailingCommas = true)]
 [JsonSerializable(typeof(EtchSettings))]
+[JsonSerializable(typeof(UpdateState))]
 internal sealed partial class SettingsJsonContext : JsonSerializerContext
 {
 }

@@ -17,6 +17,7 @@ public sealed class EtchPaths
     private const string TrashFolder = "trash";
     private const string SessionFileName = "session.json";
     private const string SettingsFileName = "settings.json";
+    private const string UpdateFileName = "update.json";
     private const string LockFileName = ".lock";
     private const string QuarantinePrefix = "session.quarantined-";
 
@@ -39,6 +40,7 @@ public sealed class EtchPaths
         TrashDirectory = Path.Combine(Root, TrashFolder);
         SessionFile = Path.Combine(Root, SessionFileName);
         SettingsFile = Path.Combine(Root, SettingsFileName);
+        UpdateFile = Path.Combine(Root, UpdateFileName);
         LockFile = Path.Combine(Root, LockFileName);
     }
 
@@ -67,6 +69,19 @@ public sealed class EtchPaths
     /// if a wipe reset it.
     /// </remarks>
     public string SettingsFile { get; }
+
+    /// <summary>
+    /// When Etch last asked GitHub for a new version, and which version the user skipped.
+    /// </summary>
+    /// <remarks>
+    /// Its own file rather than a field in <see cref="SettingsFile"/>, because it is
+    /// written once a day with nobody touching anything, and the settings file is one
+    /// people edit by hand: rewriting it on a timer would replace a hand-edited file that
+    /// Etch could not parse with the defaults, which is the one thing
+    /// <c>SettingsStore</c> promises never to do. Survives a wipe for the same reason the
+    /// settings do: it holds no text and no path.
+    /// </remarks>
+    public string UpdateFile { get; }
 
     /// <summary>
     /// The file whose exclusive handle marks this data directory as owned by a

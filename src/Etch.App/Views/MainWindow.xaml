@@ -290,6 +290,7 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!--
@@ -500,8 +501,50 @@
             </StackPanel>
         </Border>
 
+        <!--
+            The update strip: asks once whether Etch may check for updates, then says when a
+            new version is out. A strip rather than a dialog for the no-modals rule, and
+            collapsed whenever it has nothing to say. The three buttons are labelled from
+            code, because what they mean depends on what the strip is saying; see
+            MainWindow.Updates.cs.
+        -->
         <Border
+            x:Name="UpdateBar"
             Grid.Row="3"
+            Padding="14,6,10,6"
+            BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+            BorderThickness="0,1,0,0"
+            Visibility="Collapsed">
+            <DockPanel LastChildFill="True">
+                <Button
+                    x:Name="UpdateTertiaryButton"
+                    Margin="6,0,0,0"
+                    Padding="10,3"
+                    Click="OnUpdateTertiaryClick"
+                    DockPanel.Dock="Right" />
+                <Button
+                    x:Name="UpdateSecondaryButton"
+                    Margin="6,0,0,0"
+                    Padding="10,3"
+                    Click="OnUpdateSecondaryClick"
+                    DockPanel.Dock="Right" />
+                <ui:Button
+                    x:Name="UpdatePrimaryButton"
+                    Margin="12,0,0,0"
+                    Padding="10,3"
+                    Appearance="Primary"
+                    Click="OnUpdatePrimaryClick"
+                    DockPanel.Dock="Right" />
+                <TextBlock
+                    x:Name="UpdateBarText"
+                    VerticalAlignment="Center"
+                    FontSize="12"
+                    TextWrapping="Wrap" />
+            </DockPanel>
+        </Border>
+
+        <Border
+            Grid.Row="4"
             Padding="14,4,10,4"
             BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
             BorderThickness="0,1,0,0">
@@ -632,7 +675,7 @@
         <Grid
             x:Name="PaletteOverlay"
             Grid.Row="0"
-            Grid.RowSpan="4"
+            Grid.RowSpan="5"
             Panel.ZIndex="10"
             Visibility="Collapsed">
 
@@ -735,7 +778,7 @@
         <Grid
             x:Name="SettingsOverlay"
             Grid.Row="0"
-            Grid.RowSpan="4"
+            Grid.RowSpan="5"
             Panel.ZIndex="9"
             Visibility="Collapsed">
 
@@ -950,6 +993,31 @@
                                 Content="Show &quot;Open with Etch&quot; when you right-click any file"
                                 Unchecked="OnOpenWithVerbChanged" />
 
+                            <!--  Updates  -->
+                            <TextBlock
+                                Margin="0,18,0,6"
+                                FontWeight="SemiBold"
+                                Text="Updates" />
+
+                            <CheckBox
+                                x:Name="UpdateCheckToggle"
+                                Checked="OnUpdateCheckToggled"
+                                Content="Check GitHub for a new version once a day"
+                                Unchecked="OnUpdateCheckToggled" />
+
+                            <TextBlock
+                                Margin="0,4,0,8"
+                                FontSize="11"
+                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                Text="One request to api.github.com for the newest release. It carries Etch's version and nothing else: no text, no file names, nothing that identifies you. An update is only installed when you say so."
+                                TextWrapping="Wrap" />
+
+                            <Button
+                                HorizontalAlignment="Left"
+                                Padding="12,5"
+                                Click="OnCheckNowClick"
+                                Content="Check now" />
+
                             <!--  Privacy  -->
                             <TextBlock
                                 Margin="0,18,0,6"
@@ -960,7 +1028,7 @@
                                 Margin="0,0,0,8"
                                 FontSize="11"
                                 Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                Text="Etch stores every tab as plain text in your user profile. Nothing leaves this machine, but anything pasted into a tab is on disk until it is wiped."
+                                Text="Etch stores every tab as plain text in your user profile. None of it leaves this machine, but anything pasted into a tab is on disk until it is wiped."
                                 TextWrapping="Wrap" />
 
                             <Button

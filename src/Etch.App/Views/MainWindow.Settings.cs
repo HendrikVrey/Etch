@@ -224,6 +224,8 @@ public partial class MainWindow
             // run this executable", not "did somebody write the key".
             OpenWithVerbCheckBox.IsChecked = FileAssociations.IsOpenWithVerbPresent();
 
+            UpdateCheckToggle.IsChecked = _settings.CheckForUpdates == true;
+
             SetText(SettingsValidation, string.Empty);
             SetText(
                 SettingsNotice,
