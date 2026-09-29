@@ -268,26 +268,4 @@ public class LargeDocumentTests
         Assert.Contains("64 KB", refusal, StringComparison.Ordinal);
     });
 
-    [Fact]
-    public void A_tab_keeps_the_thresholds_it_was_opened_with() => UiThread.Run(async () =>
-    {
-        // ApplySettings promises a changed threshold applies to the next document opened,
-        // and re-deriving capabilities on every edit must not quietly break that.
-        using var directory = TemporaryDataDirectory.Create();
-        await using var workspace = await OpenAsync(directory);
-
-        var tab = workspace.Active!;
-
-        workspace.ApplySettings(Etch.Persistence.Model.EtchSettings.Default with
-        {
-            ReducedThresholdBytes = 64 * Kib,
-            PlainTextThresholdBytes = 128 * Kib,
-            HardCeilingBytes = 256 * Kib,
-        });
-
-        tab.Document!.Text = Lines(200 * 1024);
-
-        Assert.Equal(DocumentTier.Full, tab.Capabilities.Tier);
-        Assert.True(tab.Fits(300 * Kib, out _));
-    });
 }

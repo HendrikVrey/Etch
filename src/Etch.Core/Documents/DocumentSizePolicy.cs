@@ -6,8 +6,11 @@ namespace Etch.Core.Documents;
 /// Maps a document size to the set of editor features it may use.
 /// </summary>
 /// <remarks>
-/// Thresholds are configurable but ship with defaults chosen from the Etch plan
-/// (section 10). The boundaries are inclusive-below: a document of exactly
+/// The application runs on <see cref="Default"/> and nothing else. The thresholds were a
+/// user setting until 2026-09-29 and were taken out: nobody could know what to set, and
+/// any other number either brought back the freezes the tiers prevent or asked Etch to
+/// hold more text than it can. The constructor stays public so tests can exercise the
+/// tiers with small sizes. The boundaries are inclusive-below: a document of exactly
 /// <see cref="ReducedThreshold"/> bytes is still <see cref="DocumentTier.Full"/>.
 /// </remarks>
 public sealed class DocumentSizePolicy

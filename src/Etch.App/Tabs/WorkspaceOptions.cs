@@ -10,8 +10,7 @@ namespace Etch.App.Tabs;
 /// <remarks>
 /// Grouped into one object so that the workspace constructor does not grow a
 /// parameter per setting, and so that a test can vary one of them without restating
-/// the rest. There is no settings UI yet; when M3 adds one, this is the type it
-/// populates.
+/// the rest. Of these, only <see cref="Retention"/> is a user setting.
 /// </remarks>
 internal sealed record WorkspaceOptions
 {
@@ -25,6 +24,11 @@ internal sealed record WorkspaceOptions
     public JournalOptions Journal { get; init; } = JournalOptions.Default;
 
     /// <summary>Where the size-based degradation thresholds sit.</summary>
+    /// <remarks>
+    /// Not a user setting since 2026-09-29: the application always runs on
+    /// <see cref="DocumentSizePolicy.Default"/>. It stays an option so tests can exercise
+    /// the tiers with kilobytes rather than megabytes.
+    /// </remarks>
     public DocumentSizePolicy SizePolicy { get; init; } = DocumentSizePolicy.Default;
 
     /// <summary>

@@ -862,6 +862,14 @@
                                 Text="Zero deletes a tab's text the moment you close it, so Ctrl+Shift+T cannot bring it back."
                                 TextWrapping="Wrap" />
 
+                            <TextBlock
+                                x:Name="SettingsValidation"
+                                Margin="0,4,0,0"
+                                FontSize="11"
+                                Visibility="Collapsed"
+                                Foreground="{DynamicResource SystemFillColorCautionBrush}"
+                                TextWrapping="Wrap" />
+
                             <!--  Editor  -->
                             <TextBlock
                                 Margin="0,18,0,6"
@@ -873,74 +881,6 @@
                                 Checked="OnSettingToggled"
                                 Content="Font ligatures (Cascadia Code)"
                                 Unchecked="OnSettingToggled" />
-
-                            <!--  Large files  -->
-                            <TextBlock
-                                Margin="0,18,0,6"
-                                FontWeight="SemiBold"
-                                Text="Large files" />
-
-                            <TextBlock
-                                Margin="0,0,0,8"
-                                FontSize="11"
-                                Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                Text="Etch turns features off as a file gets bigger, so a large one still opens quickly."
-                                TextWrapping="Wrap" />
-
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock
-                                    Width="210"
-                                    VerticalAlignment="Center"
-                                    Text="Folding above" />
-                                <TextBox
-                                    x:Name="ReducedThresholdInput"
-                                    Width="70"
-                                    VerticalContentAlignment="Center"
-                                    TextChanged="OnSettingTextChanged" />
-                                <TextBlock
-                                    Margin="8,0,0,0"
-                                    VerticalAlignment="Center"
-                                    Text="MB" />
-                            </StackPanel>
-
-                            <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
-                                <TextBlock
-                                    Width="210"
-                                    VerticalAlignment="Center"
-                                    Text="Highlighting,  auto-save above" />
-                                <TextBox
-                                    x:Name="PlainTextThresholdInput"
-                                    Width="70"
-                                    VerticalContentAlignment="Center"
-                                    TextChanged="OnSettingTextChanged" />
-                                <TextBlock
-                                    Margin="8,0,0,0"
-                                    VerticalAlignment="Center"
-                                    Text="MB" />
-                            </StackPanel>
-
-                            <StackPanel Margin="0,6,0,0" Orientation="Horizontal">
-                                <TextBlock
-                                    Width="210"
-                                    VerticalAlignment="Center"
-                                    Text="Refuse to open above" />
-                                <TextBox
-                                    x:Name="HardCeilingInput"
-                                    Width="70"
-                                    VerticalContentAlignment="Center"
-                                    TextChanged="OnSettingTextChanged" />
-                                <TextBlock
-                                    Margin="8,0,0,0"
-                                    VerticalAlignment="Center"
-                                    Text="MB" />
-                            </StackPanel>
-
-                            <TextBlock
-                                x:Name="SettingsValidation"
-                                Margin="0,8,0,0"
-                                FontSize="11"
-                                Foreground="{DynamicResource SystemFillColorCautionBrush}"
-                                TextWrapping="Wrap" />
 
                             <!--  File associations  -->
                             <TextBlock

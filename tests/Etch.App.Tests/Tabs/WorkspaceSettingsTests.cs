@@ -180,55 +180,16 @@ public class WorkspaceSettingsTests
     });
 
     [Fact]
-    public void A_lowered_threshold_applies_to_the_next_open_and_not_to_open_tabs() => UiThread.Run(async () =>
+    public void Applying_sanitised_settings_never_throws() => UiThread.Run(async () =>
     {
         using var directory = TemporaryDataDirectory.Create();
         await using var workspace = await OpenAsync(directory);
 
-        var path = Path.Combine(directory.Root, "sample.txt");
-        await File.WriteAllTextAsync(path, new string('x', 400_000), TestContext.Current.CancellationToken);
-
-        var before = await workspace.OpenFileAsync(path, TestContext.Current.CancellationToken);
-
-        Assert.NotNull(before);
-        Assert.True(before!.Capabilities.Journaling);
-
-        // Below the file's size, so a tab opened from here on is plain-text.
-        workspace.ApplySettings(EtchSettings.Default with
-        {
-            ReducedThresholdBytes = 64 * 1024,
-            PlainTextThresholdBytes = 128 * 1024,
-            HardCeilingBytes = 4L * 1024 * 1024,
-        });
-
-        // The tab already open keeps what it was opened with. Revoking journaling from a
-        // buffer somebody is typing into, on the strength of a number they just changed,
-        // is the failure ApplySettings' remarks rule out.
-        Assert.True(before.Capabilities.Journaling);
-
-        await workspace.CloseAsync(before, TestContext.Current.CancellationToken);
-
-        var after = await workspace.OpenFileAsync(path, TestContext.Current.CancellationToken);
-
-        Assert.NotNull(after);
-        Assert.False(after!.Capabilities.Journaling);
-        Assert.False(after.Capabilities.SyntaxHighlighting);
-    });
-
-    [Fact]
-    public void Applying_settings_never_builds_a_policy_that_throws() => UiThread.Run(async () =>
-    {
-        using var directory = TemporaryDataDirectory.Create();
-        await using var workspace = await OpenAsync(directory);
-
-        // ApplySettings documents that it will throw on an unsanitised set, and every
-        // caller sanitises. This asserts the seam between the two actually holds, for the
+        // Retention becomes a TimeSpan, which int.MaxValue days is not. Every caller
+        // sanitises first; this asserts the seam between the two actually holds, for the
         // hostile values a hand-edited settings.json can produce.
         EtchSettings[] hostile =
         [
-            EtchSettings.Default with { ReducedThresholdBytes = 0 },
-            EtchSettings.Default with { HardCeilingBytes = 1 },
-            EtchSettings.Default with { PlainTextThresholdBytes = long.MaxValue },
             EtchSettings.Default with { TrashRetentionDays = -1 },
             EtchSettings.Default with { TrashRetentionDays = int.MaxValue },
         ];

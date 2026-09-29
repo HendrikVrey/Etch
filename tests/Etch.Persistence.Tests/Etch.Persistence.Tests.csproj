@@ -22,13 +22,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Etch.Persistence\Etch.Persistence.csproj" />
-    <!--
-      Direct as well as transitive, matching the note in Etch.App.Tests.csproj:
-      EtchSettingsTests asserts that the shipped settings defaults agree with
-      DocumentSizePolicy.Default, and a project that names a type should say where it
-      comes from rather than inherit it by accident.
-    -->
-    <ProjectReference Include="..\..\src\Etch.Core\Etch.Core.csproj" />
   </ItemGroup>
 
 </Project>

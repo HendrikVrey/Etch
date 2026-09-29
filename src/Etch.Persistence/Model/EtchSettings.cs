@@ -17,9 +17,6 @@ namespace Etch.Persistence.Model;
 /// Whether the editor font may form ligatures. Cascadia Mono has them and some people
 /// cannot read <c>!=</c> as <c>≠</c>.
 /// </param>
-/// <param name="ReducedThresholdBytes">Size above which folding is switched off.</param>
-/// <param name="PlainTextThresholdBytes">Size above which highlighting and auto-save are switched off.</param>
-/// <param name="HardCeilingBytes">Size above which a document is refused.</param>
 /// <param name="CheckForUpdates">
 /// Whether Etch may ask GitHub once a day for a new version. Null until the user has been
 /// asked, which is what makes Etch ask: the check is opt-in, so no answer is never taken
@@ -28,11 +25,19 @@ namespace Etch.Persistence.Model;
 /// <remarks>
 /// <para>
 /// <b>Primitives, not the policy types they configure.</b> Storing a
-/// <c>RetentionPolicy</c> or a <c>DocumentSizePolicy</c> here would tie the file format
-/// to two classes that exist to be constructed with validation, and a validating
-/// constructor is exactly what must not run against untrusted bytes during a
-/// deserialisation. The mapping onto those types happens in the application layer,
-/// against values <see cref="Sanitised"/> has already checked.
+/// <c>RetentionPolicy</c> here would tie the file format to a class that exists to be
+/// constructed with validation, and a validating constructor is exactly what must not
+/// run against untrusted bytes during a deserialisation. The mapping onto that type
+/// happens in the application layer, against values <see cref="Sanitised"/> has already
+/// checked.
+/// </para>
+/// <para>
+/// <b>The large-file sizes are not here any more.</b> Until 2026-09-29 this held three
+/// thresholds (<c>reducedThresholdBytes</c>, <c>plainTextThresholdBytes</c>,
+/// <c>hardCeilingBytes</c>). They are fixed in <c>DocumentSizePolicy.Default</c> now,
+/// because no value but the shipped one was ever safe to choose. A file that still has
+/// them loads normally: the serialiser skips properties it does not know, and the next
+/// save drops them.
 /// </para>
 /// <para>
 /// <b>File associations are deliberately not here.</b> They live in the registry, and
@@ -52,9 +57,6 @@ public sealed record EtchSettings(
     int Version,
     int TrashRetentionDays,
     bool Ligatures,
-    long ReducedThresholdBytes,
-    long PlainTextThresholdBytes,
-    long HardCeilingBytes,
     bool? CheckForUpdates = null)
 {
     /// <summary>The schema version this build writes.</summary>
@@ -68,29 +70,11 @@ public sealed record EtchSettings(
     /// </remarks>
     public const int MaxRetentionDays = 365;
 
-    /// <summary>The smallest threshold that may be configured, in bytes.</summary>
-    /// <remarks>
-    /// 64 KiB. Below this the reduced tier would swallow ordinary source files, and an
-    /// editor that turns folding off for a 2 KB file reads as broken rather than careful.
-    /// </remarks>
-    public const long MinThresholdBytes = 64L * 1024L;
-
-    /// <summary>The largest threshold that may be configured, in bytes.</summary>
-    /// <remarks>
-    /// 4 GiB. The ceiling exists so a hand-edited file cannot ask Etch to load a document
-    /// that cannot exist: .NET's maximum object size stops well short of this, and the
-    /// loader would fail far less clearly than this refusal does.
-    /// </remarks>
-    public const long MaxThresholdBytes = 4L * 1024L * 1024L * 1024L;
-
-    /// <summary>The shipped defaults. These match <c>DocumentSizePolicy.Default</c>.</summary>
+    /// <summary>The shipped defaults.</summary>
     public static EtchSettings Default { get; } = new(
         CurrentVersion,
         TrashRetentionDays: 7,
         Ligatures: true,
-        ReducedThresholdBytes: 2L * 1024 * 1024,
-        PlainTextThresholdBytes: 10L * 1024 * 1024,
-        HardCeilingBytes: 100L * 1024 * 1024,
         CheckForUpdates: null);
 
     /// <summary>
@@ -108,19 +92,10 @@ public sealed record EtchSettings(
     /// Returns a copy with every value forced into its legal range.
     /// </summary>
     /// <remarks>
-    /// <para>
     /// Clamping rather than rejecting, and that is the whole design of this type. The
     /// file is hand-editable, and one bad number must not cost the user every other
     /// preference they set, so an out-of-range value falls back to the shipped default
     /// for that field alone and the rest are kept.
-    /// </para>
-    /// <para>
-    /// The three thresholds are treated as one group because they are only meaningful as
-    /// one: <c>DocumentSizePolicy</c> requires them strictly ascending and throws
-    /// otherwise. A set that does not ascend is replaced wholesale rather than repaired,
-    /// because there is no honest way to guess which of the three the user meant, and
-    /// repairing two of them to satisfy the third would produce a policy nobody chose.
-    /// </para>
     /// </remarks>
     public EtchSettings Sanitised()
     {
@@ -128,18 +103,10 @@ public sealed record EtchSettings(
             ? TrashRetentionDays
             : Default.TrashRetentionDays;
 
-        var thresholdsAreUsable = ReducedThresholdBytes >= MinThresholdBytes
-            && HardCeilingBytes <= MaxThresholdBytes
-            && ReducedThresholdBytes < PlainTextThresholdBytes
-            && PlainTextThresholdBytes < HardCeilingBytes;
-
         return this with
         {
             Version = CurrentVersion,
             TrashRetentionDays = retention,
-            ReducedThresholdBytes = thresholdsAreUsable ? ReducedThresholdBytes : Default.ReducedThresholdBytes,
-            PlainTextThresholdBytes = thresholdsAreUsable ? PlainTextThresholdBytes : Default.PlainTextThresholdBytes,
-            HardCeilingBytes = thresholdsAreUsable ? HardCeilingBytes : Default.HardCeilingBytes,
         };
     }
 }

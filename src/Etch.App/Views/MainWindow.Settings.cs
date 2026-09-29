@@ -26,9 +26,16 @@ namespace Etch.App.Views;
 /// this panel rather than a pleasant property of it: a settings screen accumulates
 /// knobs that do nothing faster than any other part of an application, and each one
 /// teaches the user that the rest might be lying too. Retention reaches the trash sweep,
-/// ligatures reach the editor's typeface, the thresholds reach the size policy every
-/// open goes through, the wipe calls the one in <c>Etch.Persistence</c> that has had no
-/// caller since M1, and the association checkboxes read and write the registry.
+/// ligatures reach the editor's typeface, the wipe calls the one in
+/// <c>Etch.Persistence</c> that has had no caller since M1, and the association
+/// checkboxes read and write the registry.
+/// </para>
+/// <para>
+/// The large-file sizes used to be here as three megabyte boxes and were taken out on
+/// 2026-09-29. Nobody could know what number to type, and every number other than the
+/// shipped one either brought back the freezes the tiers exist to prevent or asked
+/// Etch to hold more text than .NET can. They are fixed in
+/// <c>DocumentSizePolicy.Default</c>.
 /// </para>
 /// <para>
 /// Changes apply on the spot rather than behind an OK button. There is nothing to
@@ -110,8 +117,8 @@ public partial class MainWindow
     /// <remarks>
     /// Called by the application once the settings file has been read and before the
     /// first frame. The typeface is applied here rather than lazily because a font change
-    /// after the editor is visible is a visible reflow; the size thresholds go to the
-    /// workspace because it evaluates them on every open.
+    /// after the editor is visible is a visible reflow; retention goes to the workspace
+    /// because it reads it on every close.
     /// </remarks>
     internal void ApplyStartupSettings(SettingsLoadResult loaded)
     {
@@ -209,10 +216,6 @@ public partial class MainWindow
             RetentionInput.Text = _settings.TrashRetentionDays.ToString(CultureInfo.CurrentCulture);
             LigatureToggle.IsChecked = _settings.Ligatures;
 
-            ReducedThresholdInput.Text = SettingsThresholds.Format(_settings.ReducedThresholdBytes);
-            PlainTextThresholdInput.Text = SettingsThresholds.Format(_settings.PlainTextThresholdBytes);
-            HardCeilingInput.Text = SettingsThresholds.Format(_settings.HardCeilingBytes);
-
             foreach (var checkBox in AssociationCheckBoxes())
             {
                 checkBox.IsChecked = checkBox.Tag is string extension && FileAssociations.IsHonoured(extension);
@@ -226,7 +229,7 @@ public partial class MainWindow
 
             UpdateCheckToggle.IsChecked = _settings.CheckForUpdates == true;
 
-            SetText(SettingsValidation, string.Empty);
+            ShowValidation(null);
             SetText(
                 SettingsNotice,
                 _canSaveSettings
@@ -252,7 +255,7 @@ public partial class MainWindow
     /// </remarks>
     private IEnumerable<CheckBox> AssociationCheckBoxes() => AssociationList.Children.OfType<CheckBox>();
 
-    /// <summary>Handles the three size boxes and the retention box.</summary>
+    /// <summary>Handles the retention box.</summary>
     /// <remarks>
     /// Declared with <see cref="TextChangedEventArgs"/> rather than the
     /// <see cref="RoutedEventArgs"/> the toggles use, so the delegate the XAML compiler
@@ -268,12 +271,6 @@ public partial class MainWindow
     /// </summary>
     /// <remarks>
     /// <para>
-    /// One handler for all of them rather than one per control. The three thresholds are
-    /// only meaningful as an ascending set and have to be validated together anyway; a
-    /// per-control handler would have to reach for its two siblings to do it, which is
-    /// the same code written three times.
-    /// </para>
-    /// <para>
     /// A field that does not parse leaves its setting alone rather than resetting it.
     /// Somebody halfway through typing "12" has typed "1", and an editor that snapped the
     /// value back to a default on every keystroke would be unusable. Nothing is lost by
@@ -288,8 +285,6 @@ public partial class MainWindow
             return;
         }
 
-        var complaints = new List<string>(2);
-
         // Read before the `with` rather than inside it. An out-variable declaration in an
         // object initialiser is a corner of the language not worth relying on, and the
         // two-line version is clearer regardless.
@@ -301,66 +296,26 @@ public partial class MainWindow
             Ligatures = LigatureToggle.IsChecked == true,
         };
 
-        if (!retentionIsUsable)
-        {
-            complaints.Add(
-                string.Create(
+        ShowValidation(
+            retentionIsUsable
+                ? null
+                : string.Create(
                     CultureInfo.CurrentCulture,
-                    $"Retention must be a whole number of days between 0 and {EtchSettings.MaxRetentionDays}."));
-        }
-
-        // Only when one of the three boxes has actually been typed in. Reading them back
-        // otherwise would rewrite every threshold at display precision the moment somebody
-        // edited the retention field beside them (102,400 bytes becoming 102,445) because
-        // Format cannot represent an arbitrary byte count in four decimal places of MB.
-        // All three are taken together or none is, so a mixture can never produce a set
-        // that fails to ascend.
-        if (ThresholdsWereEdited())
-        {
-            if (SettingsThresholds.TryParse(
-                ReducedThresholdInput.Text,
-                PlainTextThresholdInput.Text,
-                HardCeilingInput.Text,
-                out var reduced,
-                out var plainText,
-                out var ceiling))
-            {
-                candidate = candidate with
-                {
-                    ReducedThresholdBytes = reduced,
-                    PlainTextThresholdBytes = plainText,
-                    HardCeilingBytes = ceiling,
-                };
-            }
-            else
-            {
-                complaints.Add("Sizes must increase from top to bottom, and sit between 0.0625 MB and 4096 MB.");
-            }
-        }
-
-        SetText(
-            SettingsValidation,
-            complaints.Count == 0
-                ? string.Empty
-                : string.Join("  ", complaints) + "  The last usable values are still in effect.");
+                    $"Retention must be a whole number of days between 0 and {EtchSettings.MaxRetentionDays}.  The last usable value is still in effect."));
 
         ApplySettings(candidate.Sanitised());
     }
 
-    /// <summary>
-    /// Whether any of the three size boxes still holds exactly what the panel wrote into it.
-    /// </summary>
+    /// <summary>Shows the panel's complaint under the retention box, or hides the line.</summary>
     /// <remarks>
-    /// One answer for all three rather than one each. A per-box decision would let a
-    /// touched box and two untouched ones combine into a set that no longer ascends,
-    /// which <c>DocumentSizePolicy</c> throws on, and there is no reading of "the user
-    /// edited the thresholds" under which two of them should keep sub-display precision
-    /// while the third does not.
+    /// Collapsed rather than emptied: an empty <see cref="TextBlock"/> still takes a line
+    /// of height, which left a gap under the retention hint that no other section has.
     /// </remarks>
-    private bool ThresholdsWereEdited() =>
-        !SettingsThresholds.IsUnchanged(ReducedThresholdInput.Text, _settings.ReducedThresholdBytes)
-        || !SettingsThresholds.IsUnchanged(PlainTextThresholdInput.Text, _settings.PlainTextThresholdBytes)
-        || !SettingsThresholds.IsUnchanged(HardCeilingInput.Text, _settings.HardCeilingBytes);
+    private void ShowValidation(string? complaint)
+    {
+        SetText(SettingsValidation, complaint ?? string.Empty);
+        SettingsValidation.Visibility = complaint is null ? Visibility.Collapsed : Visibility.Visible;
+    }
 
     /// <summary>
     /// Reads the retention box, reporting whether it held a usable value.
@@ -396,9 +351,8 @@ public partial class MainWindow
             Editor.FontFamily = settings.Ligatures ? LigatureFont : PlainFont;
         }
 
-        // Retention is read on every close and the size policy on every open, so both
-        // take effect immediately rather than at the next launch. Only the write to disk
-        // is deferred.
+        // Retention is read on every close, so it takes effect immediately rather than at
+        // the next launch. Only the write to disk is deferred.
         _workspace.ApplySettings(settings);
 
         QueueSettingsSave();

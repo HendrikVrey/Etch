@@ -48,7 +48,6 @@ public class SettingsStoreTests
         {
             TrashRetentionDays = 0,
             Ligatures = false,
-            ReducedThresholdBytes = 512 * 1024,
         };
 
         await store.SaveAsync(saved, TestContext.Current.CancellationToken);
@@ -104,10 +103,7 @@ public class SettingsStoreTests
             {
               "version": 1,
               "trashRetentionDays": -9,
-              "ligatures": false,
-              "reducedThresholdBytes": 2097152,
-              "plainTextThresholdBytes": 10485760,
-              "hardCeilingBytes": 104857600
+              "ligatures": false
             }
             """,
             TestContext.Current.CancellationToken);
@@ -120,6 +116,45 @@ public class SettingsStoreTests
         // point of clamping rather than rejecting the file.
         Assert.Equal(EtchSettings.Default.TrashRetentionDays, result.Settings.TrashRetentionDays);
         Assert.False(result.Settings.Ligatures);
+    }
+
+    [Fact]
+    public async Task A_file_from_when_the_sizes_were_settings_still_loads_and_loses_them_on_save()
+    {
+        using var workspace = TemporaryWorkspace.Create();
+        var store = new SettingsStore(workspace.Paths);
+
+        // Every settings.json written before 2026-09-29 carries the three large-file
+        // thresholds, which are fixed in the application now. Refusing such a file would
+        // cost everybody who upgrades their other preferences.
+        await File.WriteAllTextAsync(
+            workspace.Paths.SettingsFile,
+            """
+            {
+              "version": 1,
+              "trashRetentionDays": 3,
+              "ligatures": false,
+              "reducedThresholdBytes": 65536,
+              "plainTextThresholdBytes": 131072,
+              "hardCeilingBytes": 4294967296,
+              "checkForUpdates": true
+            }
+            """,
+            TestContext.Current.CancellationToken);
+
+        var result = await store.LoadAsync(TestContext.Current.CancellationToken);
+
+        Assert.Equal(SettingsLoadStatus.Loaded, result.Status);
+        Assert.Equal(3, result.Settings.TrashRetentionDays);
+        Assert.False(result.Settings.Ligatures);
+        Assert.True(result.Settings.CheckForUpdates);
+
+        await store.SaveAsync(result.Settings, TestContext.Current.CancellationToken);
+
+        var written = await File.ReadAllTextAsync(workspace.Paths.SettingsFile, TestContext.Current.CancellationToken);
+
+        Assert.DoesNotContain("Threshold", written, StringComparison.Ordinal);
+        Assert.DoesNotContain("hardCeiling", written, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -137,9 +172,6 @@ public class SettingsStoreTests
               "version": 1,
               "trashRetentionDays": 0,
               "ligatures": true,
-              "reducedThresholdBytes": 2097152,
-              "plainTextThresholdBytes": 10485760,
-              "hardCeilingBytes": 104857600,
             }
             """,
             TestContext.Current.CancellationToken);
@@ -161,10 +193,7 @@ public class SettingsStoreTests
             {
               "version": 1,
               "trashRetentionDays": 3,
-              "ligatures": true,
-              "reducedThresholdBytes": 2097152,
-              "plainTextThresholdBytes": 10485760,
-              "hardCeilingBytes": 104857600
+              "ligatures": true
             }
             """;
 
@@ -190,10 +219,7 @@ public class SettingsStoreTests
             {
               "version": {{EtchSettings.CurrentVersion + 1}},
               "trashRetentionDays": 30,
-              "ligatures": false,
-              "reducedThresholdBytes": 2097152,
-              "plainTextThresholdBytes": 10485760,
-              "hardCeilingBytes": 104857600
+              "ligatures": false
             }
             """,
             TestContext.Current.CancellationToken);
@@ -267,7 +293,7 @@ public class SettingsStoreTests
         // A caller that skipped Sanitised. The store must not write a file it would then
         // refuse to load.
         await store.SaveAsync(
-            EtchSettings.Default with { TrashRetentionDays = -1, HardCeilingBytes = 1 },
+            EtchSettings.Default with { TrashRetentionDays = -1 },
             TestContext.Current.CancellationToken);
 
         var result = await store.LoadAsync(TestContext.Current.CancellationToken);

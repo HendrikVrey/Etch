@@ -284,25 +284,12 @@ internal sealed class Workspace : IAsyncDisposable
     /// </summary>
     /// <param name="settings">Already sanitised by <see cref="EtchSettings.Sanitised"/>.</param>
     /// <remarks>
-    /// <para>
-    /// Only the two settings this layer actually reads. The typeface belongs to the
-    /// editor control and the associations belong to the registry; neither has any
-    /// business travelling through the workspace to reach the thing that owns it.
-    /// </para>
-    /// <para>
-    /// The size policy is rebuilt rather than mutated, and it applies to documents opened
-    /// from here on. Re-evaluating the tabs already open would mean revoking journaling
-    /// from a buffer the user has been typing into on the strength of a number they just
-    /// changed, so a tab keeps the thresholds it was opened with until it is reopened,
-    /// which is both simpler and the safer direction to be wrong in. What a tab switches on
-    /// still follows its own size as it is edited, measured against those kept thresholds.
-    /// </para>
+    /// Only the one setting this layer actually reads, retention. The typeface belongs to
+    /// the editor control and the associations belong to the registry; neither has any
+    /// business travelling through the workspace to reach the thing that owns it. The size
+    /// policy is not a setting: it is fixed for the workspace's lifetime by
+    /// <see cref="WorkspaceOptions.SizePolicy"/>.
     /// </remarks>
-    /// <exception cref="ArgumentOutOfRangeException">
-    /// The thresholds are not strictly ascending. <see cref="EtchSettings.Sanitised"/>
-    /// guarantees they are, so reaching this means an unsanitised value was passed and
-    /// the right answer is to fail loudly rather than to construct a policy nobody chose.
-    /// </exception>
     public void ApplySettings(EtchSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
@@ -312,10 +299,6 @@ internal sealed class Workspace : IAsyncDisposable
             Retention = settings.TrashRetentionDays == 0
                 ? RetentionPolicy.DeleteImmediately
                 : new RetentionPolicy(TimeSpan.FromDays(settings.TrashRetentionDays)),
-            SizePolicy = new DocumentSizePolicy(
-                settings.ReducedThresholdBytes,
-                settings.PlainTextThresholdBytes,
-                settings.HardCeilingBytes),
         };
     }
 

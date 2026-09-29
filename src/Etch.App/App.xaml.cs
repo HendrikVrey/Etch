@@ -148,10 +148,9 @@ public partial class App : Application
     private async void CompleteStartup()
     {
         // Before the restore, and that ordering is load-bearing rather than tidy: the
-        // restore evaluates every buffer against the workspace's size policy, and the
-        // size thresholds are one of the things the settings file configures. Reading it
-        // afterwards would mean the first session after a threshold change was still
-        // judged by the old one.
+        // restore sweeps the trash by the retention window, which the settings file
+        // configures. Reading it afterwards would sweep by the default, and somebody who
+        // chose thirty days would lose closed tabs older than seven at the next launch.
         await LoadSettingsAsync().ConfigureAwait(true);
 
         if (_workspace is { } workspace)
